@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="A-Z Folder Automator" />
+<meta name="theme-color" content="#0f1115" />
+<title>A-Z FOLDER AUTOMATOR</title>
+<style>
+:root{--bg:#0f1115;--card:#181c24;--ink:#f4f6fb;--muted:#aeb7c8;--border:#2a3140;--accent:#8bc6ff;--good:#a9f5c2;--warn:#ffd78a;--bad:#ffb3b3}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.45;padding-bottom:env(safe-area-inset-bottom)}header{padding:calc(16px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#171b23 0%,#0f1115 100%);position:sticky;top:0;z-index:5}h1{margin:0 0 5px;font-size:1.34rem;letter-spacing:.02em}h2{margin:0 0 9px;font-size:1.06rem}p,li{color:var(--muted)}main{padding:12px;max-width:1180px;margin:auto}.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:14px;margin:12px 0;box-shadow:0 8px 30px rgba(0,0,0,.18)}.grid{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:900px){.grid.two{grid-template-columns:1fr 1fr}.grid.three{grid-template-columns:1fr 1fr 1fr}}.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}button,.fileLabel,select{appearance:none;border:1px solid var(--border);background:#222938;color:var(--ink);border-radius:13px;padding:11px 13px;font-weight:900;cursor:pointer;font-size:14px}.primary{background:#24445f!important;border-color:#39698e!important}.good{background:#1b3b29!important;border-color:#366b49!important;color:var(--good)!important}.warn{background:#4a3918!important;border-color:#745d25!important;color:var(--warn)!important}input[type=file]{display:none}input[type=text],textarea{width:100%;background:#0c0f15;color:var(--ink);border:1px solid var(--border);border-radius:13px;padding:11px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}textarea{min-height:220px;text-transform:uppercase}.small{font-size:.9rem;color:var(--muted)}.badge{display:inline-block;border:1px solid var(--border);color:var(--warn);border-radius:999px;padding:4px 9px;font-size:.76rem;font-weight:800;margin:2px 4px 2px 0}.statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px}.stat{border:1px solid var(--border);border-radius:13px;padding:11px;background:#111620}.stat span{color:var(--muted);font-size:.8rem}.stat b{display:block;font-size:1.15rem;color:var(--accent)}.result{white-space:pre-wrap;background:#0c0f15;border:1px solid var(--border);border-radius:13px;padding:10px;min-height:160px;max-height:360px;overflow:auto;color:var(--good);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}.letterGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:8px}.letterBox{border:1px solid var(--border);border-radius:12px;background:#111620;padding:10px;text-align:center}.letterBox b{display:block;color:var(--accent);font-size:1.25rem}.letterBox span{color:var(--muted);font-size:.82rem}code{color:var(--accent);background:#0c0f15;padding:2px 5px;border-radius:5px}a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>A-Z FOLDER AUTOMATOR</h1>
+  <div class="small">Drop text files · Clean lines · Deduplicate · Sort A-Z · Export folder-style ZIP</div>
+  <div><span class="badge">REAL A-Z AUTOMATION</span><span class="badge">ZIP EXPORT</span><span class="badge">ORIGINALS UNTOUCHED</span></div>
+</header>
+<main>
+  <section class="card">
+    <h2>1. LOAD FILES OR PASTE TEXT</h2>
+    <p>This makes the A-Z folder package. On iPad, the browser cannot directly create folders inside Files by itself, so this page creates one ZIP. When you unzip it, you get the folders/files already organized.</p>
+    <div class="row">
+      <label class="fileLabel">CHOOSE TXT FILES<input id="fileInput" type="file" accept=".txt,.md,.csv,text/plain,text/markdown,text/csv" multiple /></label>
+      <button id="clearBtn">CLEAR</button>
+    </div>
+    <p id="fileStatus" class="small">No files loaded yet.</p>
+    <textarea id="pasteBox" placeholder="OR PASTE RAW LINES HERE..."></textarea>
+  </section>
+
+  <section class="card">
+    <h2>2. SETTINGS</h2>
+    <div class="grid three">
+      <label class="small">Package name<input id="packageName" type="text" value="AZ_MASTER_PACKAGE" /></label>
+      <label class="small">Minimum words<select id="minWords"><option value="1">1 word</option><option value="2" selected>2 words</option><option value="3">3 words</option></select></label>
+      <label class="small">Output style<select id="outputStyle"><option value="folders" selected>A-Z folders with one file each</option><option value="files">A-Z files only</option></select></label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label><input id="uppercase" type="checkbox" checked /> Uppercase</label>
+      <label><input id="dedupe" type="checkbox" checked /> Remove exact duplicates</label>
+      <label><input id="lettersOnly" type="checkbox" checked /> Keep letters/numbers/spaces only</label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. RUN AUTOMATION</h2>
+    <div class="row">
+      <button id="runBtn" class="primary">RUN A-Z FOLDER AUTOMATION</button>
+      <button id="zipBtn" class="good">DOWNLOAD A-Z ZIP</button>
+      <button id="masterBtn" class="warn">DOWNLOAD MASTER TXT ONLY</button>
+    </div>
+    <p class="small">Run first, then download ZIP. The ZIP contains A-Z outputs, MASTER_AZ_INDEX, REVIEW_NOT_DELETED, DUPLICATES_REVIEW, and PROCESS_LOG.</p>
+  </section>
+
+  <section class="card">
+    <h2>4. STATS</h2>
+    <div id="stats" class="statGrid"></div>
+  </section>
+
+  <section class="card">
+    <h2>5. LETTER COUNTS</h2>
+    <div id="letterCounts" class="letterGrid"></div>
+  </section>
+
+  <section class="grid two">
+    <div class="card"><h2>MASTER PREVIEW</h2><div id="preview" class="result"></div></div>
+    <div class="card"><h2>PROCESS LOG</h2><div id="log" class="result"></div></div>
+  </section>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+let loadedTexts=[];
+let lastRun=null;
+function cleanPackageName(s){return String(s||"AZ_MASTER_PACKAGE").trim().toUpperCase().replace(/[^A-Z0-9]+/g,"_").replace(/^_+|_+$/g,"")||"AZ_MASTER_PACKAGE"}
+function trimSpaces(s){return String(s||"").replace(/\s+/g," ").trim()}
+function cleanLine(line){let s=trimSpaces(line);if(document.getElementById("lettersOnly").checked){s=s.replace(/[^\p{L}\p{N} ]/gu," ").replace(/\s+/g," ").trim()}if(document.getElementById("uppercase").checked)s=s.toUpperCase();return trimSpaces(s)}
+function firstLetter(s){const m=String(s||"").match(/[A-Z]/i);return m?m[0].toUpperCase():"#"}
+function wordCount(s){return String(s||"").split(/\s+/).filter(Boolean).length}
+function downloadText(filename,text){const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function updateBlankStats(){document.getElementById("stats").innerHTML=["RAW LINES","KEPT","REVIEW","DUPLICATES","A-Z BUCKETS","PACKAGE"].map(x=>`<div class="stat"><span>${x}</span><b>0</b></div>`).join("");document.getElementById("letterCounts").innerHTML=letters.map(l=>`<div class="letterBox"><b>${l}</b><span>0 lines</span></div>`).join("")}
+function collectInput(){const pasted=document.getElementById("pasteBox").value||"";return [...loadedTexts,pasted].join("\n")}
+function runAutomation(){const raw=collectInput();const minWords=Number(document.getElementById("minWords").value||2);const removeDupes=document.getElementById("dedupe").checked;const buckets={};letters.forEach(l=>buckets[l]=[]);const review=[];const duplicates=[];const seen=new Set();let rawCount=0,kept=0;for(const original of raw.split(/\r?\n/)){rawCount++;const originalTrim=trimSpaces(original);const clean=cleanLine(originalTrim);if(!originalTrim)continue;if(!clean||wordCount(clean)<minWords){review.push(originalTrim);continue}if(removeDupes&&seen.has(clean)){duplicates.push(clean);continue}seen.add(clean);const l=firstLetter(clean);if(!buckets[l]){review.push(clean);continue}buckets[l].push(clean);kept++}letters.forEach(l=>buckets[l].sort((a,b)=>a.localeCompare(b)));const master=letters.flatMap(l=>buckets[l]).join("\n");const stamp=new Date().toLocaleString();const packageName=cleanPackageName(document.getElementById("packageName").value);const log=["A-Z FOLDER AUTOMATOR PROCESS LOG",`Package: ${packageName}`,`Date: ${stamp}`,`Raw lines checked: ${rawCount}`,`Kept unique lines: ${kept}`,`Review lines: ${review.length}`,`Duplicate lines: ${duplicates.length}`,`Minimum words: ${minWords}`,`Uppercase: ${document.getElementById("uppercase").checked}`,`Dedupe: ${removeDupes}`,`Letters only: ${document.getElementById("lettersOnly").checked}`,"","Letter counts:",...letters.map(l=>`${l}: ${buckets[l].length}`)].join("\n");lastRun={packageName,buckets,master,review,duplicates,log,rawCount,kept};document.getElementById("stats").innerHTML=`<div class="stat"><span>RAW LINES</span><b>${rawCount.toLocaleString()}</b></div><div class="stat"><span>KEPT</span><b>${kept.toLocaleString()}</b></div><div class="stat"><span>REVIEW</span><b>${review.length.toLocaleString()}</b></div><div class="stat"><span>DUPLICATES</span><b>${duplicates.length.toLocaleString()}</b></div><div class="stat"><span>A-Z BUCKETS</span><b>${letters.filter(l=>buckets[l].length).length}</b></div><div class="stat"><span>PACKAGE</span><b>${packageName}</b></div>`;document.getElementById("letterCounts").innerHTML=letters.map(l=>`<div class="letterBox"><b>${l}</b><span>${buckets[l].length.toLocaleString()} lines</span></div>`).join("");document.getElementById("preview").textContent=master.slice(0,20000)+(master.length>20000?"\n\n...PREVIEW TRIMMED...":"");document.getElementById("log").textContent=log;return lastRun}
+async function downloadZip(){const run=lastRun||runAutomation();if(!run)return;if(!window.JSZip){alert("ZIP library did not load. Use DOWNLOAD MASTER TXT ONLY, or reload the page online.");return}const zip=new JSZip();const root=zip.folder(run.packageName);const style=document.getElementById("outputStyle").value;if(style==="folders"){for(const l of letters){const folder=root.folder(l);folder.file(`${l}_INDEX.txt`,run.buckets[l].join("\n"));}}else{for(const l of letters){root.file(`${l}_INDEX.txt`,run.buckets[l].join("\n"));}}root.file("MASTER_AZ_INDEX.txt",run.master);root.file("REVIEW_NOT_DELETED.txt",run.review.join("\n"));root.file("DUPLICATES_REVIEW.txt",run.duplicates.join("\n"));root.file("PROCESS_LOG.txt",run.log);const blob=await zip.generateAsync({type:"blob"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`${run.packageName}.zip`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+document.getElementById("fileInput").addEventListener("change",async e=>{loadedTexts=[];const files=Array.from(e.target.files||[]);for(const f of files){loadedTexts.push(await f.text())}document.getElementById("fileStatus").textContent=`Loaded ${files.length} file(s): ${files.map(f=>f.name).join(", ")}`});document.getElementById("runBtn").addEventListener("click",runAutomation);document.getElementById("zipBtn").addEventListener("click",downloadZip);document.getElementById("masterBtn").addEventListener("click",()=>{const run=lastRun||runAutomation();downloadText(`${run.packageName}_MASTER_AZ_INDEX.txt`,run.master)});document.getElementById("clearBtn").addEventListener("click",()=>{loadedTexts=[];lastRun=null;document.getElementById("fileInput").value="";document.getElementById("pasteBox").value="";document.getElementById("fileStatus").textContent="No files loaded yet.";document.getElementById("preview").textContent="";document.getElementById("log").textContent="";updateBlankStats()});updateBlankStats();
+</script>
+</body>
+</html>
