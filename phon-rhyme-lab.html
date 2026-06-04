@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Phon Rhyme Lab" />
+<meta name="theme-color" content="#0f1115" />
+<title>PHON RHYME LAB — CMUdict Pronunciation Engine</title>
+<style>
+:root {
+  --bg:#0f1115;
+  --card:#181c24;
+  --ink:#f4f6fb;
+  --muted:#aeb7c8;
+  --border:#2a3140;
+  --accent:#8bc6ff;
+  --good:#a9f5c2;
+  --warn:#ffd78a;
+  --bad:#ffb3b3;
+}
+* { box-sizing:border-box; }
+html, body { min-height:100%; }
+body {
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.45;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+header {
+  padding:calc(16px + env(safe-area-inset-top)) 14px 10px;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,#171b23 0%,#0f1115 100%);
+  position:sticky;
+  top:0;
+  z-index:5;
+}
+h1 { margin:0 0 5px; font-size:1.32rem; letter-spacing:.02em; }
+h2 { margin:0 0 9px; font-size:1.05rem; }
+p, li { color:var(--muted); }
+main { padding:12px; max-width:1180px; margin:auto; }
+.card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:14px;
+  margin:12px 0;
+  box-shadow:0 8px 30px rgba(0,0,0,.18);
+}
+.grid { display:grid; grid-template-columns:1fr; gap:12px; }
+@media (min-width:900px) { .grid.two { grid-template-columns:1fr 1fr; } .grid.three { grid-template-columns:1fr 1fr 1fr; } }
+.row { display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+button, .fileLabel, select {
+  appearance:none;
+  border:1px solid var(--border);
+  background:#222938;
+  color:var(--ink);
+  border-radius:13px;
+  padding:11px 13px;
+  font-weight:800;
+  cursor:pointer;
+  font-size:14px;
+}
+button.primary { background:#24445f; border-color:#39698e; }
+button.good { background:#1b3b29; border-color:#366b49; color:var(--good); }
+button.warn { background:#4a3918; border-color:#745d25; color:var(--warn); }
+input[type="file"] { display:none; }
+input[type="text"], textarea {
+  width:100%;
+  background:#0c0f15;
+  color:var(--ink);
+  border:1px solid var(--border);
+  border-radius:13px;
+  padding:11px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:14px;
+}
+textarea { min-height:160px; }
+.small { font-size:.9rem; color:var(--muted); }
+.badge {
+  display:inline-block;
+  border:1px solid var(--border);
+  color:var(--warn);
+  border-radius:999px;
+  padding:4px 9px;
+  font-size:.76rem;
+  font-weight:800;
+  margin:2px 4px 2px 0;
+}
+.statGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(135px,1fr)); gap:9px; }
+.stat { border:1px solid var(--border); border-radius:13px; padding:11px; background:#111620; }
+.stat span { color:var(--muted); font-size:.8rem; }
+.stat b { display:block; font-size:1.15rem; color:var(--accent); }
+.resultList { max-height:380px; overflow:auto; border:1px solid var(--border); border-radius:13px; background:#0c0f15; padding:8px; }
+.resultItem { border-bottom:1px solid #1e2530; padding:8px 4px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; }
+.resultItem:last-child { border-bottom:none; }
+.meta { color:var(--accent); font-size:.78rem; margin-top:3px; }
+code { color:var(--accent); background:#0c0f15; padding:2px 5px; border-radius:5px; }
+a.download { display:inline-block; margin:5px 7px 5px 0; padding:10px 12px; border-radius:10px; text-decoration:none; background:#1b2a20; border:1px solid #315b3f; color:var(--good); font-weight:800; }
+hr { border:none; border-top:1px solid var(--border); margin:12px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PHON RHYME LAB</h1>
+  <div class="small">CMUdict Pronunciation Engine · Phonemes · Rhymes · Homophones · Syllables · Sounds-Like · Contains Sound</div>
+  <div>
+    <span class="badge">RHYMEWEAVER COMPANION</span>
+    <span class="badge">BROWSER ONLY</span>
+    <span class="badge">LOAD CMUDICT.TXT</span>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1. LOAD PRONUNCIATION DICTIONARY</h2>
+    <p>This page understands CMU Pronouncing Dictionary format. You can load <code>cmudict.dict</code> / <code>cmudict-0.7b</code> / any text file where each line looks like <code>WORD  PHONEMES</code>.</p>
+    <div class="row">
+      <label class="fileLabel">CHOOSE CMUDICT FILE<input id="dictFile" type="file" accept=".txt,.dict,.dic,text/plain" /></label>
+      <button id="loadSampleBtn" class="warn">LOAD SMALL DEMO DICTIONARY</button>
+      <button id="clearBtn">CLEAR</button>
+    </div>
+    <p id="dictStatus" class="small">No dictionary loaded yet. Use demo first, then full CMUdict later.</p>
+    <textarea id="dictPaste" placeholder="Optional: paste CMUdict lines here, then press LOAD PASTED DICTIONARY."></textarea>
+    <div class="row" style="margin-top:10px;">
+      <button id="loadPasteBtn" class="primary">LOAD PASTED DICTIONARY</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. LOOK UP A WORD</h2>
+    <div class="grid two">
+      <input id="wordInput" type="text" placeholder="Example: threw, steak, carry, fantastic" />
+      <select id="stressMode">
+        <option value="off">Ignore stress numbers</option>
+        <option value="on">Keep stress numbers</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <button id="runBtn" class="primary">RUN PHON ENGINE</button>
+      <button id="exportBtn" class="good">DOWNLOAD REPORT TXT</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. DICTIONARY STATS</h2>
+    <div class="statGrid" id="stats">
+      <div class="stat"><span>WORDS</span><b>0</b></div>
+      <div class="stat"><span>PRONUNCIATIONS</span><b>0</b></div>
+      <div class="stat"><span>PHONEME KEYS</span><b>0</b></div>
+      <div class="stat"><span>LAST SEARCH</span><b>NONE</b></div>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>PHONEMES + SYLLABLES</h2>
+      <div id="phonemeResults" class="resultList"></div>
+    </div>
+    <div class="card">
+      <h2>HOMOPHONES</h2>
+      <div id="homophoneResults" class="resultList"></div>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>RHYMES</h2>
+      <p class="small">Grouped by matching trailing phonemes. Higher number = stronger rhyme.</p>
+      <div class="row">
+        <label class="small">Minimum trailing phonemes</label>
+        <select id="minRhyme">
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </div>
+      <div id="rhymeResults" class="resultList" style="margin-top:10px;"></div>
+    </div>
+    <div class="card">
+      <h2>SOUNDS LIKE</h2>
+      <p class="small">Same phoneme length, but allows mismatches.</p>
+      <div class="row">
+        <label class="small">Allowed mismatches</label>
+        <select id="mismatchCount">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3" selected>3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+      <div id="soundResults" class="resultList" style="margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>CONTAINS PRONUNCIATION</h2>
+    <p class="small">Find words whose pronunciation contains the searched word's pronunciation inside it. Example: THROUGH can find BREAKTHROUGH, OVERTHREW, THROUGHOUT.</p>
+    <div id="containsResults" class="resultList"></div>
+  </section>
+
+  <section class="card">
+    <h2>MASTER REPORT PREVIEW</h2>
+    <textarea id="reportBox" readonly></textarea>
+  </section>
+</main>
+
+<script>
+const SAMPLE_DICT = `;;; SMALL DEMO CMUDICT FOR PHON RHYME LAB
+A  AH0
+ABLE  EY1 B AH0 L
+AVERAGE  AE1 V ER0 AH0 JH
+ANTIDISESTABLISHMENTARIANISM  AE2 N T IY0 D IH2 S AH0 S T AE2 B L IH0 SH M AH0 N T EH1 R IY0 AH0 N IH2 Z AH0 M
+BATHROOM  B AE1 TH R UW2 M
+BATHROOMS  B AE1 TH R UW2 M Z
+BERRY  B EH1 R IY0
+BREAKTHROUGH  B R EY1 K TH R UW2
+BREAKTHROUGHS  B R EY1 K TH R UW2 Z
+CAREY  K EH1 R IY0
+CARIE  K EH1 R IY0
+CARRY  K AE1 R IY0
+CARRY(1)  K EH1 R IY0
+CARRIE  K EH1 R IY0
+CARY  K EH1 R IY0
+CHALLENGERY  CH AE1 L AH0 N JH ER0 IY0
+CHERRY  CH EH1 R IY0
+DRUDGERY  D R AH1 JH ER0 IY0
+DRIVE-THRU  D R AY1 V TH R UW2
+FAIRY  F EH1 R IY0
+FANTASTIC  F AE0 N T AE1 S T IH0 K
+FORGERY  F AO1 R JH ER0 IY0
+GINGERY  JH IH1 N JH ER0 IY0
+GREATER  G R EY1 T ER0
+GYMNASTICS  JH IH0 M N AE1 S T IH0 K S
+HEURISTICS  HH Y UH0 R IH1 S T IH0 K S
+INJURY  IH1 N JH ER0 IY0
+KERRY  K EH1 R IY0
+MARGERY  M AA1 R JH ER0 IY0
+MARRY  M EH1 R IY0
+OVERTHREW  OW1 V ER0 TH R UW1
+PERJURY  P ER1 JH ER0 IY0
+STAKE  S T EY1 K
+STEAK  S T EY1 K
+STATISTICS  S T AH0 T IH1 S T IH0 K S
+STOCHASTICS  S T OW0 K AE1 S T IH0 K S
+SURGERY  S ER1 JH ER0 IY0
+THREW  TH R UW1
+THROOP  TH R UW1 P
+THROUGH  TH R UW1
+THROUGHOUT  TH R UW1 AW1 T
+THROUGHPUT  TH R UW1 P UH2 T
+THRUS  TH R UW1 Z
+THRU  TH R UW1
+THRUWAY  TH R UW1 W EY2
+USELESS  Y UW1 S L AH0 S`;
+
+let entries = [];
+let byWord = new Map();
+let byPhon = new Map();
+let lastReport = "";
+
+function cleanWordKey(word) {
+  return String(word || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\(\d+\)$/g, "");
+}
+
+function phonNoStress(phon) {
+  return String(phon || "").replace(/[012]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function splitPhon(phon, keepStress) {
+  const p = keepStress ? String(phon || "") : phonNoStress(phon);
+  return p.split(/\s+/).filter(Boolean);
+}
+
+function syllableCount(phon) {
+  const parts = String(phon || "").split(/\s+/).filter(Boolean);
+  return parts.filter(p => /[012]$/.test(p)).length;
+}
+
+function parseCmudict(text) {
+  const parsed = [];
+  const lines = String(text || "").split(/\r?\n/);
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith(";;;")) continue;
+    const m = line.match(/^([^\s]+)\s+(.+)$/);
+    if (!m) continue;
+    const sourceWord = m[1].trim();
+    const word = cleanWordKey(sourceWord);
+    const phon = m[2].trim().replace(/\s+/g, " ");
+    if (!word || !phon) continue;
+    parsed.push({ word, sourceWord, phon, phonPlain: phonNoStress(phon), syllables: syllableCount(phon) });
+  }
+  return parsed;
+}
+
+function loadDictionary(text, label) {
+  entries = parseCmudict(text);
+  byWord = new Map();
+  byPhon = new Map();
+  for (const e of entries) {
+    if (!byWord.has(e.word)) byWord.set(e.word, []);
+    byWord.get(e.word).push(e);
+    if (!byPhon.has(e.phonPlain)) byPhon.set(e.phonPlain, []);
+    byPhon.get(e.phonPlain).push(e.word);
+  }
+  for (const [key, words] of byPhon.entries()) {
+    byPhon.set(key, Array.from(new Set(words)).sort());
+  }
+  document.getElementById("dictStatus").textContent = `${label}: loaded ${byWord.size.toLocaleString()} words and ${entries.length.toLocaleString()} pronunciations.`;
+  updateStats("NONE");
+}
+
+function updateStats(lastSearch) {
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><span>WORDS</span><b>${byWord.size.toLocaleString()}</b></div>
+    <div class="stat"><span>PRONUNCIATIONS</span><b>${entries.length.toLocaleString()}</b></div>
+    <div class="stat"><span>PHONEME KEYS</span><b>${byPhon.size.toLocaleString()}</b></div>
+    <div class="stat"><span>LAST SEARCH</span><b>${lastSearch || "NONE"}</b></div>`;
+}
+
+function renderList(elId, items, emptyText) {
+  const el = document.getElementById(elId);
+  if (!items.length) {
+    el.innerHTML = `<div class="resultItem">${emptyText}</div>`;
+    return;
+  }
+  el.innerHTML = items.map(item => `<div class="resultItem">${item}</div>`).join("");
+}
+
+function commonTrailingCount(a, b) {
+  let count = 0;
+  let i = a.length - 1;
+  let j = b.length - 1;
+  while (i >= 0 && j >= 0 && a[i] === b[j]) {
+    count++;
+    i--;
+    j--;
+  }
+  return count;
+}
+
+function containsSequence(haystack, needle) {
+  if (!needle.length || needle.length > haystack.length) return false;
+  outer: for (let i = 0; i <= haystack.length - needle.length; i++) {
+    for (let j = 0; j < needle.length; j++) {
+      if (haystack[i + j] !== needle[j]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
+function phonemesFor(word) {
+  return byWord.get(cleanWordKey(word)) || [];
+}
+
+function runEngine() {
+  const word = cleanWordKey(document.getElementById("wordInput").value);
+  const keepStress = document.getElementById("stressMode").value === "on";
+  const minRhyme = Number(document.getElementById("minRhyme").value || 2);
+  const mismatchesAllowed = Number(document.getElementById("mismatchCount").value || 3);
+
+  if (!entries.length) {
+    alert("Load the demo dictionary or a full CMUdict file first.");
+    return;
+  }
+  if (!word) {
+    alert("Type a word first.");
+    return;
+  }
+
+  const pronunciations = phonemesFor(word);
+  updateStats(word);
+
+  if (!pronunciations.length) {
+    renderList("phonemeResults", [], `No pronunciation found for ${word}.`);
+    renderList("homophoneResults", [], "No homophones.");
+    renderList("rhymeResults", [], "No rhymes.");
+    renderList("soundResults", [], "No similar-sound words.");
+    renderList("containsResults", [], "No contains-pronunciation matches.");
+    lastReport = `PHON RHYME LAB REPORT\nWORD: ${word}\n\nNo pronunciation found.`;
+    document.getElementById("reportBox").value = lastReport;
+    return;
+  }
+
+  const phonemeLines = pronunciations.map((p, idx) => `<b>${word}</b> pronunciation ${idx + 1}<br>${keepStress ? p.phon : p.phonPlain}<div class="meta">syllables: ${p.syllables}</div>`);
+  renderList("phonemeResults", phonemeLines, "No phonemes.");
+
+  const homophones = new Set();
+  for (const p of pronunciations) {
+    for (const w of (byPhon.get(p.phonPlain) || [])) {
+      if (w !== word) homophones.add(w);
+    }
+  }
+  renderList("homophoneResults", Array.from(homophones).sort(), "No homophones found.");
+
+  const rhymeMap = new Map();
+  const targetPhons = pronunciations.map(p => splitPhon(p.phon, keepStress));
+  for (const e of entries) {
+    if (e.word === word) continue;
+    const ep = splitPhon(e.phon, keepStress);
+    let best = 0;
+    for (const tp of targetPhons) best = Math.max(best, commonTrailingCount(tp, ep));
+    if (best >= minRhyme) {
+      if (!rhymeMap.has(best)) rhymeMap.set(best, new Set());
+      rhymeMap.get(best).add(e.word);
+    }
+  }
+  const rhymeLines = Array.from(rhymeMap.keys()).sort((a,b) => b-a).flatMap(len => {
+    const words = Array.from(rhymeMap.get(len)).sort().slice(0, 250);
+    return words.map(w => `${w}<div class="meta">rhyme length: ${len}</div>`);
+  });
+  renderList("rhymeResults", rhymeLines, "No rhymes found at this setting.");
+
+  const soundMatches = new Map();
+  for (const e of entries) {
+    if (e.word === word) continue;
+    const ep = splitPhon(e.phon, keepStress);
+    let bestMismatch = Infinity;
+    for (const tp of targetPhons) {
+      if (tp.length !== ep.length) continue;
+      let mismatch = 0;
+      for (let i = 0; i < tp.length; i++) if (tp[i] !== ep[i]) mismatch++;
+      bestMismatch = Math.min(bestMismatch, mismatch);
+    }
+    if (bestMismatch <= mismatchesAllowed) soundMatches.set(e.word, bestMismatch);
+  }
+  const soundLines = Array.from(soundMatches.entries()).sort((a,b) => a[1]-b[1] || a[0].localeCompare(b[0])).slice(0,250).map(([w,m]) => `${w}<div class="meta">phoneme mismatches: ${m}</div>`);
+  renderList("soundResults", soundLines, "No sounds-like matches found.");
+
+  const containsSet = new Set();
+  for (const e of entries) {
+    if (e.word === word) continue;
+    const ep = splitPhon(e.phon, keepStress);
+    for (const tp of targetPhons) {
+      if (containsSequence(ep, tp)) containsSet.add(e.word);
+    }
+  }
+  renderList("containsResults", Array.from(containsSet).sort().slice(0,250), "No contains-pronunciation matches found.");
+
+  lastReport = [
+    "PHON RHYME LAB REPORT",
+    `WORD: ${word}`,
+    `STRESS MODE: ${keepStress ? "KEEP STRESS NUMBERS" : "IGNORE STRESS NUMBERS"}`,
+    "",
+    "PHONEMES:",
+    ...pronunciations.map((p, i) => `${i + 1}. ${keepStress ? p.phon : p.phonPlain} | SYLLABLES: ${p.syllables}`),
+    "",
+    "HOMOPHONES:",
+    ...(Array.from(homophones).sort()),
+    "",
+    "RHYMES:",
+    ...rhymeLines.map(x => x.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()),
+    "",
+    "SOUNDS LIKE:",
+    ...soundLines.map(x => x.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()),
+    "",
+    "CONTAINS PRONUNCIATION:",
+    ...(Array.from(containsSet).sort())
+  ].join("\n");
+  document.getElementById("reportBox").value = lastReport;
+}
+
+function downloadText(filename, text) {
+  const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+document.getElementById("loadSampleBtn").addEventListener("click", () => loadDictionary(SAMPLE_DICT, "Small demo dictionary"));
+document.getElementById("loadPasteBtn").addEventListener("click", () => loadDictionary(document.getElementById("dictPaste").value, "Pasted dictionary"));
+document.getElementById("dictFile").addEventListener("change", async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  loadDictionary(text, file.name);
+});
+document.getElementById("runBtn").addEventListener("click", runEngine);
+document.getElementById("wordInput").addEventListener("keydown", e => { if (e.key === "Enter") runEngine(); });
+document.getElementById("exportBtn").addEventListener("click", () => {
+  if (!lastReport) runEngine();
+  if (lastReport) downloadText("PHON_RHYME_LAB_REPORT.txt", lastReport);
+});
+document.getElementById("clearBtn").addEventListener("click", () => {
+  entries = [];
+  byWord = new Map();
+  byPhon = new Map();
+  lastReport = "";
+  document.getElementById("dictPaste").value = "";
+  document.getElementById("dictFile").value = "";
+  document.getElementById("dictStatus").textContent = "No dictionary loaded yet. Use demo first, then full CMUdict later.";
+  updateStats("NONE");
+  ["phonemeResults","homophoneResults","rhymeResults","soundResults","containsResults"].forEach(id => document.getElementById(id).innerHTML = "");
+  document.getElementById("reportBox").value = "";
+});
+updateStats("NONE");
+</script>
+</body>
+</html>
