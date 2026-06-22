@@ -1,0 +1,13 @@
+column_name,required,description
+document_anchor,yes,Stable source document anchor
+source_name,yes,Human readable source name
+source_type,yes,TXT RTF RTFD ZIP NOTE PDF MANUAL_PASTE or UNKNOWN
+original_filename,no,Original filename when available
+original_path,no,Original path when available
+import_method,yes,PASTE UPLOAD DRIVE_SCAN or MANUAL
+first_seen_at,yes,First intake timestamp
+last_processed_at,no,Last processing timestamp
+raw_character_count,no,Raw source character count
+raw_word_count,no,Raw source word count
+status,yes,RAW PROCESSING PROCESSED REVIEW ARCHIVED
+notes,no,Human notes
