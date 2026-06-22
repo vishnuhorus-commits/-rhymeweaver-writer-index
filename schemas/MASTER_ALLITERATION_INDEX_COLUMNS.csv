@@ -1,0 +1,18 @@
+column_name,required,description
+cluster_id,yes,Stable unique ID for the alliteration cluster
+document_anchor,yes,Stable source document anchor
+run_id,yes,Stable processing run anchor
+letter,yes,A-Z first-letter group
+cluster_size,yes,Number of matched alliterative words
+cluster_bucket,yes,2_WORD 3_WORD 4_WORD or 5_PLUS_WORD
+score,yes,0-100 cluster score
+matched_words,yes,Pipe-separated matched words
+normalized_cluster,yes,Clean uppercase cluster text
+original_phrase,yes,Original phrase preserved exactly as practical
+source_segment,yes,Full source line or sentence segment
+segment_index,yes,Segment number from the original text
+start_char,no,Starting character offset when available
+end_char,no,Ending character offset when available
+detector_version,yes,Tool and detector version
+review_status,yes,KEEP REVIEW DUPLICATE or REJECTED_NOT_DELETED
+notes,no,Human notes
