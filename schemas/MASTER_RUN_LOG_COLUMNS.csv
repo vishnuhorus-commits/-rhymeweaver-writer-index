@@ -1,0 +1,18 @@
+column_name,required,description
+run_id,yes,Stable processing run anchor
+tool_name,yes,Tool name that processed the source
+tool_version,yes,Tool version number
+run_started_at,yes,Run start timestamp
+run_finished_at,no,Run finish timestamp
+document_anchor,yes,Source document anchor
+input_method,yes,PASTE UPLOAD DRIVE_SCAN or MANUAL
+input_filename,no,Input filename when available
+input_character_count,no,Input character count
+input_word_count,no,Input word count
+total_segments,no,Total source segments processed
+total_clusters,no,Total alliteration clusters found
+total_review_items,no,Total preserved review items
+total_duplicates,no,Total duplicates detected
+output_files,no,Pipe-separated output filenames
+status,yes,STARTED COMPLETE ERROR REVIEW
+notes,no,Human notes
