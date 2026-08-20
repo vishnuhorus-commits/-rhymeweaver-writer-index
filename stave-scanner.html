@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE STAVE SCANNER</title>
+<style>
+:root{
+  --ink:#07070a;--ink2:#0d0d13;--card:#101018;
+  --gold:#d4af37;--gold2:#f0d97a;--teal:#2fb3a8;--teal2:#7fe3d8;
+  --dim:#9a9aa8;--line:rgba(212,175,55,.22);
+}
+*{box-sizing:border-box}
+body{margin:0;background:
+  radial-gradient(1200px 700px at 10% -8%,rgba(47,179,168,.10),transparent 60%),
+  radial-gradient(900px 600px at 92% 4%,rgba(212,175,55,.10),transparent 60%),var(--ink);
+  color:#eee;font:16px/1.6 "Georgia","Iowan Old Style",serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:1080px;margin:0 auto;padding:38px 20px 100px}
+header{text-align:center;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:26px}
+h1{margin:0;font-size:clamp(28px,6.4vw,56px);letter-spacing:.05em;line-height:1.05;
+  background:linear-gradient(175deg,var(--gold2) 0%,var(--gold) 42%,#8a6f1e 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:0 1px 0 rgba(0,0,0,.6),0 3px 10px rgba(212,175,55,.2)}
+.sub{color:var(--teal2);letter-spacing:.28em;font-size:10.5px;text-transform:uppercase;margin-top:11px;font-family:system-ui,sans-serif}
+.tag-line{color:var(--dim);font-size:13.5px;font-style:italic;margin-top:9px}
+
+.tabs{display:flex;gap:8px;justify-content:center;margin:0 0 24px;flex-wrap:wrap}
+.tab{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--dim);
+  padding:9px 17px;border-radius:22px;cursor:pointer;font:12px/1 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+.tab.on{background:linear-gradient(160deg,var(--gold2),#8a6f1e);color:#0a0a0f;border-color:transparent;font-weight:600}
+.pane{display:none}.pane.on{display:block}
+
+textarea{width:100%;min-height:150px;background:var(--ink2);color:#e8e8f0;
+  border:1px solid rgba(47,179,168,.26);border-radius:11px;padding:14px;
+  font:15px/1.65 "Georgia",serif;resize:vertical}
+textarea:focus{outline:none;border-color:var(--teal)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.btn{background:linear-gradient(160deg,var(--gold2),#8a6f1e);color:#0a0a0f;border:0;
+  padding:12px 26px;border-radius:9px;cursor:pointer;font:600 14px/1 system-ui,sans-serif;letter-spacing:.08em}
+.btn.alt{background:transparent;color:var(--teal2);border:1px solid rgba(47,179,168,.4)}
+.btn:active{transform:translateY(1px)}
+input[type=file]{color:var(--dim);font:12px system-ui,sans-serif;max-width:100%}
+.hint{color:var(--dim);font-size:13px;margin:8px 0 0}
+
+.tally{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 8px}
+.tally div{background:rgba(47,179,168,.09);border:1px solid rgba(47,179,168,.24);
+  border-radius:9px;padding:9px 13px;font:12.5px/1.3 system-ui,sans-serif;color:var(--teal2);cursor:pointer}
+.tally div b{color:var(--gold2);font-size:15px;display:block;font-family:Georgia,serif}
+.tally div.mute{opacity:.34}
+
+.lineCard{background:linear-gradient(180deg,var(--card),var(--ink2));border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;padding:15px 17px;margin-bottom:13px;position:relative;overflow:hidden}
+.lineCard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);opacity:.5}
+.lineNo{color:var(--dim);font:10.5px system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;margin-bottom:7px}
+.verse{font-size:19px;line-height:1.85;letter-spacing:.01em;word-spacing:.06em}
+.verse w{padding:1px 2px;border-radius:4px;transition:background .12s}
+.verse w.hi{background:rgba(212,175,55,.26);box-shadow:inset 0 -2px 0 var(--gold);color:#fff9e0}
+.verse w.hi2{background:rgba(47,179,168,.24);box-shadow:inset 0 -2px 0 var(--teal);color:#e4fffb}
+.chips{margin-top:11px;display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:10.5px/1 system-ui,sans-serif;letter-spacing:.11em;text-transform:uppercase;
+  padding:6px 10px;border-radius:16px;cursor:pointer;border:1px solid rgba(212,175,55,.3);
+  background:rgba(212,175,55,.1);color:var(--gold2)}
+.chip.sound{border-color:rgba(47,179,168,.32);background:rgba(47,179,168,.1);color:var(--teal2)}
+.chip.on{background:linear-gradient(160deg,var(--gold2),#8a6f1e);color:#0a0a0f;border-color:transparent;font-weight:600}
+.teach{margin-top:12px;border-left:2px solid var(--teal);padding:11px 0 4px 14px;display:none}
+.teach.on{display:block}
+.teach h4{margin:0 0 5px;color:var(--teal2);font-size:17px;font-weight:400;letter-spacing:.02em}
+.teach .def{color:#d6d6e0;margin:0 0 8px}
+.teach .use{color:var(--dim);font-size:14px;margin:0 0 8px}
+.teach .fam{color:var(--gold2);font-style:italic;font-size:14.5px;margin:0;padding-left:11px;border-left:1px solid rgba(212,175,55,.3)}
+
+.gl{background:linear-gradient(180deg,var(--card),var(--ink2));border:1px solid rgba(255,255,255,.07);
+  border-radius:12px;padding:16px 18px;margin-bottom:11px}
+.gl h3{margin:0 0 3px;color:var(--gold2);font-size:20px;font-weight:400}
+.gl .from{color:var(--teal2);font:11.5px system-ui,sans-serif;letter-spacing:.06em;margin-bottom:8px}
+.gl p{margin:0 0 8px;color:#ccccd8}
+.gl .ex{color:var(--dim);font-size:14px;font-style:italic;margin:0}
+h2{font:12px system-ui,sans-serif;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);
+  margin:36px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px;text-align:center;font-style:italic}
+@media(max-width:600px){.wrap{padding:22px 13px 70px}.verse{font-size:17px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>THE&nbsp;STAVE&nbsp;SCANNER</h1>
+  <div class="sub">Scansion · Sound · Structure</div>
+  <div class="tag-line">A <b>stave</b> is the old word for an alliterating sound in a line of verse.<br>
+  To <b>scan</b> a poem is to read it for its pattern. Both words are a thousand years old.</div>
+</header>
+
+<div class="tabs">
+  <div class="tab on" data-p="scan">Scan my lines</div>
+  <div class="tab" data-p="gloss">The words for it</div>
+</div>
+
+<div class="pane on" id="p-scan">
+  <textarea id="inp" placeholder="Paste your lines here, one per line...
+
+Try these if you want to see it work:
+Silver stars sit silent, settled, sown
+Fear leads to anger, anger leads to hate
+Never, never, never give up
+The sound and the fury of the falling flood
+Ask not what your country can do for you, ask what you can do for your country"></textarea>
+  <div class="row">
+    <button class="btn" id="go">Scan It</button>
+    <button class="btn alt" id="demo">Load the examples</button>
+    <input type="file" id="file" accept=".txt,.md,text/plain">
+  </div>
+  <p class="hint">Nothing leaves this page. No internet needed. Works on the iPad.</p>
+  <div class="tally" id="tally"></div>
+  <div id="out"></div>
+</div>
+
+<div class="pane" id="p-gloss">
+  <h2>Sound — how a line behaves in the mouth</h2><div id="g1"></div>
+  <h2>Structure — how a line is built</h2><div id="g2"></div>
+  <h2>The old traditions — where your work comes from</h2><div id="g3"></div>
+  <h2>Shape — words borrowed from mathematics that fit your archive</h2><div id="g4"></div>
+</div>
+
+<footer>Every term here is real, in current scholarly use, and older than any of us.</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ══ SOUND RULES — same family as the Gatekeeper ══════════════════ */
+const VOW='AEIOU';
+const HARD_G=['GET','GETS','GETTING','GIVE','GIVES','GIVEN','GIVING','GIFT','GIFTS','GIRL','GIRLS',
+'GIRD','GIRTH','GEESE','GEAR','GEARS','GILD','GIG','GIGS','GIGGLE','GIDDY','GEEK','GECKO','GEYSER'];
+function soundHead(w){
+  if(!w)return'';
+  const t=w.slice(0,2),th=w.slice(0,3);
+  if(['KN','GN','PN','MN'].includes(t))return'N';
+  if(t==='WR')return'R';
+  if(t==='PS'||t==='PT')return'S';
+  if(th==='SCH')return'SK';
+  if(t==='PH')return'F';
+  if(t==='TH')return'TH';
+  if(t==='SH')return'SH';
+  if(t==='CH')return'CH';
+  if(t==='WH')return'W';
+  if(t==='QU')return'K';
+  if(t==='SC'&&VOW.indexOf(w[2])<0)return'SK';
+  if(t==='SC'&&'EIY'.includes(w[2]))return'S';
+  if(w[0]==='C')return'EIY'.includes(w[1])?'S':'K';
+  if(w[0]==='G')return('EIY'.includes(w[1])&&!HARD_G.includes(w))?'J':'G';
+  if(w[0]==='X')return'Z';
+  if(VOW.includes(w[0]))return'VOWEL';
+  return w[0];
+}
+const norm=s=>s.toUpperCase().replace(/[^A-Z0-9' ]+/g,' ').replace(/\s+/g,' ').trim();
+const cons=w=>w.replace(/[AEIOUY']/g,'');
+const nucleus=w=>{const m=w.match(/[AEIOU]+/);return m?m[0]:''};
+const tail=w=>{const i=w.search(/[AEIOU][A-Z]*$/);return i<0?w:w.slice(i)};
+const stem=w=>w.replace(/(INGLY|EDLY|IEST|INGS|MENT|NESS|ABLE|IBLE|ING|EST|ERS|IES|ED|ES|LY|S)$/,'').replace(/E$/,'');
+function sameRoot(x,y){
+  if(x===y)return false;
+  const a=stem(x),b=stem(y);
+  if(a.length<3||b.length<3)return false;
+  if(a===b)return true;
+  const [s,l]=a.length<=b.length?[a,b]:[b,a];
+  return s.length>=4&&l.startsWith(s)&&l.length-s.length<=3;
+}
+const STOP=new Set(['THE','A','AN','AND','OR','OF','TO','IN','IS','IT','ON','AT','AS','BE','BY','FOR','WITH','THAT','THIS','WAS','ARE','FROM','BUT','NOT','SO','IF','I','YOU','HE','SHE','WE','THEY','MY','YOUR']);
+
+/* ══ THE TEACHING ═════════════════════════════════════════════════ */
+const T={
+ alliteration:{n:'Alliteration',k:'sound',
+  d:'Two or more stressed words in a line beginning with the same <i>sound</i> — not necessarily the same letter.',
+  u:'It binds a line together and makes it stick in memory. This is the oldest structural device in English poetry, older than rhyme by centuries.',
+  f:'“<b>C</b>ities of <b>ps</b>alms and <b>s</b>ilence” — C, PS and S are one sound. The page disagrees; the ear does not.'},
+ consonance:{n:'Consonance',k:'sound',
+  d:'The same consonant sound repeating <i>anywhere</i> in the words, not just at the front.',
+  u:'Where alliteration knocks at the door, consonance hums under the floor. Use it when you want cohesion without obvious pattern.',
+  f:'“The li<b>tt</b>le be<b>tt</b>er ba<b>tt</b>le”'},
+ assonance:{n:'Assonance',k:'sound',
+  d:'The same vowel sound repeating across nearby words.',
+  u:'Vowels carry the emotional colour of a line. Long open vowels slow it and sadden it; short tight vowels quicken it.',
+  f:'“The l<b>o</b>ne st<b>o</b>ne r<b>o</b>ad h<b>o</b>me”'},
+ sibilance:{n:'Sibilance',k:'sound',
+  d:'A concentration of hissing sounds — S, Z, SH, CH, soft C.',
+  u:'It whispers, seduces, threatens, or soothes depending on what it sits beside. Your single most-used sound is S, so this is your home ground.',
+  f:'“<b>S</b>oft <b>s</b>ilent <b>c</b>ity, <b>s</b>hifting <b>s</b>and”'},
+ plosive:{n:'Plosive texture',k:'sound',
+  d:'A concentration of hard stopped sounds — B, P, T, D, K, G — where air is blocked then released.',
+  u:'Plosives punch. They make a line feel struck rather than sung. Set them against sibilance for contrast.',
+  f:'“<b>B</b>a<b>ck</b> <b>b</b>roke the <b>b</b>lack <b>b</b>rick <b>b</b>ank”'},
+ pararhyme:{n:'Pararhyme',k:'sound',
+  d:'Two words with the same consonant frame but a different vowel inside. Half a rhyme.',
+  u:'It sounds like a rhyme that failed on purpose, so it unsettles the ear. Wilfred Owen built his war poems on it because comfort would have been a lie.',
+  f:'“ki<b>ll</b>ed / co<b>ld</b>” · “ha<b>ll</b> / he<b>ll</b>”'},
+ internalrhyme:{n:'Internal rhyme',k:'sound',
+  d:'Two words rhyming inside the same line rather than at the ends of two lines.',
+  u:'It speeds a line up and makes it feel woven rather than stacked. The backbone of most rap.',
+  f:'“I <b>bring</b> the <b>ring</b> to the <b>king</b>”'},
+ headstave:{n:'Germanic alliterative line',k:'sound',
+  d:'The old English and Norse rule: a line breaks in half at a pause, and the first stressed word after the pause — the <b>head-stave</b> — decides which sound the first half must alliterate on.',
+  u:'This is not decoration, it is a law. The head-stave commands and the first half obeys. <i>Beowulf</i> is four thousand lines of it. This is the tradition your archive belongs to.',
+  f:'“<b>G</b>rendel <b>g</b>ongan ‖ <b>G</b>odes yrre bær”'},
+ anaphora:{n:'Anaphora',k:'struct',
+  d:'The same word or phrase starting several lines or clauses in a row.',
+  u:'The single most powerful device in oratory. It builds pressure — each repetition raises the floor beneath the next.',
+  f:'“<b>I have a dream</b> that… <b>I have a dream</b> that…”'},
+ epistrophe:{n:'Epistrophe',k:'struct',
+  d:'The same word ending several clauses in a row. Anaphora’s mirror image.',
+  u:'Where anaphora pushes forward, epistrophe lands like a hammer falling in the same spot.',
+  f:'“…of the <b>people</b>, by the <b>people</b>, for the <b>people</b>”'},
+ epizeuxis:{n:'Epizeuxis',k:'struct',
+  d:'A word repeated immediately, with nothing between.',
+  u:'Raw insistence. It signals that ordinary speech has failed. Use sparingly or it turns to noise.',
+  f:'“<b>Never, never, never</b> give up”'},
+ anadiplosis:{n:'Anadiplosis',k:'struct',
+  d:'The last word of one clause becomes the first word of the next, linking them like chain-links.',
+  u:'It makes an argument feel inevitable — each step appears to grow out of the one before. Your phrase-chains are this device.',
+  f:'“Fear leads to <b>anger</b>. <b>Anger</b> leads to <b>hate</b>. <b>Hate</b> leads to suffering.”'},
+ polyptoton:{n:'Polyptoton',k:'struct',
+  d:'The same root word used in two different forms in one breath.',
+  u:'It turns a word over to show its other face. Deeply biblical, and very old.',
+  f:'“<b>Judge</b> not, lest ye be <b>judged</b>” · “the <b>loved</b> and the <b>loving</b>”'},
+ antimetabole:{n:'Antimetabole',k:'struct',
+  d:'Two terms stated, then stated again in reverse order.',
+  u:'The most quotable shape in English. It sounds like wisdom because the symmetry feels discovered rather than made — which is exactly why to be careful with it.',
+  f:'“<b>Ask</b> not what your <b>country</b> can do for <b>you</b> — ask what <b>you</b> can do for your <b>country</b>”'},
+ tricolon:{n:'Tricolon',k:'struct',
+  d:'Three parallel elements in a row. The rule of three.',
+  u:'Two feels like a comparison, four feels like a list, three feels like a whole. Nobody fully knows why.',
+  f:'“I came, I saw, I conquered”'},
+ polysyndeton:{n:'Polysyndeton',k:'struct',
+  d:'Deliberately too many conjunctions — and, and, and.',
+  u:'It floods. Everything arrives at once with no room to breathe, which is often the point.',
+  f:'“…<b>and</b> the rain <b>and</b> the wind <b>and</b> the dark”'},
+ asyndeton:{n:'Asyndeton',k:'struct',
+  d:'Conjunctions stripped out entirely, leaving bare items.',
+  u:'The opposite flood. It clips, hurries, and refuses to soften the joins.',
+  f:'“Duty, honour, country”'}
+};
+
+/* ══ DETECTORS ════════════════════════════════════════════════════ */
+function analyse(rawLines){
+  const L=rawLines.map((raw,i)=>{
+    const n=norm(raw), w=n.split(' ').filter(Boolean);
+    return {i,raw,n,w,heads:w.map(soundHead),found:[]};
+  });
+  L.forEach((L1,idx)=>{
+    const {w,heads}=L1; if(!w.length)return;
+    const add=(id,idxs,note)=>L1.found.push({id,idxs:[...new Set(idxs)].sort((a,b)=>a-b),note});
+    const big=w.map((x,j)=>({x,j})).filter(o=>!STOP.has(o.x)&&o.x.length>2);
+
+    // alliteration by sound-head
+    const byHead={};
+    big.forEach(o=>{const h=heads[o.j];if(h&&h!=='VOWEL')(byHead[h]=byHead[h]||[]).push(o.j)});
+    for(const h in byHead) if(byHead[h].length>=2) add('alliteration',byHead[h],h+' sound × '+byHead[h].length);
+
+    // assonance
+    const byVow={};
+    big.forEach(o=>{const v=nucleus(o.x);if(v)(byVow[v]=byVow[v]||[]).push(o.j)});
+    for(const v in byVow) if(byVow[v].length>=3) add('assonance',byVow[v],'“'+v+'” × '+byVow[v].length);
+
+    // consonance — shared internal consonant pair
+    const byCC={};
+    big.forEach(o=>{const c=cons(o.x);for(let k=1;k<c.length;k++){const p=c[k];(byCC[p]=byCC[p]||[]).push(o.j)}});
+    for(const c in byCC){const u=[...new Set(byCC[c])];if(u.length>=3)add('consonance',u,c+' recurring inside words')}
+
+    // sibilance / plosive texture
+    const letters=w.join('');
+    const sib=(letters.match(/S|Z|SH|CH/g)||[]).length, plo=(letters.match(/[BPTDKG]/g)||[]).length;
+    if(sib/Math.max(letters.length,1)>0.17) add('sibilance',big.filter(o=>/S|Z/.test(o.x)).map(o=>o.j),Math.round(100*sib/letters.length)+'% hissing sounds');
+    if(plo/Math.max(letters.length,1)>0.26) add('plosive',big.filter(o=>/^[BPTDKG]/.test(o.x)).map(o=>o.j),Math.round(100*plo/letters.length)+'% stopped sounds');
+
+    // pairwise work is capped so a very long line cannot stall the browser
+    const P=big.slice(0,40);
+    const cap=(id,n)=>L1.found.filter(f=>f.id===id).length>=n;
+
+    // pararhyme + internal rhyme
+    for(let a=0;a<P.length&&!cap('pararhyme',3);a++)for(let b=a+1;b<P.length;b++){
+      const x=P[a].x,y=P[b].x; if(x===y)continue;
+      if(cons(x)===cons(y)&&cons(x).length>=2){ if(!cap('pararhyme',3)) add('pararhyme',[P[a].j,P[b].j],x+' / '+y); }
+      else if(tail(x)===tail(y)&&tail(x).length>=2){ if(!cap('internalrhyme',3)) add('internalrhyme',[P[a].j,P[b].j],x+' / '+y); }
+    }
+
+    // polyptoton
+    for(let a=0;a<P.length&&!cap('polyptoton',3);a++)for(let b=a+1;b<P.length;b++){
+      if(cap('polyptoton',3))break;
+      if(sameRoot(P[a].x,P[b].x)) add('polyptoton',[P[a].j,P[b].j],P[a].x+' / '+P[b].x);
+    }
+
+    // epizeuxis
+    for(let j=1;j<w.length;j++) if(w[j]===w[j-1]&&w[j].length>2&&!cap('epizeuxis',2)) add('epizeuxis',[j-1,j],'“'+w[j]+'” doubled');
+
+    // antimetabole — needs a real pivot, and two words returning in reversed order
+    const pv=L1.raw.search(/[,;:—–]|\sbut\s/i);
+    if(pv>0&&w.length>=6){
+      const pre=norm(L1.raw.slice(0,pv)).split(' ').filter(Boolean).length;
+      const idx=w.map((x,j)=>({x,j})).filter(o=>o.x.length>=3);
+      const A=idx.filter(o=>o.j<pre), B=idx.filter(o=>o.j>=pre);
+      const firstA={},firstB={};
+      A.forEach(o=>{if(!(o.x in firstA))firstA[o.x]=o.j});
+      B.forEach(o=>{if(!(o.x in firstB))firstB[o.x]=o.j});
+      const shared=Object.keys(firstA).filter(x=>x in firstB);
+      outer:
+      for(let a=0;a<shared.length;a++)for(let b=a+1;b<shared.length;b++){
+        const x=shared[a],y=shared[b];
+        if((firstA[x]<firstA[y])!==(firstB[x]<firstB[y])){
+          add('antimetabole',[firstA[x],firstA[y],firstB[y],firstB[x]],x+'…'+y+' → '+y+'…'+x);
+          break outer;
+        }
+      }
+    }
+
+    // poly / asyndeton / tricolon
+    const ands=w.filter(x=>x==='AND'||x==='OR').length;
+    if(ands>=3) add('polysyndeton',w.map((x,j)=>x==='AND'||x==='OR'?j:-1).filter(j=>j>=0),ands+' conjunctions');
+    const commas=(L1.raw.match(/,/g)||[]).length;
+    if(commas>=2&&ands===0) add('asyndeton',[],commas+1+' items, no conjunction');
+    if(commas===2&&ands<=1) add('tricolon',[],'three parallel parts');
+
+    // Germanic alliterative line — head-stave rule
+    if(big.length>=4){
+      const mid=Math.floor(w.length/2);
+      const bVerse=big.filter(o=>o.j>=mid), aVerse=big.filter(o=>o.j<mid);
+      if(bVerse.length&&aVerse.length){
+        const hs=heads[bVerse[0].j];
+        const props=aVerse.filter(o=>heads[o.j]===hs);
+        if(hs&&hs!=='VOWEL'&&props.length>=1)
+          add('headstave',[bVerse[0].j,...props.map(o=>o.j)],'head-stave “'+hs+'” — first half obeys');
+      }
+    }
+  });
+
+  // cross-line: anaphora, epistrophe, anadiplosis
+  for(let k=1;k<L.length;k++){
+    const a=L[k-1].w,b=L[k].w; if(!a.length||!b.length)continue;
+    if(a[0]===b[0]&&a[0].length>1) L[k].found.push({id:'anaphora',idxs:[0],note:'opens with “'+b[0]+'” like the line above'});
+    if(a[a.length-1]===b[b.length-1]&&b[b.length-1].length>2)
+      L[k].found.push({id:'epistrophe',idxs:[b.length-1],note:'closes with “'+b[b.length-1]+'” like the line above'});
+    if(a[a.length-1]===b[0]&&b[0].length>2&&!STOP.has(b[0]))
+      L[k].found.push({id:'anadiplosis',idxs:[0],note:'picks up “'+b[0]+'” from the end of the line above'});
+  }
+  return L;
+}
+
+/* ══ RENDER ═══════════════════════════════════════════════════════ */
+let DATA=[],filter=null;
+function render(){
+  const out=$('out'); out.innerHTML='';
+  const counts={};
+  DATA.forEach(l=>l.found.forEach(f=>counts[f.id]=(counts[f.id]||0)+1));
+
+  const tally=$('tally'); tally.innerHTML='';
+  Object.keys(T).filter(id=>counts[id]).sort((a,b)=>counts[b]-counts[a]).forEach(id=>{
+    const d=document.createElement('div');
+    d.innerHTML='<b>'+counts[id]+'</b>'+T[id].n;
+    if(filter&&filter!==id)d.className='mute';
+    d.onclick=()=>{filter=(filter===id?null:id);render()};
+    tally.appendChild(d);
+  });
+  if(!Object.keys(counts).length&&DATA.length)
+    tally.innerHTML='<div style="opacity:.7">Nothing detected — try longer lines, or lines that repeat a sound.</div>';
+
+  DATA.forEach(l=>{
+    if(!l.w.length)return;
+    const shown=filter?l.found.filter(f=>f.id===filter):l.found;
+    if(filter&&!shown.length)return;
+    const card=document.createElement('div'); card.className='lineCard';
+    const words=l.w.map(x=>'<w>'+x+'</w>').join(' ');
+    card.innerHTML='<div class="lineNo">Line '+(l.i+1)+'</div><div class="verse">'+words+'</div>';
+    const chips=document.createElement('div'); chips.className='chips';
+    const teach=document.createElement('div'); teach.className='teach';
+    const ws=()=>card.querySelectorAll('.verse w');
+
+    const seen=new Set();
+    shown.forEach(f=>{
+      if(seen.has(f.id+f.idxs.join(','))) return; seen.add(f.id+f.idxs.join(','));
+      const t=T[f.id]; if(!t)return;
+      const c=document.createElement('div');
+      c.className='chip'+(t.k==='sound'?' sound':'');
+      c.textContent=t.n;
+      c.onclick=()=>{
+        const already=c.classList.contains('on');
+        chips.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+        ws().forEach(x=>x.className='');
+        if(already){teach.className='teach';return}
+        c.classList.add('on');
+        f.idxs.forEach(j=>{const el=ws()[j];if(el)el.className=(t.k==='sound'?'hi':'hi2')});
+        teach.className='teach on';
+        teach.innerHTML='<h4>'+t.n+(f.note?' <span style="color:#9a9aa8;font-size:13px">— '+f.note+'</span>':'')+'</h4>'+
+          '<p class="def">'+t.d+'</p><p class="use">'+t.u+'</p><p class="fam">'+t.f+'</p>';
+      };
+      chips.appendChild(c);
+    });
+    if(chips.children.length){card.appendChild(chips);card.appendChild(teach)}
+    out.appendChild(card);
+  });
+}
+
+function run(text){
+  DATA=analyse(text.split(/\r?\n/).filter(x=>x.trim()));
+  filter=null; render();
+  if(DATA.length) $('out').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('go').onclick=()=>run($('inp').value);
+$('demo').onclick=()=>{
+  $('inp').value=['Silver stars sit silent, settled, sown',
+    'Fear leads to anger, anger leads to hate',
+    'Hate leads to the hollow house of hunger',
+    'Never, never, never give up',
+    'The sound and the fury of the falling flood',
+    'Ask not what your country can do for you, ask what you can do for your country',
+    'Judge not the judged, nor weigh the weighted heart',
+    'Grendel walking, God\'s anger bearing'].join('\n');
+  run($('inp').value);
+};
+$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;const t=await f.text();$('inp').value=t.split(/\r?\n/).slice(0,400).join('\n');run($('inp').value)};
+
+/* ══ GLOSSARY ═════════════════════════════════════════════════════ */
+const GLOSS={
+g1:[
+ ['Scansion','Latin <i>scandere</i>, to climb','Reading a line to mark where the stresses fall — climbing it step by step. The oldest meaning of “scanning” anything.','You are doing scansion every time you read a line aloud and feel where it lands.'],
+ ['Stave','Old English <i>stæf</i>, a letter or staff','The alliterating sound in a line. Same word as the staff you lean on, because it holds the line upright.','Norse poets counted staves the way we count syllables.'],
+ ['Caesura','Latin, a cutting','The pause inside a line, usually near the middle. In Old English verse every single line has one.','“Grendel gongan ‖ Godes yrre bær”'],
+ ['Euphony / Cacophony','Greek, good sound / bad sound','Whether a line is pleasant or harsh in the mouth. Neither is better — cacophony is correct when the subject is harsh.','“murmuring of innumerable bees” against “rasped, cracked, struck”'],
+ ['Phonestheme','Greek, sound-feeling','A cluster of sounds that carries meaning on its own, before any word is built from it — <i>gl-</i> for light, <i>sn-</i> for the nose, <i>wr-</i> for twisting.','GLOW GLEAM GLINT GLARE GLISTEN. Nobody agreed to this.'],
+ ['Onomatopoeia','Greek, name-making','A word that imitates the sound it names.','Crash, hiss, murmur, thud'],
+],
+g2:[
+ ['Chiasmus','Greek <i>chi</i>, the letter X','Any mirrored structure — the second half reverses the shape of the first.','“By day the frolic, and the dance by night”'],
+ ['Isocolon','Greek, equal limb','Clauses built to the same length and rhythm, laid side by side.','“Veni, vidi, vici”'],
+ ['Hendiadys','Greek, one through two','One idea split into two nouns joined by “and”, which makes it larger than saying it straight.','“sound and fury” means furious sound'],
+ ['Zeugma','Greek, a yoking','One verb pulling two objects that it means differently.','“She took his coat and his dignity”'],
+ ['Antithesis','Greek, set against','Two opposed ideas balanced in one structure.','“It was the best of times, it was the worst of times”'],
+ ['Enjambment','French, striding over','A sentence running past the end of its line without stopping.','It creates a half-second of wrong meaning before the next line corrects it.'],
+ ['Apostrophe','Greek, a turning away','Breaking off to address someone absent, or something that cannot answer.','“O Death, where is thy sting?”'],
+],
+g3:[
+ ['Cynghanedd','Welsh, harmony — say it <i>kung-HAN-eth</i>','A living Welsh system of compulsory consonant patterning inside a single line. Still composed, still judged competitively at the Eisteddfod. The strictest sound-craft in Europe.','In <i>cynghanedd groes</i> the consonants before the pause must repeat, in the same order, after it.'],
+ ['Sprung rhythm','Gerard Manley Hopkins, 1870s','A meter that counts stresses rather than syllables, so a foot can hold one heavy beat or four light ones. Hopkins learned Welsh, absorbed cynghanedd, and rebuilt English verse around it.','“dapple-dawn-drawn Falcon” — he is your closest ancestor in English.'],
+ ['Kenning','Old Norse <i>kenna</i>, to know or name','A compressed metaphor standing in for a plain noun. A whole poetics in two words.','whale-road = sea · bone-house = body · battle-sweat = blood'],
+ ['Dróttkvætt','Old Norse, court metre','The strictest Norse form: alliteration and internal rhyme both compulsory, in fixed positions, every line. Poets were paid for it.','Proof that severe constraint and high art are old friends.'],
+ ['Boustrophedon','Greek, as the ox turns','Ancient writing that runs left to right, then right to left, like a plough. The same image that gave us the word <i>verse</i>.','Verse literally means the turn at the end of the furrow.'],
+ ['Oulipo','Paris, 1960','A group of writers and mathematicians who wrote under deliberate constraints — one wrote a whole novel with no letter E. Their claim: the constraint does not limit invention, it causes it.','Your alliteration rule is an Oulipian constraint you found by yourself.'],
+ ['Holorime','French verse form','Two entire lines that sound identical but mean different things. A homophone the length of a sentence.','Your SOUND_FAMILIES file is this device at word size.'],
+],
+g4:[
+ ['Topology','Greek, study of place','The study of what stays true about a shape when you stretch or bend it but never tear it. A cup and a doughnut are the same to a topologist.','For you: what stays true about a line when you reword it. The sound skeleton is your topological invariant.'],
+ ['Invariant','Latin, not changing','The quantity that survives a transformation. Finding the invariant is most of mathematics.','Your fingerprint is an invariant — it ignores case, spacing and punctuation, and survives all three.'],
+ ['Equivalence class','','A pile of things a rule declares to be the same, even though they differ.','SENT, CENTS, SCENTS, SAINTS are one equivalence class under the rule “same consonant skeleton”. You built 10,244 of them.'],
+ ['Partial order','','A ranking where some pairs can be compared and some genuinely cannot.','Your SUBSUMED verdict — “this line already sits inside a longer line” — is exactly a partial order.'],
+ ['Presheaf / Sheaf','Jean Leray, 1940s, from French <i>faisceau</i>, a bundle','Data attached to pieces of a space. It becomes a <i>sheaf</i> when pieces that agree on their overlaps glue into one whole. Named after a bundle of grain.','Your archive is a presheaf. The Gatekeeper is the machine that sheafifies it.'],
+ ['Entropy','Greek, a turning in','A measure of how surprising something is. Low entropy is predictable, high entropy is chaotic.','A perfectly alliterative line is low entropy. That is why it is memorable — and why too much of it goes numb.'],
+]};
+for(const k in GLOSS) $(k).innerHTML=GLOSS[k].map(([n,f,p,e])=>
+ '<div class="gl"><h3>'+n+'</h3>'+(f?'<div class="from">'+f+'</div>':'')+'<p>'+p+'</p><p class="ex">'+e+'</p></div>').join('');
+
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on'); $('p-'+t.dataset.p).classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+</script>
+</body>
+</html>
