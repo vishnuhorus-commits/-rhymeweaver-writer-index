@@ -142,6 +142,18 @@ a.download {
 .meta { color: var(--accent); font-size: .78rem; margin-top: 3px; }
 code { color: var(--accent); background: #0c0f15; padding: 2px 5px; border-radius: 5px; }
 .tabs { display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0; }
+.toolLink {
+  display:inline-flex;
+  align-items:center;
+  border:1px solid #745d25;
+  background:#4a3918;
+  color:var(--warn);
+  border-radius:13px;
+  padding:11px 13px;
+  font-weight:800;
+  text-decoration:none;
+  font-size:14px;
+}
 .tab { opacity:.72; }
 .tab.active { opacity:1; outline: 2px solid #39698e; }
 .hidden { display:none; }
@@ -161,7 +173,7 @@ code { color: var(--accent); background: #0c0f15; padding: 2px 5px; border-radiu
   <div>
     <span class="badge">HOME SCREEN APP</span>
     <span class="badge">NO DRIVE AI LOGIN</span>
-    <span class="badge">SAFE REVIEW FIRST</span>
+    <span class="badge">SAFE REVIEW FIRST</span>\n    <span class="badge">STAVE SCANNER ADDED</span>
   </div>
 </header>
 
@@ -171,6 +183,7 @@ code { color: var(--accent); background: #0c0f15; padding: 2px 5px; border-radiu
     <button class="tab" data-tab="search">SEARCH INDEX</button>
     <button class="tab" data-tab="writer">WRITER</button>
     <button class="tab" data-tab="outputs">OUTPUTS</button>
+    <a class="toolLink" href="stave-scanner.html">STAVE SCANNER</a>
   </div>
 
   <section id="process" class="tabPage">
