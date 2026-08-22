@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Folder Merge + Dedupe — Working Safe Build</title>
+<style>
+  :root{--bg:#10131a;--panel:#171c25;--ink:#e9eef8;--muted:#aeb8c8;--line:#3b4352;--accent:#2b8cff;--good:#36c275;--warn:#ffbe3d;}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+  header{position:sticky;top:0;z-index:10;background:#0d1118;border-bottom:1px solid var(--line);padding:12px 16px;}
+  h1{font-size:24px;margin:0 0 6px} p{margin:6px 0;color:var(--muted)}
+  main{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:16px;}
+  @media(max-width:800px){main{grid-template-columns:1fr}.actions{position:sticky;top:88px}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+  label{display:block;font-weight:700;margin:8px 0 6px}.small{font-size:13px;color:var(--muted)}
+  input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-radius:12px;background:#111722;color:var(--ink)}
+  button{appearance:none;border:0;border-radius:999px;padding:12px 16px;font-weight:800;background:#283244;color:var(--ink);margin:5px 4px 5px 0;cursor:pointer}
+  button.primary{background:var(--accent);color:white} button.good{background:var(--good);color:#06120a} button.warn{background:var(--warn);color:#1a1200}
+  button:disabled{opacity:.45;cursor:not-allowed}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat{border:1px solid var(--line);border-radius:12px;padding:10px;background:#121823}.stat b{display:block;font-size:24px}.stat span{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  textarea{width:100%;min-height:420px;resize:vertical;background:#0b0f16;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:14px;font:15px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;}
+  #log{max-height:220px;overflow:auto;background:#080c12;border:1px solid var(--line);border-radius:12px;padding:10px;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#cbd5e1;white-space:pre-wrap}.ok{color:#7ee787}.bad{color:#ff7b72}.muted{color:#9aa4b2}
+</style>
+</head>
+<body>
+<header>
+  <h1>Folder Merge + Dedupe — Safe Working Build</h1>
+  <p>Preserves your lines. It only uppercases, normalizes spaces, removes exact duplicates after cleaning, sorts A–Z, and downloads a master.</p>
+</header>
+<main>
+<section>
+  <div class="card actions">
+    <label>Choose many text files</label>
+    <input id="fileInput" type="file" multiple accept=".txt,.text,.md,.csv,text/plain" />
+    <p class="small">Works on iPad: select many .txt files. The tool auto-runs after selection.</p>
+
+    <label>Choose folder, if your browser supports it</label>
+    <input id="folderInput" type="file" multiple webkitdirectory directory />
+    <p class="small">Folder selection may not work in every iPad browser. If it fails, select many files instead.</p>
+
+    <div style="margin-top:12px">
+      <button id="mergeBtn" class="primary">MERGE + DEDUPE NOW</button>
+      <button id="downloadBtn" class="good" disabled>DOWNLOAD MASTER</button>
+      <button id="downloadAZBtn" class="good" disabled>DOWNLOAD A–Z MASTER</button>
+      <button id="copyBtn" disabled>COPY RESULT</button>
+      <button id="clearBtn" class="warn">CLEAR</button>
+    </div>
+    <p class="small"><b>ZIP note:</b> this offline build does not use ZIP libraries. Unzip first, then select the text files or folder.</p>
+  </div>
+
+  <div class="card">
+    <div class="stats">
+      <div class="stat"><span>Files selected</span><b id="filesCount">0</b></div>
+      <div class="stat"><span>Files read</span><b id="filesRead">0</b></div>
+      <div class="stat"><span>Raw lines</span><b id="rawLines">0</b></div>
+      <div class="stat"><span>Unique kept</span><b id="uniqueLines">0</b></div>
+      <div class="stat"><span>Duplicates removed</span><b id="dupesRemoved">0</b></div>
+      <div class="stat"><span>Letters used</span><b id="lettersUsed">0</b></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Log</label>
+    <div id="log">Ready. Choose files, then it will auto-run. You can also press MERGE + DEDUPE NOW.</div>
+  </div>
+</section>
+
+<section>
+  <div class="card">
+    <label>Master Preview</label>
+    <textarea id="output" spellcheck="false" placeholder="Merged result will appear here..."></textarea>
+  </div>
+</section>
+</main>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  let lastMaster = '';
+  let lastAZ = '';
+
+  function log(msg, cls=''){
+    const line = document.createElement('div');
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    if(cls) line.className = cls;
+    const box = $('log');
+    if(box.textContent.trim()==='Ready. Choose files, then it will auto-run. You can also press MERGE + DEDUPE NOW.') box.textContent='';
+    box.appendChild(line); box.scrollTop = box.scrollHeight;
+    console.log(msg);
+  }
+  function setStat(id, value){ $(id).textContent = String(value); }
+  function cleanLine(line){
+    return line
+      .toUpperCase()
+      .replace(/[\u0000-\u001F\u007F]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function makeAZ(lines){
+    const sections = {};
+    for(const line of lines){
+      const first = /^[A-Z]/.test(line[0] || '') ? line[0] : '#';
+      (sections[first] ||= []).push(line);
+    }
+    let out = '';
+    for(const letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){
+      if(sections[letter]?.length){
+        out += `[${letter}]\n` + sections[letter].join('\n') + '\n\n';
+      }
+    }
+    if(sections['#']?.length) out += `[#]\n` + sections['#'].join('\n') + '\n\n';
+    return out.trim();
+  }
+  function getFiles(){
+    const files = [];
+    files.push(...Array.from($('fileInput').files || []));
+    files.push(...Array.from($('folderInput').files || []));
+    return files;
+  }
+  async function readFileAsText(file){
+    try { return await file.text(); }
+    catch(e){
+      return await new Promise((resolve, reject)=>{
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result || ''));
+        r.onerror = () => reject(r.error || new Error('FileReader failed'));
+        r.readAsText(file);
+      });
+    }
+  }
+  async function mergeNow(){
+    const files = getFiles();
+    setStat('filesCount', files.length);
+    setStat('filesRead', 0); setStat('rawLines', 0); setStat('uniqueLines', 0); setStat('dupesRemoved', 0); setStat('lettersUsed', 0);
+    lastMaster = ''; lastAZ = ''; $('output').value = '';
+    $('downloadBtn').disabled = $('downloadAZBtn').disabled = $('copyBtn').disabled = true;
+    if(!files.length){ log('No files selected yet.', 'bad'); return; }
+    log(`Selected ${files.length} file(s). Starting merge...`, 'ok');
+    const all = [];
+    let read = 0, skipped = 0;
+    for(const file of files){
+      const name = file.webkitRelativePath || file.name || 'unnamed';
+      // Try text-like files first, but still allow extensionless files because iPad sometimes drops type info.
+      const lower = name.toLowerCase();
+      const likelyText = /\.(txt|text|md|csv|log)$/i.test(lower) || !file.type || file.type.startsWith('text/');
+      if(!likelyText){ skipped++; log(`Skipped non-text-looking file: ${name}`, 'muted'); continue; }
+      try{
+        const text = await readFileAsText(file);
+        read++; setStat('filesRead', read);
+        const lines = text.split(/\r?\n/).map(cleanLine).filter(Boolean);
+        all.push(...lines);
+        log(`Read ${lines.length} line(s): ${name}`);
+      }catch(err){ log(`ERROR reading ${name}: ${err.message || err}`, 'bad'); }
+      await new Promise(r=>setTimeout(r,0));
+    }
+    const unique = Array.from(new Set(all)).sort((a,b)=>a.localeCompare(b));
+    lastMaster = unique.join('\n');
+    lastAZ = makeAZ(unique);
+    const letters = new Set(unique.map(x=>x[0]).filter(ch=>/^[A-Z]$/.test(ch))).size;
+    setStat('rawLines', all.length); setStat('uniqueLines', unique.length); setStat('dupesRemoved', Math.max(0, all.length - unique.length)); setStat('lettersUsed', letters);
+    $('output').value = lastMaster;
+    $('downloadBtn').disabled = $('downloadAZBtn').disabled = $('copyBtn').disabled = !unique.length;
+    log(`DONE. Read ${read} file(s), skipped ${skipped}. Kept ${unique.length} unique line(s); removed ${all.length - unique.length} duplicate(s).`, 'ok');
+  }
+  function downloadText(filename, text){
+    const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 1000);
+  }
+  $('mergeBtn').addEventListener('click', mergeNow);
+  $('fileInput').addEventListener('change', ()=>{ log(`File picker changed: ${$('fileInput').files.length} file(s). Auto-running...`, 'ok'); mergeNow(); });
+  $('folderInput').addEventListener('change', ()=>{ log(`Folder picker changed: ${$('folderInput').files.length} file(s). Auto-running...`, 'ok'); mergeNow(); });
+  $('downloadBtn').addEventListener('click', ()=>downloadText('MASTER_MERGED_DEDUPED_SORTED.txt', lastMaster || $('output').value));
+  $('downloadAZBtn').addEventListener('click', ()=>downloadText('MASTER_A_Z_MERGED_DEDUPED_SORTED.txt', lastAZ || makeAZ(($('output').value||'').split(/\r?\n/).filter(Boolean))));
+  $('copyBtn').addEventListener('click', async()=>{ try{ await navigator.clipboard.writeText($('output').value); log('Copied result to clipboard.', 'ok'); } catch(e){ $('output').select(); document.execCommand('copy'); log('Copied by fallback selection.', 'ok'); } });
+  $('clearBtn').addEventListener('click', ()=>{ $('fileInput').value=''; $('folderInput').value=''; $('output').value=''; $('log').textContent='Cleared. Choose files again.'; ['filesCount','filesRead','rawLines','uniqueLines','dupesRemoved','lettersUsed'].forEach(id=>setStat(id,0)); lastMaster=''; lastAZ=''; $('downloadBtn').disabled=$('downloadAZBtn').disabled=$('copyBtn').disabled=true; });
+})();
+</script>
+</body>
+</html>

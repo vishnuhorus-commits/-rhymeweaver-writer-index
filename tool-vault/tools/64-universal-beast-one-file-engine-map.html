@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Universal Beast — One-File Engine Map + A-Z Processor</title>
+<style>
+:root{
+  --bg:#08080b; --panel:#12121a; --panel2:#191927; --text:#f4f4f7; --muted:#aaaabd;
+  --line:#2b2b3d; --gold:#f6c85f; --blue:#67d1ff; --green:#64f2a2; --red:#ff6b6b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top,#1b1b2b,#08080b 55%);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.45}
+header{padding:28px 18px;border-bottom:1px solid var(--line);background:rgba(8,8,11,.9);position:sticky;top:0;z-index:10}
+h1{margin:0 0 8px;font-size:28px;letter-spacing:.4px}
+h2{font-size:20px;margin:0 0 14px;color:var(--gold)}
+h3{font-size:16px;margin:16px 0 8px;color:var(--blue)}
+p{margin:8px 0;color:var(--muted)}
+main{max-width:1120px;margin:0 auto;padding:18px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.engine{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0f0f16}
+.engine b{color:var(--gold)}
+code,pre{background:#050507;border:1px solid var(--line);border-radius:10px;color:#e8e8ef}
+pre{padding:12px;overflow:auto;white-space:pre-wrap}
+button,.file-label{appearance:none;border:0;border-radius:12px;padding:12px 14px;background:var(--gold);color:#111;font-weight:800;cursor:pointer;display:inline-block;margin:6px 6px 6px 0}
+button.secondary{background:#2a2a3f;color:var(--text);border:1px solid var(--line)}
+button.danger{background:var(--red);color:#111}
+input[type=file]{display:none}
+.stat{background:#090910;border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat strong{display:block;font-size:22px;color:var(--green)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+th{color:var(--gold)}
+.small{font-size:12px;color:var(--muted)}
+.ok{color:var(--green);font-weight:700}
+.warn{color:var(--gold);font-weight:700}
+.bad{color:var(--red);font-weight:700}
+.downloads a{display:inline-block;margin:6px 6px 0 0;padding:10px 12px;border-radius:10px;background:#202034;color:#fff;text-decoration:none;border:1px solid var(--line)}
+textarea{width:100%;min-height:160px;border-radius:12px;background:#050507;color:#fff;border:1px solid var(--line);padding:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1>UNIVERSAL BEAST — One-File Engine Map + A–Z Alliteration Processor</h1>
+  <p>This is a browser-only processor. It does not delete, move, upload, or alter originals. It reads selected text files and generates downloadable indexes.</p>
+</header>
+<main>
+  <section class="card">
+    <h2>1. Locked Machine Map</h2>
+    <div class="grid">
+      <div class="engine"><b>00_DROP_ALLITERATION_HERE</b><br>Engine: Ingest Engine<br>Purpose: receive raw A–Z / alliteration text files.</div>
+      <div class="engine"><b>01_ORIGINALS_SAVED</b><br>Engine: Preservation Engine<br>Purpose: keep originals untouched. In browser mode, originals stay wherever you selected them.</div>
+      <div class="engine"><b>02_CLEANED_SEPARATED_AZ</b><br>Engine: Clean + A–Z Split Engine<br>Purpose: normalized lines separated by first letter.</div>
+      <div class="engine"><b>03_MERGED_MASTER</b><br>Engine: Merge Engine<br>Purpose: one merged master line list.</div>
+      <div class="engine"><b>04_DEDUPED_MASTER</b><br>Engine: Deduplication Engine<br>Purpose: exact duplicate removal by normalized text.</div>
+      <div class="engine"><b>05_INDEXES</b><br>Engine: Search Index Engine<br>Purpose: CSV, JSONL, A–Z index, rhyme index, manifest.</div>
+      <div class="engine"><b>06_LOGS</b><br>Engine: Audit Log Engine<br>Purpose: run log, counts, warnings, invalid lines.</div>
+      <div class="engine"><b>99_QUARANTINE</b><br>Engine: Recovery Engine<br>Purpose: invalid/unreadable records. Browser mode reports them; it does not move them.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. Run the Processor</h2>
+    <p><b>Use this:</b> tap Select Files, choose A.txt through Z.txt or the alliteration .txt/.md/.csv files, then tap Build Index.</p>
+    <label class="file-label" for="files">Select Files</label>
+    <input id="files" type="file" multiple accept=".txt,.md,.csv,text/plain,text/markdown,text/csv">
+    <button id="build">Build Index</button>
+    <button class="secondary" id="clear">Clear</button>
+    <p id="fileStatus" class="small">No files selected yet.</p>
+  </section>
+
+  <section class="card">
+    <h2>3. Output Downloads</h2>
+    <div class="grid" id="stats">
+      <div class="stat"><span>Total Lines</span><strong>0</strong></div>
+      <div class="stat"><span>Unique Lines</span><strong>0</strong></div>
+      <div class="stat"><span>Duplicates</span><strong>0</strong></div>
+      <div class="stat"><span>Files</span><strong>0</strong></div>
+    </div>
+    <div class="downloads" id="downloads"></div>
+  </section>
+
+  <section class="card">
+    <h2>4. Preview</h2>
+    <div id="preview" class="small">Nothing processed yet.</div>
+  </section>
+
+  <section class="card">
+    <h2>5. Manual Paste Backup</h2>
+    <p>If file picking fails on iPad, paste text here and tap Build From Paste.</p>
+    <textarea id="paste" placeholder="Paste alliteration lines here..."></textarea>
+    <button id="buildPaste">Build From Paste</button>
+  </section>
+</main>
+
+<script>
+const state = { files: [], outputs: null };
+
+const vowels = new Set(['A','E','I','O','U']);
+function nowStamp(){
+  const d = new Date();
+  return d.toISOString().replace(/[:.]/g,'-');
+}
+function normalizeText(s){
+  return (s || '')
+    .normalize('NFKC')
+    .replace(/[“”]/g,'"')
+    .replace(/[‘’]/g,"'")
+    .replace(/[—–]/g,'-')
+    .replace(/[^\S\r\n]+/g,' ')
+    .replace(/\s+([,.!?;:])/g,'$1')
+    .trim()
+    .toUpperCase();
+}
+function cleanForKey(s){
+  return normalizeText(s).replace(/[^A-Z0-9\s'-]/g,'').replace(/\s+/g,' ').trim();
+}
+function wordsOf(s){
+  return cleanForKey(s).split(/\s+/).filter(Boolean);
+}
+function rootOf(line){
+  const words = wordsOf(line).filter(w => /[A-Z]/.test(w));
+  if (!words.length) return 'UNKNOWN';
+  const counts = {};
+  for (const w of words) counts[w] = (counts[w] || 0) + 1;
+  return Object.entries(counts).sort((a,b)=> b[1]-a[1] || b[0].length-a[0].length || a[0].localeCompare(b[0]))[0][0];
+}
+function firstLetter(line){
+  const m = cleanForKey(line).match(/[A-Z]/);
+  return m ? m[0] : '#';
+}
+function endingSound(word){
+  word = (word || '').replace(/[^A-Z]/g,'');
+  if (!word) return '';
+  const suffixes = ['ATION','ITION','OTION','TION','SION','ING','NESS','LESS','MENT','IGHT','OUND','OWER','ANCE','ENCE','ABLE','IBLE'];
+  for (const suf of suffixes) if (word.endsWith(suf)) return suf;
+  return word.slice(-Math.min(4, word.length));
+}
+function rhymeKey(line){
+  const w = wordsOf(line);
+  return w.length ? endingSound(w[w.length-1]) : '';
+}
+function syllablesWord(word){
+  word = (word || '').toLowerCase().replace(/[^a-z]/g,'');
+  if (!word) return 0;
+  const groups = word.match(/[aeiouy]+/g);
+  let n = groups ? groups.length : 1;
+  if (word.endsWith('e') && n > 1) n--;
+  return Math.max(1,n);
+}
+function syllablesLine(line){
+  return wordsOf(line).reduce((a,w)=>a+syllablesWord(w),0);
+}
+function alliterationScore(line){
+  const ws = wordsOf(line).filter(w => /^[A-Z]/.test(w));
+  if (ws.length < 2) return 0;
+  const firsts = ws.map(w=>w[0]);
+  const counts = {};
+  for (const f of firsts) counts[f] = (counts[f]||0)+1;
+  const max = Math.max(...Object.values(counts));
+  return +(max / ws.length).toFixed(3);
+}
+function hashString(str){
+  // cyrb53-ish stable JS hash as hex
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i=0, ch; i<str.length; i++) {
+    ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
+  return ((h2>>>0).toString(16).padStart(8,'0') + (h1>>>0).toString(16).padStart(8,'0')).toUpperCase();
+}
+function csvEscape(v){
+  v = String(v ?? '');
+  if (/[",\n\r]/.test(v)) return '"' + v.replace(/"/g,'""') + '"';
+  return v;
+}
+function makeDownload(name, content, type='text/plain'){
+  const blob = new Blob([content], {type});
+  const url = URL.createObjectURL(blob);
+  return {name, url};
+}
+function processRecords(fileRecords){
+  const batch = nowStamp();
+  const records = [];
+  const seen = new Map();
+  const errors = [];
+  let sourceCounter = 0;
+
+  fileRecords.sort((a,b)=>a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
+
+  for (const f of fileRecords){
+    sourceCounter++;
+    const lines = f.text.split(/\r?\n/);
+    let lineNo = 0;
+    for (const raw of lines){
+      lineNo++;
+      const clean = normalizeText(raw);
+      if (!clean) continue;
+      const key = cleanForKey(clean);
+      if (!key || key.length < 1) {
+        errors.push({file:f.name, line:lineNo, error:'EMPTY_AFTER_NORMALIZE'});
+        continue;
+      }
+      const duplicateOf = seen.get(key) || '';
+      const idBase = `${firstLetter(clean)}_${String(records.length+1).padStart(7,'0')}`;
+      const root = rootOf(clean);
+      const rk = rhymeKey(clean);
+      const rec = {
+        id: idBase,
+        raw_line: raw,
+        clean_line: clean,
+        normalized_line: key,
+        root,
+        root_type:'word',
+        chain_id:`${root}_FLOW_${String((records.filter(r=>r.root===root).length)+1).padStart(3,'0')}`,
+        first_letter:firstLetter(clean),
+        ending_sound: rk,
+        rhyme_key: rk,
+        rhyme_level: rk ? 1 : 0,
+        alliteration_score: alliterationScore(clean),
+        syllables: syllablesLine(clean),
+        source_file:f.name,
+        source_line:lineNo,
+        checksum:hashString(key),
+        duplicate_of: duplicateOf,
+        validation_status: duplicateOf ? 'DUPLICATE' : 'STABLE_NODE',
+        batch_id: batch
+      };
+      if (!duplicateOf) seen.set(key, rec.id);
+      records.push(rec);
+    }
+  }
+
+  const unique = records.filter(r=>!r.duplicate_of);
+  unique.sort((a,b)=>
+    a.first_letter.localeCompare(b.first_letter) ||
+    a.root.localeCompare(b.root) ||
+    a.clean_line.localeCompare(b.clean_line) ||
+    a.source_file.localeCompare(b.source_file) ||
+    a.source_line - b.source_line
+  );
+
+  return {batch, records, unique, errors, files:fileRecords};
+}
+function buildOutputs(result){
+  const fields = ['id','clean_line','root','root_type','chain_id','first_letter','ending_sound','rhyme_key','rhyme_level','alliteration_score','syllables','source_file','source_line','checksum','duplicate_of','validation_status','batch_id'];
+  const csv = [fields.join(',')].concat(result.unique.map(r=>fields.map(f=>csvEscape(r[f])).join(','))).join('\n');
+  const jsonl = result.unique.map(r=>JSON.stringify(r)).join('\n');
+
+  const merged = result.records.map(r=>r.clean_line).join('\n');
+  const deduped = result.unique.map(r=>r.clean_line).join('\n');
+
+  const azGroups = {};
+  for (const r of result.unique) (azGroups[r.first_letter] ||= []).push(r.clean_line);
+  let azAll = '';
+  for (const letter of Object.keys(azGroups).sort()){
+    azAll += `\n### ${letter}\n` + azGroups[letter].join('\n') + '\n';
+  }
+
+  const rhymeGroups = {};
+  for (const r of result.unique) (rhymeGroups[r.rhyme_key || 'NO_RHYME_KEY'] ||= []).push(r.clean_line);
+  let rhymeAll = '';
+  for (const key of Object.keys(rhymeGroups).sort()){
+    rhymeAll += `\n### ${key}\n` + rhymeGroups[key].join('\n') + '\n';
+  }
+
+  const manifestRows = [['file_name','line_count','file_hash']];
+  for (const f of result.files){
+    manifestRows.push([f.name, String(f.text.split(/\r?\n/).length), hashString(f.text)]);
+  }
+  const manifest = manifestRows.map(row=>row.map(csvEscape).join(',')).join('\n');
+
+  const log = JSON.stringify({
+    batch_id: result.batch,
+    processed_at: new Date().toISOString(),
+    files: result.files.map(f=>f.name),
+    total_records: result.records.length,
+    unique_records: result.unique.length,
+    duplicates: result.records.length - result.unique.length,
+    errors: result.errors
+  }, null, 2);
+
+  const report = `UNIVERSAL BEAST RUN REPORT\n\nBatch: ${result.batch}\nFiles: ${result.files.length}\nTotal lines: ${result.records.length}\nUnique lines: ${result.unique.length}\nDuplicates: ${result.records.length-result.unique.length}\nErrors: ${result.errors.length}\n\nOutput folder mapping:\n03_MERGED_MASTER -> MERGED_ALL_LINES.txt\n04_DEDUPED_MASTER -> DEDUPED_ALL_LINES.txt\n05_INDEXES -> MASTER_INDEX.csv, MASTER_INDEX.jsonl, A_Z_INDEX_ALL.txt, RHYME_INDEX_ALL.txt, CHECKSUM_MANIFEST.csv\n06_LOGS -> RUN_LOG.json\n`;
+
+  return [
+    makeDownload('MASTER_INDEX.csv', csv, 'text/csv'),
+    makeDownload('MASTER_INDEX.jsonl', jsonl, 'application/jsonl'),
+    makeDownload('MERGED_ALL_LINES.txt', merged),
+    makeDownload('DEDUPED_ALL_LINES.txt', deduped),
+    makeDownload('A_Z_INDEX_ALL.txt', azAll),
+    makeDownload('RHYME_INDEX_ALL.txt', rhymeAll),
+    makeDownload('CHECKSUM_MANIFEST.csv', manifest, 'text/csv'),
+    makeDownload('RUN_LOG.json', log, 'application/json'),
+    makeDownload('RUN_REPORT.txt', report)
+  ];
+}
+function showResult(result, downloads){
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><span>Total Lines</span><strong>${result.records.length}</strong></div>
+    <div class="stat"><span>Unique Lines</span><strong>${result.unique.length}</strong></div>
+    <div class="stat"><span>Duplicates</span><strong>${result.records.length-result.unique.length}</strong></div>
+    <div class="stat"><span>Files</span><strong>${result.files.length}</strong></div>
+  `;
+  const dl = document.getElementById('downloads');
+  dl.innerHTML = downloads.map(d=>`<a href="${d.url}" download="${d.name}">${d.name}</a>`).join('');
+  const previewRows = result.unique.slice(0,25).map(r=>`<tr><td>${r.id}</td><td>${r.first_letter}</td><td>${r.root}</td><td>${r.rhyme_key}</td><td>${r.alliteration_score}</td><td>${r.clean_line.replace(/</g,'&lt;')}</td></tr>`).join('');
+  document.getElementById('preview').innerHTML = `
+    <p><span class="ok">Built successfully.</span> Download the files above.</p>
+    <table><thead><tr><th>ID</th><th>Letter</th><th>Root</th><th>Rhyme</th><th>Allit.</th><th>Line</th></tr></thead><tbody>${previewRows}</tbody></table>
+  `;
+}
+async function readFiles(files){
+  const arr = Array.from(files || []);
+  const allowed = arr.filter(f => /\.(txt|md|csv)$/i.test(f.name) || /^text\//.test(f.type));
+  if (!allowed.length) throw new Error('No readable .txt, .md, or .csv files selected.');
+  const out = [];
+  for (const f of allowed){
+    const text = await f.text();
+    out.push({name:f.webkitRelativePath || f.name, text});
+  }
+  return out;
+}
+
+document.getElementById('files').addEventListener('change', e=>{
+  state.files = Array.from(e.target.files || []);
+  document.getElementById('fileStatus').textContent = `${state.files.length} file(s) selected.`;
+});
+document.getElementById('build').addEventListener('click', async ()=>{
+  try{
+    const files = await readFiles(state.files);
+    const result = processRecords(files);
+    const downloads = buildOutputs(result);
+    showResult(result, downloads);
+  }catch(err){
+    document.getElementById('preview').innerHTML = `<span class="bad">Error:</span> ${String(err.message || err)}`;
+  }
+});
+document.getElementById('buildPaste').addEventListener('click', ()=>{
+  const text = document.getElementById('paste').value || '';
+  const result = processRecords([{name:'PASTED_INPUT.txt', text}]);
+  const downloads = buildOutputs(result);
+  showResult(result, downloads);
+});
+document.getElementById('clear').addEventListener('click', ()=>{
+  location.reload();
+});
+</script>
+</body>
+</html>

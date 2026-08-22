@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>RhymeWeaver Working</title>
+<style>
+body{margin:0;background:#0f1115;color:#f4f6fb;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif}
+header{padding:16px;background:#171b23;position:sticky;top:0;border-bottom:1px solid #2a3140}
+main{padding:12px;max-width:1000px;margin:auto}.card{background:#181c24;border:1px solid #2a3140;border-radius:16px;padding:14px;margin:12px 0}
+button,label{border:1px solid #2a3140;background:#222938;color:#f4f6fb;border-radius:12px;padding:12px 13px;font-weight:800;display:inline-block;margin:4px}
+button.primary{background:#24445f;border-color:#39698e}button.good{background:#1b3b29;color:#a9f5c2}
+input[type=file]{display:none}textarea,input{width:100%;background:#0c0f15;color:#f4f6fb;border:1px solid #2a3140;border-radius:12px;padding:10px;font-family:monospace}
+textarea{min-height:160px;text-transform:uppercase}.writer{text-transform:none;min-height:230px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}.stat{background:#111620;border:1px solid #2a3140;border-radius:12px;padding:10px}.stat b{color:#8bc6ff;font-size:1.2rem;display:block}
+a.download{display:inline-block;margin:5px;padding:10px;border-radius:10px;background:#1b2a20;border:1px solid #315b3f;color:#a9f5c2;text-decoration:none;font-weight:800}
+.result{border-bottom:1px solid #2a3140;padding:8px;font-family:monospace}.meta{color:#8bc6ff;font-size:.78rem}.hidden{display:none}.small{color:#aeb7c8;font-size:.9rem}
+</style>
+</head>
+<body>
+<header><h2>RHYMEWEAVER WRITER INDEX — WORKING VERSION</h2><div id="status" class="small">STATUS: LOADED</div></header>
+<main>
+<div class="card">
+<button onclick="showPage('process')">PROCESS</button><button onclick="showPage('search')">SEARCH</button><button onclick="showPage('writer')">WRITER</button><button onclick="showPage('outputs')">OUTPUTS</button>
+</div>
+<section id="process">
+<div class="card"><h3>LOAD FILES OR PASTE TEXT</h3><p class="small">TXT / MD / CSV. For PDF, paste text or upload PDF to ChatGPT first.</p>
+<label>CHOOSE FILES<input id="fileInput" type="file" accept=".txt,.md,.csv,text/plain,text/csv,text/markdown" multiple></label><button onclick="loadTest()">LOAD TEST</button><button onclick="clearAll()">CLEAR</button>
+<p id="fileStatus" class="small">NO FILES LOADED.</p><textarea id="pasteBox" placeholder="PASTE RAW LINES HERE"></textarea></div>
+<div class="card"><button class="primary" onclick="processAll()">RUN MERGE + DEDUPE + INDEX</button></div>
+<div class="card"><h3>STATS</h3><div id="stats" class="stats"></div></div>
+</section>
+<section id="search" class="hidden">
+<div class="card"><h3>SEARCH INDEX</h3><input id="searchBox" placeholder="SEARCH WORD / ROOT / RHYME"><button class="primary" onclick="runSearch()">SEARCH</button><button onclick="showResults(records)">SHOW ALL</button></div>
+<div class="card"><p id="resultCount" class="small">NO INDEX YET.</p><div id="results"></div></div>
+</section>
+<section id="writer" class="hidden">
+<div class="card"><h3>WRITER PAD</h3><textarea id="writerPad" class="writer" placeholder="WRITE HERE"></textarea><button class="good" onclick="downloadDraft()">DOWNLOAD DRAFT</button><button onclick="upperDraft()">ALL CAPS</button><button onclick="trimDraft()">TRIM</button></div>
+<div class="card"><h3>WRITER SEARCH</h3><input id="writerSearchBox" placeholder="SEARCH INDEX"><button class="primary" onclick="writerSearch()">SEARCH</button><button onclick="insertFirst()">INSERT FIRST</button><div id="writerResults"></div></div>
+</section>
+<section id="outputs" class="hidden">
+<div class="card"><h3>DOWNLOAD OUTPUTS</h3><div id="downloads">RUN PROCESSOR FIRST.</div></div>
+<div class="card"><h3>MASTER PREVIEW</h3><textarea id="preview" readonly></textarea></div>
+</section>
+</main>
+<script>
+var loadedFiles=[], outputs={}, records=[], firstResult=null;
+function S(id){return document.getElementById(id)}
+function status(t){S('status').textContent='STATUS: '+t}
+function trimSpaces(s){return String(s||'').replace(/\s+/g,' ').trim()}
+function clean(s){return trimSpaces(s).replace(/[^A-Za-z0-9 ]/g,' ').replace(/\s+/g,' ').trim().toUpperCase()}
+function root(c){return (c.split(/\s+/).filter(Boolean)[0]||'')}
+function last(c){var p=c.split(/\s+/).filter(Boolean);return p[p.length-1]||''}
+function letter(c){var m=c.match(/[A-Z]/);return m?m[0]:'#'}
+function rhyme(c){var w=last(c),v='AEIOUY',i; if(!w)return ''; for(i=w.length-1;i>=0;i--){if(v.indexOf(w[i])>=0)return w.slice(i)} return w.slice(-3)}
+function end3(c){var w=last(c);return w?w.slice(-3):''}
+function classify(o,c){if(!o)return ['REVIEW','BLANK'];if(!c)return ['REVIEW','NO_TEXT'];var words=c.split(/\s+/).filter(Boolean);var sym=(o.match(/[^A-Za-z0-9\s]/g)||[]).length;var dig=(o.match(/\d/g)||[]).length;var len=o.replace(/\s/g,'').length||1;if(words.length<2)return ['REVIEW','ONE_WORD'];if(sym/len>.25)return ['REVIEW','SYMBOL_HEAVY'];if(dig/len>.35)return ['REVIEW','NUMBER_HEAVY'];return ['KEPT','KEPT']}
+function csv(vals){return vals.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'}).join(',')}
+function showPage(id){['process','search','writer','outputs'].forEach(function(x){S(x).classList.add('hidden')});S(id).classList.remove('hidden')}
+function setStats(a,b,c,d,e,f){S('stats').innerHTML='<div class=stat>TOTAL<b>'+a+'</b></div><div class=stat>KEPT<b>'+b+'</b></div><div class=stat>REVIEW<b>'+c+'</b></div><div class=stat>DUPES<b>'+d+'</b></div><div class=stat>RHYMES<b>'+e+'</b></div><div class=stat>A-Z<b>'+f+'</b></div>'}
+setStats(0,0,0,0,0,0)
+S('fileInput').addEventListener('change',function(e){loadedFiles=[];var files=[].slice.call(e.target.files);var left=files.length;if(!left)return;files.forEach(function(file){var r=new FileReader();r.onload=function(ev){loadedFiles.push({name:file.name,text:String(ev.target.result||'')});left--;if(left===0){S('fileStatus').textContent=loadedFiles.length+' FILE(S) LOADED.';status('FILES READY')}};r.readAsText(file)})})
+function loadTest(){S('pasteBox').value=['silver sacred son','silver   sacred   son','Moon mirror mother','crystal current calling','crystal current calling','$$$ broken //// symbol line','777777777777 999999','singleword','river rhythm rises','temple thunder turning'].join('\n');status('TEST LOADED')}
+function processAll(){var sources=loadedFiles.slice(),p=S('pasteBox').value;if(trimSpaces(p))sources.push({name:'PASTED_TEXT',text:p});if(!sources.length){alert('ADD FILE OR PASTE TEXT FIRST');return}var raw=[];sources.forEach(function(src){String(src.text).split(/\r?\n/).forEach(function(line,i){raw.push({source:src.name,line:i+1,text:line})})});var seen={}, review=[], dups=[], az={}, rh={}, roots={}, rows=['ID,LETTER,ROOT,RHYME_KEY,RHYME_END3,CLEAN_TEXT_ALL_CAPS,SOURCE_FILE,SOURCE_LINE,STATUS,REASON'];records=[];var id=1;raw.forEach(function(r){var o=trimSpaces(r.text),c=clean(r.text),l=letter(c),ro=root(c),ry=rhyme(c),e=end3(c),cl=classify(o,c),wc=c?c.split(/\s+/).filter(Boolean).length:0;if(c&&seen[c]){dups.push(c+'\tSOURCE='+r.source+':'+r.line+'\tDUP_OF='+seen[c]);rows.push(csv(['DUP_'+id++,l,ro,ry,e,c,r.source,r.line,'DUPLICATE','DUPLICATE_REVIEW']));return}if(c)seen[c]=r.source+':'+r.line;if(cl[0]=='KEPT'){var rec={id:'IDX_'+id++,letter:l,root:ro,rhyme:ry,end3:e,clean:c,source:r.source,line:r.line,words:wc};records.push(rec);(az[l]=az[l]||[]).push(c);(rh[ry]=rh[ry]||[]).push(c);(roots[ro]=roots[ro]||[]).push(c);rows.push(csv([rec.id,l,ro,ry,e,c,r.source,r.line,'KEPT','KEPT']))}else{review.push((o||c).toUpperCase()+'\tSOURCE='+r.source+':'+r.line+'\tREASON='+cl[1]);rows.push(csv(['REV_'+id++,l,ro,ry,e,c,r.source,r.line,'REVIEW',cl[1]]))}});records.sort(function(a,b){return a.clean.localeCompare(b.clean)});function group(obj){return Object.keys(obj).sort().map(function(k){return '## '+k+'\n'+Array.from(new Set(obj[k])).sort().join('\n')}).join('\n\n')}var kept=records.map(function(x){return x.clean});var log=['RHYMEWEAVER PROCESS LOG','TOTAL RAW LINES: '+raw.length,'KEPT UNIQUE: '+records.length,'REVIEW: '+review.length,'DUPLICATES: '+dups.length,'RHYME KEYS: '+Object.keys(rh).length,'A-Z BUCKETS: '+Object.keys(az).length,'RULE: MERGED, TRIMMED, ALL CAPS, DEDUPED, REVIEW PRESERVED'].join('\n');outputs={'00_MASTER_MERGED_DEDUPED_ALL_CAPS.txt':kept.join('\n'),'01_MASTER_SEARCHABLE_INDEX.csv':rows.join('\n'),'02_RHYMEWEAVER_SEARCH_INDEX.json':JSON.stringify({records:records,az:az,rhyme:rh,roots:roots},null,2),'03_A_Z_CANDIDATE_ALL_CAPS.txt':group(az),'04_RHYME_KEY_INDEX.txt':group(rh),'05_ROOT_WORD_INDEX.txt':group(roots),'06_REVIEW_NOT_DELETED_ALL_CAPS.txt':review.join('\n'),'07_DUPLICATES_REVIEW_ALL_CAPS.txt':dups.join('\n'),'08_RHYMEWEAVER_WRITER_SEED.txt':kept.slice(0,50).join('\n'),'09_PROCESS_LOG.txt':log};S('preview').value=kept.slice(0,200).join('\n');makeLinks();setStats(raw.length,records.length,review.length,dups.length,Object.keys(rh).length,Object.keys(az).length);showResults(records);showPage('outputs');status('DONE')}
+function makeLinks(){S('downloads').innerHTML='';Object.keys(outputs).forEach(function(name){var blob=new Blob([outputs[name]],{type:name.endsWith('.csv')?'text/csv':name.endsWith('.json')?'application/json':'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.textContent=name;a.className='download';S('downloads').appendChild(a)})}
+function showResults(list,target){target=target||'results';S(target).innerHTML='';if(target=='results')S('resultCount').textContent=list.length+' RESULT(S)';list.slice(0,500).forEach(function(r,i){if(i==0)firstResult=r;var d=document.createElement('div');d.className='result';d.innerHTML='<div>'+r.clean+'</div><div class=meta>ROOT='+r.root+' RHYME='+r.rhyme+' SOURCE='+r.source+':'+r.line+'</div>';d.onclick=function(){firstResult=r};S(target).appendChild(d)})}
+function search(q){q=clean(q);if(!q)return records;return records.filter(function(r){return [r.clean,r.root,r.rhyme,r.end3,r.source,r.letter].join(' ').indexOf(q)>=0})}
+function runSearch(){showResults(search(S('searchBox').value),'results')}
+function writerSearch(){showResults(search(S('writerSearchBox').value),'writerResults')}
+function insertFirst(){if(!firstResult){alert('NO RESULT YET');return}S('writerPad').value+=(S('writerPad').value?'\n':'')+firstResult.clean+'\n'}
+function download(name,content){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'}));a.download=name;a.click()}
+function downloadDraft(){download('RHYMEWEAVER_WRITER_DRAFT.txt',S('writerPad').value)}
+function upperDraft(){S('writerPad').value=S('writerPad').value.toUpperCase()}
+function trimDraft(){S('writerPad').value=S('writerPad').value.split(/\r?\n/).map(trimSpaces).join('\n')}
+function clearAll(){loadedFiles=[];outputs={};records=[];S('fileInput').value='';S('pasteBox').value='';S('preview').value='';S('downloads').textContent='RUN PROCESSOR FIRST.';S('results').innerHTML='';S('writerResults').innerHTML='';S('fileStatus').textContent='NO FILES LOADED.';setStats(0,0,0,0,0,0);status('CLEARED')}
+status('LOADED. BUTTONS READY.')
+</script>
+</body>
+</html>

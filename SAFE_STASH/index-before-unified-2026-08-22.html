@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="RhymeWriter" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0f1115" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>RhymeWeaver Writer Index — Merge Deduplicate Search</title>
+<style>
+:root {
+  --bg: #0f1115;
+  --card: #181c24;
+  --ink: #f4f6fb;
+  --muted: #aeb7c8;
+  --border: #2a3140;
+  --accent: #8bc6ff;
+  --good: #a9f5c2;
+  --warn: #ffd78a;
+  --bad: #ffb3b3;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.45;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+header {
+  padding: calc(16px + env(safe-area-inset-top)) 14px 10px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #171b23 0%, #0f1115 100%);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+h1 { margin: 0 0 5px; font-size: 1.34rem; letter-spacing: .02em; }
+h2 { margin: 0 0 9px; font-size: 1.08rem; }
+p, li { color: var(--muted); }
+main { padding: 12px; max-width: 1180px; margin: auto; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+  margin: 12px 0;
+  box-shadow: 0 8px 30px rgba(0,0,0,.18);
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 900px) {
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  .grid.three { grid-template-columns: 1fr 1fr 1fr; }
+}
+.row { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
+button, .fileLabel, select {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #222938;
+  color: var(--ink);
+  border-radius: 13px;
+  padding: 11px 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 14px;
+}
+button.primary { background: #24445f; border-color: #39698e; }
+button.good { background: #1b3b29; border-color: #366b49; color: var(--good); }
+button.warn { background: #4a3918; border-color: #745d25; color: var(--warn); }
+input[type="file"] { display: none; }
+input[type="text"], textarea {
+  width: 100%;
+  background: #0c0f15;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+textarea { min-height: 170px; text-transform: uppercase; }
+textarea.writer { min-height: 260px; text-transform: none; font-size: 15px; line-height: 1.5; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 9px;
+}
+.stat {
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 11px;
+  background: #111620;
+}
+.stat span { color: var(--muted); font-size: .8rem; }
+.stat b { display:block; font-size: 1.2rem; color: var(--accent); }
+.small { font-size: .9rem; color: var(--muted); }
+.badge {
+  display: inline-block;
+  border: 1px solid var(--border);
+  color: var(--warn);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: .76rem;
+  font-weight: 800;
+  margin: 2px 4px 2px 0;
+}
+a.download {
+  display: inline-block;
+  margin: 5px 7px 5px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  background: #1b2a20;
+  border: 1px solid #315b3f;
+  color: var(--good);
+  font-weight: 800;
+}
+.resultList {
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: #0c0f15;
+  padding: 8px;
+}
+.resultItem {
+  border-bottom: 1px solid #1e2530;
+  padding: 8px 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+.resultItem:last-child { border-bottom: none; }
+.meta { color: var(--accent); font-size: .78rem; margin-top: 3px; }
+code { color: var(--accent); background: #0c0f15; padding: 2px 5px; border-radius: 5px; }
+.tabs { display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0; }
+.toolLink {
+  display:inline-flex;
+  align-items:center;
+  border:1px solid #745d25;
+  background:#4a3918;
+  color:var(--warn);
+  border-radius:13px;
+  padding:11px 13px;
+  font-weight:800;
+  text-decoration:none;
+  font-size:14px;
+}
+.tab { opacity:.72; }
+.tab.active { opacity:1; outline: 2px solid #39698e; }
+.hidden { display:none; }
+@media print {
+  body { background: white; color: black; }
+  header, .card { border-color: #999; background: white; color: black; box-shadow: none; }
+  p, li, .small { color: #222; }
+  button, .fileLabel, #downloads, #pasteBox, #fileInput, .tabs { display: none !important; }
+  textarea, input[type="text"], .resultList { color: black; background: white; border: 1px solid #999; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>RHYMEWEAVER WRITER INDEX</h1>
+  <div class="small">MERGE · DEDUPLICATE · ALL CAPS · SEARCH · RHYME KEYS · WRITER PAD · A-Z INDEX</div>
+  <div>
+    <span class="badge">HOME SCREEN APP</span>
+    <span class="badge">NO DRIVE AI LOGIN</span>
+    <span class="badge">SAFE REVIEW FIRST</span>
+    <span class="badge">STAVE SCANNER ADDED</span>
+    <span class="badge">CONSONANT SEARCHER ADDED</span>
+  </div>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab active" data-tab="process">PROCESS</button>
+    <button class="tab" data-tab="search">SEARCH INDEX</button>
+    <button class="tab" data-tab="writer">WRITER</button>
+    <button class="tab" data-tab="outputs">OUTPUTS</button>
+    <a class="toolLink" href="stave-scanner.html">STAVE SCANNER</a>
+    <a class="toolLink" href="consonant-searcher.html">CONSONANT SEARCHER</a>
+  </div>
+
+  <section id="process" class="tabPage">
+    <div class="card">
+      <h2>1. LOAD MANY FILES OR PASTE TEXT</h2>
+      <p>Use real files: <code>.TXT</code>, <code>.MD</code>, <code>.CSV</code>, or text-based <code>.PDF</code>. This app merges all input into one working index.</p>
+      <div class="row">
+        <label class="fileLabel">
+          CHOOSE FILES
+          <input id="fileInput" type="file" accept=".txt,.md,.csv,.pdf,text/plain,text/markdown,text/csv,application/pdf" multiple />
+        </label>
+        <button id="clearBtn">CLEAR ALL</button>
+      </div>
+      <p id="fileStatus" class="small">NO FILES LOADED YET.</p>
+      <textarea id="pasteBox" placeholder="OR PASTE RAW LINES HERE..."></textarea>
+    </div>
+
+    <div class="card">
+      <h2>2. RUN MERGE + DEDUPE + INDEX</h2>
+      <div class="row">
+        <button id="processBtn" class="primary">RUN EVERYTHING IN ONE</button>
+        <button id="printBtn">PRINT / SAVE PDF REPORT</button>
+      </div>
+      <p class="small">This does not delete questionable lines. It puts them in REVIEW_NOT_DELETED.</p>
+    </div>
+
+    <div class="card">
+      <h2>3. PROCESS STATS</h2>
+      <div class="stats" id="stats">
+        <div class="stat"><span>TOTAL RAW LINES</span><b>0</b></div>
+        <div class="stat"><span>KEPT UNIQUE</span><b>0</b></div>
+        <div class="stat"><span>REVIEW</span><b>0</b></div>
+        <div class="stat"><span>DUPLICATES</span><b>0</b></div>
+        <div class="stat"><span>RHYME KEYS</span><b>0</b></div>
+        <div class="stat"><span>A-Z BUCKETS</span><b>0</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="search" class="tabPage hidden">
+    <div class="card">
+      <h2>SEARCHABLE INDEX</h2>
+      <p>Search clean text, root word, rhyme key, source, or A-Z letter.</p>
+      <div class="grid two">
+        <input id="searchBox" type="text" placeholder="SEARCH: WORD, ROOT, RHYME KEY, SOURCE..." />
+        <select id="letterFilter">
+          <option value="">ALL LETTERS</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <button id="searchBtn" class="primary">SEARCH</button>
+        <button id="showAllBtn">SHOW ALL KEPT</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>RESULTS</h2>
+      <div id="resultCount" class="small">NO INDEX YET.</div>
+      <div id="results" class="resultList"></div>
+    </div>
+  </section>
+
+  <section id="writer" class="tabPage hidden">
+    <div class="grid two">
+      <div class="card">
+        <h2>RHYMEWEAVER WRITER PAD</h2>
+        <p>Write here. Use index search to pull phrases, roots, and rhyme endings into your draft.</p>
+        <textarea id="writerPad" class="writer" placeholder="WRITE HERE..."></textarea>
+        <div class="row" style="margin-top:10px;">
+          <button id="saveDraftBtn" class="good">DOWNLOAD WRITER DRAFT</button>
+          <button id="upperDraftBtn">ALL CAPS DRAFT</button>
+          <button id="trimDraftBtn">TRIM DRAFT SPACES</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>WRITER ASSIST SEARCH</h2>
+        <input id="writerSearchBox" type="text" placeholder="SEARCH INDEX FOR A WORD / RHYME / ROOT..." />
+        <div class="row" style="margin-top:10px;">
+          <button id="writerSearchBtn" class="primary">SEARCH</button>
+          <button id="insertSelectedBtn">INSERT FIRST RESULT</button>
+        </div>
+        <div id="writerResults" class="resultList" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="outputs" class="tabPage hidden">
+    <div class="card">
+      <h2>DOWNLOAD EVERYTHING</h2>
+      <p>These are the merged, deduplicated, searchable outputs.</p>
+      <div id="downloads"></div>
+    </div>
+    <div class="card">
+      <h2>PREVIEW — MASTER MERGED KEPT OUTPUT</h2>
+      <textarea id="preview" readonly></textarea>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js").catch(() => {});
+}
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+let loadedFiles = [];
+let outputs = {};
+let keptRecords = [];
+let selectedWriterResult = null;
+
+function trimSpaces(s) {
+  return String(s || "").replace(/\s+/g, " ").trim();
+}
+
+function cleanAllCaps(line) {
+  return trimSpaces(line)
+    .replace(/[^\p{L}\p{N} ]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+function rootWord(clean) {
+  const parts = clean.split(/\s+/).filter(Boolean);
+  return parts.length ? parts[0] : "";
+}
+
+function lastWord(clean) {
+  const parts = clean.split(/\s+/).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : "";
+}
+
+function firstLetter(clean) {
+  const m = clean.match(/[A-Z]/i);
+  return m ? m[0].toUpperCase() : "#";
+}
+
+function rhymeKey(clean) {
+  const last = lastWord(clean);
+  if (!last) return "";
+  const vowels = "AEIOUY";
+  let idx = -1;
+  for (let i = last.length - 1; i >= 0; i--) {
+    if (vowels.includes(last[i])) { idx = i; break; }
+  }
+  const vowelTail = idx >= 0 ? last.slice(idx) : last.slice(-3);
+  return vowelTail.length >= 2 ? vowelTail : last.slice(-3);
+}
+
+function rhymeEnd3(clean) {
+  const last = lastWord(clean);
+  return last ? last.slice(-3).toUpperCase() : "";
+}
+
+function classify(originalTrimmed, clean) {
+  if (!originalTrimmed) return {bucket: "review", reason: "BLANK_LINE"};
+  if (!clean) return {bucket: "review", reason: "NO_ALPHANUMERIC_CONTENT"};
+  const words = clean.split(/\s+/).filter(Boolean);
+  const symbolCount = (originalTrimmed.match(/[^\p{L}\p{N}\s]/gu) || []).length;
+  const digitCount = (originalTrimmed.match(/\d/g) || []).length;
+  const charCount = originalTrimmed.replace(/\s/g, "").length || 1;
+  if (words.length < 2) return {bucket: "review", reason: "ONE_WORD_OR_FRAGMENT"};
+  if (symbolCount / charCount > 0.25) return {bucket: "review", reason: "SYMBOL_HEAVY"};
+  if (digitCount / charCount > 0.35) return {bucket: "review", reason: "NUMBER_HEAVY"};
+  return {bucket: "kept", reason: "KEPT"};
+}
+
+async function extractPdfText(file) {
+  if (!window.pdfjsLib) {
+    return "[PDF EXTRACTION FAILED: PDF.JS DID NOT LOAD. CONNECT TO INTERNET OR USE TXT/MD/CSV. FILE: " + file.name + "]";
+  }
+  const data = new Uint8Array(await file.arrayBuffer());
+  const pdf = await pdfjsLib.getDocument({data}).promise;
+  let text = "";
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    text += "\n" + content.items.map(item => item.str).join(" ") + "\n";
+  }
+  return text;
+}
+
+async function readFiles(files) {
+  loadedFiles = [];
+  const names = [];
+  for (const file of files) {
+    names.push(file.name);
+    let text = "";
+    try {
+      if (file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf") {
+        text = await extractPdfText(file);
+      } else {
+        text = await file.text();
+      }
+    } catch (err) {
+      text = "[FILE READ ERROR: " + file.name + " — " + err.message + "]";
+    }
+    loadedFiles.push({ name: file.name, text });
+  }
+  document.getElementById("fileStatus").textContent =
+    `${loadedFiles.length} FILE(S) LOADED: ` + names.join(", ");
+}
+
+function csvRow(vals) {
+  return vals.map(v => {
+    const s = String(v ?? "");
+    return '"' + s.replace(/"/g, '""') + '"';
+  }).join(",");
+}
+
+function processAll() {
+  const pasted = document.getElementById("pasteBox").value || "";
+  const sources = [...loadedFiles];
+  if (pasted.trim()) sources.push({ name: "PASTED_TEXT", text: pasted });
+
+  const rawLines = [];
+  for (const src of sources) {
+    const lines = src.text.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      rawLines.push({ source: src.name, lineNumber: i + 1, original: lines[i] });
+    }
+  }
+
+  const seen = new Map();
+  keptRecords = [];
+  const review = [];
+  const duplicates = [];
+  const az = {};
+  const rhyme = {};
+  const roots = {};
+  const masterRows = [
+    "ID,LETTER,ROOT,RHYME_KEY,RHYME_END3,RAW_TEXT_TRIMMED,CLEAN_TEXT_ALL_CAPS,WORD_COUNT,SOURCE_FILE,SOURCE_LINE,STATUS,REASON"
+  ];
+
+  let idCounter = 1;
+
+  for (const row of rawLines) {
+    const originalTrimmed = trimSpaces(row.original);
+    const clean = cleanAllCaps(row.original);
+    const key = clean;
+    const wordCount = clean ? clean.split(/\s+/).filter(Boolean).length : 0;
+    const letter = firstLetter(clean);
+    const root = rootWord(clean);
+    const rk = rhymeKey(clean);
+    const re3 = rhymeEnd3(clean);
+    const cls = classify(originalTrimmed, clean);
+
+    if (key && seen.has(key)) {
+      duplicates.push(`${clean}\tSOURCE=${row.source}:${row.lineNumber}\tDUP_OF=${seen.get(key)}`);
+      masterRows.push(csvRow([`DUP_${idCounter++}`, letter, root, rk, re3, originalTrimmed.toUpperCase(), clean, wordCount, row.source, row.lineNumber, "DUPLICATE", "DUPLICATE_REVIEW"]));
+      continue;
+    }
+
+    if (key) seen.set(key, `${row.source}:${row.lineNumber}`);
+
+    if (cls.bucket === "kept") {
+      const rec = {
+        id: `IDX_${idCounter++}`,
+        letter, root, rhymeKey: rk, rhymeEnd3: re3,
+        raw: originalTrimmed.toUpperCase(),
+        clean,
+        wordCount,
+        source: row.source,
+        sourceLine: row.lineNumber,
+        status: "KEPT",
+        reason: cls.reason
+      };
+      keptRecords.push(rec);
+      if (!az[letter]) az[letter] = [];
+      az[letter].push(clean);
+      if (!rhyme[rk]) rhyme[rk] = [];
+      rhyme[rk].push(clean);
+      if (!roots[root]) roots[root] = [];
+      roots[root].push(clean);
+      masterRows.push(csvRow([rec.id, letter, root, rk, re3, rec.raw, clean, wordCount, row.source, row.lineNumber, "KEPT", cls.reason]));
+    } else {
+      review.push(`${originalTrimmed.toUpperCase()}\tSOURCE=${row.source}:${row.lineNumber}\tREASON=${cls.reason}`);
+      masterRows.push(csvRow([`REV_${idCounter++}`, letter, root, rk, re3, originalTrimmed.toUpperCase(), clean, wordCount, row.source, row.lineNumber, "REVIEW", cls.reason]));
+    }
+  }
+
+  keptRecords.sort((a,b) => a.clean.localeCompare(b.clean));
+  const sortedKept = keptRecords.map(r => r.clean);
+
+  const azTxt = Object.keys(az).sort().map(letter => {
+    const lines = az[letter].slice().sort();
+    return `## ${letter}\n` + lines.join("\n");
+  }).join("\n\n");
+
+  const rhymeTxt = Object.keys(rhyme).sort().map(k => {
+    const lines = Array.from(new Set(rhyme[k])).sort();
+    return `## ${k}\n` + lines.join("\n");
+  }).join("\n\n");
+
+  const rootTxt = Object.keys(roots).sort().map(k => {
+    const lines = Array.from(new Set(roots[k])).sort();
+    return `## ${k}\n` + lines.join("\n");
+  }).join("\n\n");
+
+  const searchJson = JSON.stringify({
+    generated: new Date().toISOString(),
+    records: keptRecords,
+    az,
+    rhyme,
+    roots
+  }, null, 2);
+
+  const writerSeed = [
+    "RHYMEWEAVER WRITER SEED",
+    "",
+    "USE SEARCH TAB TO FIND ROOTS, RHYMES, CHAINS, AND A-Z PHRASES.",
+    "",
+    "TOP KEPT LINES:",
+    ...sortedKept.slice(0, 50)
+  ].join("\n");
+
+  const log = [
+    "RHYMEWEAVER WRITER INDEX PROCESS LOG",
+    `GENERATED: ${new Date().toISOString()}`,
+    `FILES LOADED: ${loadedFiles.map(f => f.name).join(", ") || "NONE"}`,
+    `PASTED TEXT INCLUDED: ${pasted.trim() ? "YES" : "NO"}`,
+    `TOTAL RAW LINES: ${rawLines.length}`,
+    `KEPT UNIQUE LINES: ${keptRecords.length}`,
+    `REVIEW PRESERVED LINES: ${review.length}`,
+    `DUPLICATES PRESERVED: ${duplicates.length}`,
+    `A-Z BUCKETS USED: ${Object.keys(az).length}`,
+    `RHYME KEYS USED: ${Object.keys(rhyme).length}`,
+    `ROOTS USED: ${Object.keys(roots).length}`,
+    "",
+    "RULE: ALL INPUT SOURCES MERGED.",
+    "RULE: EXTRA SPACES TRIMMED.",
+    "RULE: CLEAN OUTPUT CONVERTED TO ALL CAPS.",
+    "RULE: EXACT CLEAN DUPLICATES REMOVED FROM KEPT OUTPUT.",
+    "RULE: DUPLICATES PRESERVED IN DUPLICATES_REVIEW.",
+    "RULE: QUESTIONABLE LINES PRESERVED IN REVIEW_NOT_DELETED.",
+    "RULE: FINAL ARCHIVE WAS NOT TOUCHED.",
+    "RULE: THIS IS CANDIDATE OUTPUT ONLY."
+  ].join("\n");
+
+  outputs = {
+    "00_MASTER_MERGED_DEDUPED_ALL_CAPS.txt": sortedKept.join("\n"),
+    "01_MASTER_SEARCHABLE_INDEX.csv": masterRows.join("\n"),
+    "02_RHYMEWEAVER_SEARCH_INDEX.json": searchJson,
+    "03_A_Z_CANDIDATE_ALL_CAPS.txt": azTxt,
+    "04_RHYME_KEY_INDEX.txt": rhymeTxt,
+    "05_ROOT_WORD_INDEX.txt": rootTxt,
+    "06_REVIEW_NOT_DELETED_ALL_CAPS.txt": review.join("\n"),
+    "07_DUPLICATES_REVIEW_ALL_CAPS.txt": duplicates.join("\n"),
+    "08_RHYMEWEAVER_WRITER_SEED.txt": writerSeed,
+    "09_PROCESS_LOG.txt": log
+  };
+
+  updateStats(rawLines.length, keptRecords.length, review.length, duplicates.length, Object.keys(rhyme).length, Object.keys(az).length);
+  updateLetterFilter();
+  document.getElementById("preview").value = outputs["00_MASTER_MERGED_DEDUPED_ALL_CAPS.txt"].split("\n").slice(0, 200).join("\n");
+  createDownloads();
+  showResults(keptRecords.slice(0, 200));
+  alert("DONE: MERGED, DEDUPED, INDEXED, RHYME-KEYED, AND READY FOR DOWNLOAD.");
+}
+
+function updateStats(total, kept, review, duplicates, rhymeKeys, buckets) {
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><span>TOTAL RAW LINES</span><b>${total}</b></div>
+    <div class="stat"><span>KEPT UNIQUE</span><b>${kept}</b></div>
+    <div class="stat"><span>REVIEW</span><b>${review}</b></div>
+    <div class="stat"><span>DUPLICATES</span><b>${duplicates}</b></div>
+    <div class="stat"><span>RHYME KEYS</span><b>${rhymeKeys}</b></div>
+    <div class="stat"><span>A-Z BUCKETS</span><b>${buckets}</b></div>
+  `;
+}
+
+function updateLetterFilter() {
+  const select = document.getElementById("letterFilter");
+  select.innerHTML = '<option value="">ALL LETTERS</option>';
+  const letters = Array.from(new Set(keptRecords.map(r => r.letter))).sort();
+  for (const l of letters) {
+    const opt = document.createElement("option");
+    opt.value = l;
+    opt.textContent = l;
+    select.appendChild(opt);
+  }
+}
+
+function createDownloads() {
+  const box = document.getElementById("downloads");
+  box.innerHTML = "<h3>DOWNLOAD OUTPUTS</h3>";
+  for (const [name, content] of Object.entries(outputs)) {
+    const blob = new Blob([content], {type: name.endsWith(".csv") ? "text/csv" : name.endsWith(".json") ? "application/json" : "text/plain"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.textContent = name;
+    a.className = "download";
+    box.appendChild(a);
+  }
+}
+
+function searchRecords(query, letter) {
+  const q = cleanAllCaps(query);
+  return keptRecords.filter(r => {
+    if (letter && r.letter !== letter) return false;
+    if (!q) return true;
+    const hay = [r.clean, r.root, r.rhymeKey, r.rhymeEnd3, r.source, r.letter].join(" ").toUpperCase();
+    return hay.includes(q);
+  });
+}
+
+function showResults(records, targetId="results", countId="resultCount") {
+  const box = document.getElementById(targetId);
+  box.innerHTML = "";
+  if (countId && document.getElementById(countId)) {
+    document.getElementById(countId).textContent = `${records.length} RESULT(S)`;
+  }
+  for (const r of records.slice(0, 500)) {
+    const div = document.createElement("div");
+    div.className = "resultItem";
+    div.innerHTML = `<div>${escapeHtml(r.clean)}</div><div class="meta">LETTER=${r.letter} · ROOT=${escapeHtml(r.root)} · RHYME=${escapeHtml(r.rhymeKey)} · SOURCE=${escapeHtml(r.source)}:${r.sourceLine}</div>`;
+    div.addEventListener("click", () => { selectedWriterResult = r; });
+    box.appendChild(div);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+function setTab(name) {
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tabPage").forEach(p => p.classList.add("hidden"));
+  document.getElementById(name).classList.remove("hidden");
+}
+
+function downloadText(name, content) {
+  const blob = new Blob([content], {type: "text/plain"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+}
+
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+document.getElementById("fileInput").addEventListener("change", e => readFiles(e.target.files));
+document.getElementById("processBtn").addEventListener("click", processAll);
+document.getElementById("printBtn").addEventListener("click", () => window.print());
+document.getElementById("searchBtn").addEventListener("click", () => {
+  showResults(searchRecords(document.getElementById("searchBox").value, document.getElementById("letterFilter").value));
+});
+document.getElementById("showAllBtn").addEventListener("click", () => showResults(keptRecords));
+document.getElementById("writerSearchBtn").addEventListener("click", () => {
+  const results = searchRecords(document.getElementById("writerSearchBox").value, "");
+  selectedWriterResult = results[0] || null;
+  showResults(results, "writerResults", null);
+});
+document.getElementById("insertSelectedBtn").addEventListener("click", () => {
+  if (!selectedWriterResult) return;
+  const pad = document.getElementById("writerPad");
+  pad.value += (pad.value.endsWith("\n") || pad.value.length === 0 ? "" : "\n") + selectedWriterResult.clean + "\n";
+});
+document.getElementById("saveDraftBtn").addEventListener("click", () => {
+  downloadText("RHYMEWEAVER_WRITER_DRAFT.txt", document.getElementById("writerPad").value);
+});
+document.getElementById("upperDraftBtn").addEventListener("click", () => {
+  document.getElementById("writerPad").value = document.getElementById("writerPad").value.toUpperCase();
+});
+document.getElementById("trimDraftBtn").addEventListener("click", () => {
+  const lines = document.getElementById("writerPad").value.split(/\r?\n/).map(trimSpaces);
+  document.getElementById("writerPad").value = lines.join("\n");
+});
+document.getElementById("clearBtn").addEventListener("click", () => {
+  loadedFiles = [];
+  outputs = {};
+  keptRecords = [];
+  document.getElementById("fileInput").value = "";
+  document.getElementById("pasteBox").value = "";
+  document.getElementById("preview").value = "";
+  document.getElementById("downloads").innerHTML = "";
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("writerResults").innerHTML = "";
+  document.getElementById("fileStatus").textContent = "NO FILES LOADED YET.";
+  document.getElementById("resultCount").textContent = "NO INDEX YET.";
+  updateStats(0,0,0,0,0,0);
+  updateLetterFilter();
+});
+</script>
+</body>
+</html>

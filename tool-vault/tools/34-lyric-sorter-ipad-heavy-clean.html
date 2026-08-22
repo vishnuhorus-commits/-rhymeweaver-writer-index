@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Heavy Clean Sorter iPad</title>
+<style>
+:root{--bg:#0f1115;--panel:#171a21;--panel2:#1e2430;--text:#eef2f7;--muted:#a6b0bf;--accent:#77c3ff;--accent2:#9af7c1;--border:#2a3242;--danger:#ff8f8f;--warn:#ffd39a}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#0c0f14,#10141b 35%,#0f1115);color:var(--text)}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}.card{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:14px;box-shadow:0 6px 24px rgba(0,0,0,.25);margin-bottom:14px}.hero{background:linear-gradient(180deg,rgba(119,195,255,.12),rgba(154,247,193,.06))}
+h1{margin:0 0 8px;font-size:28px;line-height:1.1} p{margin:8px 0;color:var(--muted)} .title{font-weight:700;margin:0 0 10px;font-size:18px}
+textarea{width:100%;min-height:230px;resize:vertical;border-radius:14px;border:1px solid var(--border);background:#0d1016;color:var(--text);padding:14px;font-size:15px;line-height:1.45}
+button{appearance:none;border:none;border-radius:999px;padding:12px 16px;font-weight:700;font-size:15px;background:var(--accent);color:#07111a;cursor:pointer} button.secondary{background:#2d3748;color:var(--text)} button.good{background:var(--accent2);color:#07140e} button.ghost{background:transparent;color:var(--text);border:1px solid var(--border)} button:disabled{opacity:.55;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}.small{font-size:13px;color:var(--muted)}
+label.chk{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);padding:10px 12px;border-radius:12px}
+.out{max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word;background:#0d1016;border:1px solid var(--border);border-radius:14px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}@media (min-width:760px){.stats{grid-template-columns:repeat(5,minmax(0,1fr))}} .stat{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:12px}.n{font-size:22px;font-weight:800}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}@media (min-width:900px){.grid{grid-template-columns:1.05fr .95fr}}
+.ok{color:#baf8cf}.err{color:var(--danger)}.warn{color:var(--warn)}
+input[type="file"]{width:100%;border:1px dashed var(--border);border-radius:14px;padding:14px;background:#0d1016;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card hero">
+    <h1>Heavy Clean Sorter — iPad Safe</h1>
+    <p>Built for huge text drops. This version aggressively removes junk, avoids giant previews, saves your last input to the browser, and works best with pasted text or TXT.</p>
+    <p class="small">Best for giant messy files with symbols, numbers, broken encoding, unreadable jargon strings, and duplicate lines.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="title">Input</div>
+      <div class="row"><input id="fileInput" type="file" accept=".txt,.csv,text/plain,text/csv" /></div>
+      <textarea id="inputText" placeholder="Paste giant text here or load TXT/CSV"></textarea>
+
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="uppercase" checked> UPPERCASE</label>
+        <label class="chk"><input type="checkbox" id="dedupe" checked> DEDUPE</label>
+        <label class="chk"><input type="checkbox" id="dropNumbers" checked> DROP NUMBER-HEAVY</label>
+        <label class="chk"><input type="checkbox" id="dropSymbols" checked> DROP SYMBOL-HEAVY</label>
+        <label class="chk"><input type="checkbox" id="dropOneWord" checked> DROP ONE-WORD</label>
+        <label class="chk"><input type="checkbox" id="keepLettersSpace" checked> KEEP LETTERS/SPACES ONLY</label>
+        <label class="chk"><input type="checkbox" id="smartEnglish" checked> FILTER GIBBERISH</label>
+      </div>
+
+      <div class="row">
+        <button id="processBtn">CLEAN & SORT</button>
+        <button id="saveBtn" class="secondary">SAVE INPUT</button>
+        <button id="restoreBtn" class="secondary">RESTORE LAST</button>
+        <button id="clearBtn" class="ghost">CLEAR</button>
+      </div>
+      <div id="status" class="small">Ready.</div>
+
+      <div class="stats">
+        <div class="stat"><div class="small">RAW</div><div id="rawCount" class="n">0</div></div>
+        <div class="stat"><div class="small">CLEAN</div><div id="cleanCount" class="n">0</div></div>
+        <div class="stat"><div class="small">UNIQUE</div><div id="uniqueCount" class="n">0</div></div>
+        <div class="stat"><div class="small">REMOVED</div><div id="removedCount" class="n">0</div></div>
+        <div class="stat"><div class="small">LETTERS</div><div id="lettersUsed" class="n">0</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">Output</div>
+      <div class="row">
+        <button id="downloadMaster" class="good" disabled>DOWNLOAD MASTER.txt</button>
+        <button id="copyPreview" class="secondary" disabled>COPY PREVIEW</button>
+      </div>
+      <div id="preview" class="out">Nothing built yet.</div>
+      <div class="small" style="margin-top:10px">Preview is capped so giant runs do not crash the page.</div>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const els = {
+    fileInput: $('fileInput'), inputText: $('inputText'), uppercase: $('uppercase'), dedupe: $('dedupe'),
+    dropNumbers: $('dropNumbers'), dropSymbols: $('dropSymbols'), dropOneWord: $('dropOneWord'),
+    keepLettersSpace: $('keepLettersSpace'), smartEnglish: $('smartEnglish'), processBtn: $('processBtn'),
+    saveBtn: $('saveBtn'), restoreBtn: $('restoreBtn'), clearBtn: $('clearBtn'), status: $('status'),
+    rawCount: $('rawCount'), cleanCount: $('cleanCount'), uniqueCount: $('uniqueCount'), removedCount: $('removedCount'),
+    lettersUsed: $('lettersUsed'), preview: $('preview'), downloadMaster: $('downloadMaster'), copyPreview: $('copyPreview')
+  };
+
+  const STORE_KEY = 'heavy_clean_sorter_last_input_v1';
+  let masterText = '';
+  let previewText = '';
+
+  function setStatus(msg, cls='') { els.status.className = 'small ' + cls; els.status.textContent = msg; }
+  function normalizeCsv(text){ return text.split(/\r?\n/).map(r => r.split(',').map(c=>c.trim()).filter(Boolean).join(' ')).join('\n'); }
+  function firstLetterKey(line){ const m=line.match(/[A-Z]/i); return m ? m[0].toUpperCase() : '#'; }
+  function mostlyDigits(s){ const a=(s.match(/[0-9]/g)||[]).length; return a > 0 && a / Math.max(s.length,1) > 0.25; }
+  function mostlySymbols(s){ const a=(s.match(/[^A-Za-z0-9\s]/g)||[]).length; return a > 0 && a / Math.max(s.length,1) > 0.20; }
+  function gibberishish(s){
+    const words = s.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return true;
+    let bad = 0;
+    for (const w of words) {
+      if (w.length > 24) bad++;
+      if (/[bcdfghjklmnpqrstvwxyz]{6,}/i.test(w) && !/[aeiouy]/i.test(w)) bad++;
+      if (/([A-Z])\1{4,}/i.test(w)) bad++;
+    }
+    return bad >= Math.max(2, Math.ceil(words.length * 0.5));
+  }
+
+  function cleanLine(line, opts){
+    let s = (line || '').replace(/\u0000/g,' ').replace(/[\t\r]+/g,' ').trim();
+    if (!s) return '';
+    if (opts.keepLettersSpace) s = s.replace(/[^A-Za-z\s'’-]/g, ' ');
+    s = s.replace(/[’]/g, "'").replace(/[–—]/g, '-');
+    s = s.replace(/\s+/g, ' ').trim();
+    if (!s) return '';
+    if (opts.uppercase) s = s.toUpperCase();
+    if (opts.dropOneWord && s.split(/\s+/).length <= 1) return '';
+    if (opts.dropNumbers && mostlyDigits(line)) return '';
+    if (opts.dropSymbols && mostlySymbols(line)) return '';
+    if (opts.smartEnglish && gibberishish(s)) return '';
+    if (!/[A-Za-z]/.test(s)) return '';
+    return s;
+  }
+
+  async function readFile(file){
+    let text = await file.text();
+    const lower = (file.name || '').toLowerCase();
+    if (lower.endsWith('.csv')) text = normalizeCsv(text);
+    return text;
+  }
+
+  function downloadText(filename, text){
+    const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+
+  async function copyText(text){
+    try { await navigator.clipboard.writeText(text); setStatus('Preview copied.', 'ok'); }
+    catch { setStatus('Copy failed here. Press and hold inside preview to copy manually.', 'warn'); }
+  }
+
+  function processHuge(rawText){
+    const opts = {
+      uppercase: els.uppercase.checked, dedupe: els.dedupe.checked, dropNumbers: els.dropNumbers.checked,
+      dropSymbols: els.dropSymbols.checked, dropOneWord: els.dropOneWord.checked,
+      keepLettersSpace: els.keepLettersSpace.checked, smartEnglish: els.smartEnglish.checked
+    };
+
+    const rawLines = rawText.replace(/\r/g,'\n').split(/\n+/).filter(x => x && x.trim());
+    const seen = new Set();
+    const grouped = new Map();
+    let cleanCount = 0;
+
+    for (let i = 0; i < rawLines.length; i++) {
+      let s = cleanLine(rawLines[i], opts);
+      if (!s) continue;
+      cleanCount++;
+      if (opts.dedupe) {
+        if (seen.has(s)) continue;
+        seen.add(s);
+      }
+      const key = firstLetterKey(s);
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(s);
+    }
+
+    const keys = [...grouped.keys()].sort();
+    for (const k of keys) grouped.get(k).sort((a,b)=>a.localeCompare(b));
+
+    const blocks = [];
+    for (const k of keys) blocks.push('[' + k + ']\n' + grouped.get(k).join('\n'));
+    masterText = blocks.join('\n\n');
+
+    const previewLines = [];
+    let previewCap = 0;
+    for (const k of keys) {
+      previewLines.push('[' + k + ']');
+      const arr = grouped.get(k);
+      const limit = Math.min(arr.length, 40);
+      for (let i = 0; i < limit; i++) previewLines.push(arr[i]);
+      if (arr.length > limit) previewLines.push('... +' + (arr.length - limit) + ' more');
+      previewLines.push('');
+      previewCap += limit;
+      if (previewCap > 800) break;
+    }
+    previewText = previewLines.join('\n').trim() || 'Nothing built yet.';
+
+    return {
+      raw: rawLines.length,
+      clean: cleanCount,
+      unique: opts.dedupe ? seen.size : cleanCount,
+      removed: rawLines.length - (opts.dedupe ? seen.size : cleanCount),
+      letters: keys.length,
+      preview: previewText
+    };
+  }
+
+  els.fileInput.addEventListener('change', async e => {
+    const file = (e.target.files || [])[0];
+    if (!file) return;
+    try {
+      setStatus('Reading ' + file.name + ' ...', 'warn');
+      const text = await readFile(file);
+      els.inputText.value = text;
+      localStorage.setItem(STORE_KEY, text);
+      setStatus(file.name + ' loaded. Auto-cleaning now ...', 'ok');
+      setTimeout(() => els.processBtn.click(), 50);
+    } catch (err) {
+      console.error(err);
+      setStatus('Could not read this file in the browser. Paste text directly instead.', 'err');
+    }
+  });
+
+  els.processBtn.addEventListener('click', () => {
+    const text = els.inputText.value || '';
+    if (!text.trim()) { setStatus('Nothing to process yet.', 'err'); return; }
+    try {
+      setStatus('Cleaning giant text ...', 'warn');
+      setTimeout(() => {
+        try {
+          const r = processHuge(text);
+          els.rawCount.textContent = r.raw;
+          els.cleanCount.textContent = r.clean;
+          els.uniqueCount.textContent = r.unique;
+          els.removedCount.textContent = r.removed;
+          els.lettersUsed.textContent = r.letters;
+          els.preview.textContent = r.preview;
+          els.downloadMaster.disabled = !masterText;
+          els.copyPreview.disabled = !previewText;
+          localStorage.setItem(STORE_KEY, text);
+          setStatus('Built successfully. Giant preview capped to keep iPad stable.', 'ok');
+        } catch (e) {
+          console.error(e);
+          setStatus('Build failed. Try smaller chunks like 50,000–100,000 lines at a time.', 'err');
+        }
+      }, 30);
+    } catch (err) {
+      console.error(err);
+      setStatus('Build failed.', 'err');
+    }
+  });
+
+  els.saveBtn.addEventListener('click', () => {
+    localStorage.setItem(STORE_KEY, els.inputText.value || '');
+    setStatus('Input saved in this browser on this device.', 'ok');
+  });
+
+  els.restoreBtn.addEventListener('click', () => {
+    const t = localStorage.getItem(STORE_KEY) || '';
+    els.inputText.value = t;
+    setStatus(t ? 'Last saved input restored.' : 'No saved input found.', t ? 'ok' : 'warn');
+  });
+
+  els.clearBtn.addEventListener('click', () => {
+    els.inputText.value = '';
+    masterText = ''; previewText = '';
+    els.preview.textContent = 'Nothing built yet.';
+    els.rawCount.textContent = '0'; els.cleanCount.textContent = '0'; els.uniqueCount.textContent = '0'; els.removedCount.textContent = '0'; els.lettersUsed.textContent = '0';
+    els.downloadMaster.disabled = true; els.copyPreview.disabled = true;
+    setStatus('Cleared.', '');
+  });
+
+  els.downloadMaster.addEventListener('click', () => {
+    if (!masterText) return;
+    downloadText('MASTER_CLEAN.txt', masterText);
+  });
+
+  els.copyPreview.addEventListener('click', () => {
+    if (!previewText) return;
+    copyText(previewText);
+  });
+
+  const last = localStorage.getItem(STORE_KEY);
+  if (last) setStatus('Saved input detected. Tap RESTORE LAST if you want it back.', 'warn');
+})();
+</script>
+</body>
+</html>

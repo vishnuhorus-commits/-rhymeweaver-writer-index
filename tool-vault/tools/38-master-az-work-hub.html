@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master A–Z Work Hub</title>
+<style>
+:root{
+  --bg:#020b0d;--panel:#071719;--gold:#e1af42;--teal:#15d8d0;
+  --green:#66d14f;--yellow:#f4d94e;--orange:#f58b2a;--purple:#b86de8;
+  --blue:#4ea8ff;--red:#ff5656;--text:#e9e0c4;--muted:#8ea6a4;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 50% 10%,#0a3030 0,#041416 35%,#010607 75%);
+  color:var(--text);
+  font-family:Segoe UI,Arial,sans-serif;
+  min-height:100vh;
+}
+header{
+  padding:24px;
+  text-align:center;
+  border-bottom:1px solid #72571f;
+  background:rgba(0,0,0,.45);
+  position:sticky;
+  top:0;
+  z-index:3;
+}
+h1{margin:0;color:var(--gold);letter-spacing:3px;font-family:Georgia,serif}
+.subtitle{color:var(--teal);margin-top:6px}
+.wrap{max-width:1450px;margin:auto;padding:20px}
+.toolbar,.grid{display:grid;gap:15px}
+.toolbar{grid-template-columns:repeat(4,1fr);margin-bottom:16px}
+.grid{grid-template-columns:1fr 1.5fr 1fr}
+.panel{
+  background:linear-gradient(145deg,rgba(8,28,29,.96),rgba(2,10,11,.96));
+  border:1px solid #76581c;
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 0 16px rgba(225,175,66,.12),inset 0 0 18px rgba(0,0,0,.5);
+}
+.panel h2,.panel h3{margin-top:0;color:var(--gold);font-family:Georgia,serif}
+button,.file-label{
+  width:100%;
+  padding:13px 12px;
+  border-radius:8px;
+  border:1px solid #947126;
+  color:var(--gold);
+  background:#071213;
+  cursor:pointer;
+  font-weight:700;
+  letter-spacing:.5px;
+  box-shadow:inset 0 0 8px rgba(225,175,66,.14);
+}
+button:hover,.file-label:hover{border-color:var(--teal);color:var(--teal)}
+button:disabled{opacity:.45;cursor:not-allowed}
+input[type=file]{display:none}
+#dropZone{
+  border:2px dashed var(--teal);
+  border-radius:12px;
+  padding:30px;
+  text-align:center;
+  color:var(--teal);
+  background:rgba(10,70,70,.12);
+  margin-bottom:15px;
+}
+#dropZone.drag{background:rgba(21,216,208,.22)}
+.status{
+  padding:10px;
+  border-left:4px solid var(--teal);
+  background:#061113;
+  margin:10px 0;
+}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{padding:12px;background:#051011;border:1px solid #294445;border-radius:8px}
+.stat strong{display:block;color:var(--gold);font-size:1.4rem}
+.letters{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:16px 0}
+.letter{
+  aspect-ratio:1;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--gold);
+  color:var(--teal);
+  font-family:Georgia,serif;
+  background:#071415;
+  cursor:pointer;
+  font-weight:bold;
+}
+.letter:hover,.letter.active{box-shadow:0 0 14px var(--teal);color:#fff}
+input[type=search]{
+  width:100%;
+  padding:14px;
+  background:#041012;
+  color:white;
+  border:1px solid var(--teal);
+  border-radius:25px;
+  font-size:16px;
+  outline:none;
+}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+th,td{padding:9px;border-bottom:1px solid #244041;text-align:left;vertical-align:top}
+th{color:var(--gold);position:sticky;top:91px;background:#071719}
+.tablewrap{max-height:480px;overflow:auto}
+.badge{padding:3px 7px;border-radius:12px;font-size:11px;background:#143c25;color:#81f28c}
+.log{
+  height:190px;
+  overflow:auto;
+  white-space:pre-wrap;
+  background:#010707;
+  padding:10px;
+  border:1px solid #203637;
+  font-family:Consolas,monospace;
+  font-size:12px;
+}
+.green{border-color:var(--green)}
+.yellow{border-color:var(--yellow)}
+.orange{border-color:var(--orange)}
+.purple{border-color:var(--purple)}
+.blue{border-color:var(--blue)}
+.red{border-color:var(--red)}
+.small{font-size:12px;color:var(--muted)}
+footer{text-align:center;padding:20px;color:var(--muted)}
+.notice{font-size:13px;color:#d9d1b4;line-height:1.45}
+@media(max-width:950px){
+  .grid,.toolbar{grid-template-columns:1fr}
+  .letters{grid-template-columns:repeat(6,1fr)}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>MASTER A–Z WORK HUB</h1>
+  <div class="subtitle">Local Text Dump • Merge • Dedupe • Search • Export</div>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <button id="connectBtn">1. CONNECT WINDOWS WORK HUB</button>
+    <label class="file-label" for="fileInput">2. CHOOSE / DUMP TEXT FILES</label>
+    <input id="fileInput" type="file" accept=".txt,.csv,.md,.log" multiple>
+    <button id="mergeBtn" disabled>3. MERGE + DEDUPE</button>
+    <button id="saveBtn" disabled>4. SAVE ALL OUTPUTS</button>
+  </div>
+
+  <div class="status" id="status">Not connected. First click “CONNECT WINDOWS WORK HUB.”</div>
+
+  <div class="grid">
+    <section>
+      <div class="panel green">
+        <h2>RAW INTAKE</h2>
+        <div id="dropZone">Drop TXT, CSV, MD, or LOG files here</div>
+        <div id="fileList" class="small">No files loaded.</div>
+      </div>
+
+      <div class="panel orange" style="margin-top:15px">
+        <h3>DUPLICATES</h3>
+        <div class="stat"><strong id="dupeCount">0</strong>duplicate lines found</div>
+      </div>
+
+      <div class="panel red" style="margin-top:15px">
+        <h3>SAFETY RULE</h3>
+        <div class="notice">
+          This dashboard never deletes your source files. It only reads files you choose
+          and writes new output files after you approve a Windows folder.
+        </div>
+      </div>
+    </section>
+
+    <main>
+      <div class="panel">
+        <h2 style="text-align:center">MASTER SEARCH</h2>
+        <input id="search" type="search" placeholder="Search words, phrases, or alliterations…">
+        <div class="letters" id="letters"></div>
+
+        <div class="statgrid">
+          <div class="stat"><strong id="totalLines">0</strong>loaded lines</div>
+          <div class="stat"><strong id="uniqueLines">0</strong>unique lines</div>
+          <div class="stat"><strong id="fileCount">0</strong>source files</div>
+          <div class="stat"><strong id="activeLetter">ALL</strong>letter filter</div>
+        </div>
+
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr><th>Entry</th><th>Letter</th><th>Source</th><th>Status</th></tr>
+            </thead>
+            <tbody id="results"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <aside>
+      <div class="panel purple">
+        <h2>OUTPUTS</h2>
+        <p class="small">Saving creates these folders and files inside your chosen Work Hub:</p>
+        <ul class="small">
+          <li>03_OUTPUT_A-Z / A.txt through Z.txt</li>
+          <li>04_MASTER_INDEX / MASTER_ALLITERATIONS.txt</li>
+          <li>04_MASTER_INDEX / MASTER_SEARCH_INDEX.csv</li>
+          <li>06_REVIEW_QUEUE / DUPLICATES_REVIEW.txt</li>
+          <li>07_LOGS / IMPORT_LOG.txt</li>
+        </ul>
+      </div>
+
+      <div class="panel blue" style="margin-top:15px">
+        <h3>ACTIVITY LOG</h3>
+        <div id="log" class="log"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<footer>Use Microsoft Edge or Google Chrome. Your text stays on your computer.</footer>
+
+<script>
+let rootHandle = null;
+let loadedFiles = [];
+let rawEntries = [];
+let uniqueEntries = [];
+let duplicates = [];
+let selectedLetter = 'ALL';
+
+const $ = id => document.getElementById(id);
+
+function log(msg){
+  const stamp = new Date().toLocaleString();
+  $('log').textContent += `[${stamp}] ${msg}\n`;
+  $('log').scrollTop = $('log').scrollHeight;
+}
+
+function setStatus(msg){
+  $('status').textContent = msg;
+  log(msg);
+}
+
+function csvEscape(v){
+  return '"' + String(v).replaceAll('"','""') + '"';
+}
+
+function cleanLine(s){
+  return s
+    .replace(/\u0000/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function firstLetter(s){
+  const m = s.toUpperCase().match(/[A-Z]/);
+  return m ? m[0] : '#';
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#039;'
+  }[c]));
+}
+
+async function connectFolder(){
+  if(!window.showDirectoryPicker){
+    alert(
+      'Folder connection requires Microsoft Edge or Google Chrome. ' +
+      'Open this HTML file in Edge or Chrome.'
+    );
+    return;
+  }
+
+  try{
+    rootHandle = await window.showDirectoryPicker({mode:'readwrite'});
+    $('connectBtn').textContent = 'CONNECTED: ' + rootHandle.name;
+    setStatus('Connected to Windows folder: ' + rootHandle.name);
+    if(uniqueEntries.length) $('saveBtn').disabled = false;
+  }catch(error){
+    setStatus('Folder connection was cancelled. No files were changed.');
+  }
+}
+
+async function loadFiles(files){
+  const valid = [...files].filter(
+    f => /\.(txt|csv|md|log)$/i.test(f.name)
+  );
+
+  if(!valid.length){
+    setStatus('No supported text files were selected.');
+    return;
+  }
+
+  loadedFiles.push(...valid);
+  $('fileCount').textContent = loadedFiles.length;
+  $('fileList').innerHTML = loadedFiles
+    .map(f => `• ${escapeHtml(f.name)} (${Math.max(1,Math.round(f.size/1024))} KB)`)
+    .join('<br>');
+
+  $('mergeBtn').disabled = false;
+  setStatus(`${valid.length} file(s) added. Click MERGE + DEDUPE.`);
+}
+
+async function mergeFiles(){
+  rawEntries = [];
+  uniqueEntries = [];
+  duplicates = [];
+
+  const seen = new Map();
+
+  for(const file of loadedFiles){
+    const text = await file.text();
+    const lines = text.split(/\r?\n/);
+
+    for(const original of lines){
+      const cleaned = cleanLine(original);
+      if(!cleaned) continue;
+
+      rawEntries.push({
+        text: cleaned,
+        source: file.name,
+        letter: firstLetter(cleaned)
+      });
+
+      const key = cleaned.toUpperCase();
+
+      if(seen.has(key)){
+        duplicates.push({
+          text: cleaned,
+          source: file.name,
+          firstSource: seen.get(key).source
+        });
+      }else{
+        const item = {
+          text: cleaned,
+          source: file.name,
+          letter: firstLetter(cleaned),
+          status: 'APPROVED'
+        };
+        seen.set(key, item);
+        uniqueEntries.push(item);
+      }
+    }
+  }
+
+  uniqueEntries.sort((a,b) => a.text.localeCompare(b.text));
+
+  $('totalLines').textContent = rawEntries.length.toLocaleString();
+  $('uniqueLines').textContent = uniqueEntries.length.toLocaleString();
+  $('dupeCount').textContent = duplicates.length.toLocaleString();
+  $('saveBtn').disabled = !rootHandle;
+
+  render();
+
+  setStatus(
+    `Merge complete: ${uniqueEntries.length.toLocaleString()} unique lines; ` +
+    `${duplicates.length.toLocaleString()} duplicates.`
+  );
+}
+
+function render(){
+  const q = $('search').value.trim().toUpperCase();
+
+  const filtered = uniqueEntries
+    .filter(x =>
+      (selectedLetter === 'ALL' || x.letter === selectedLetter) &&
+      (!q ||
+        x.text.toUpperCase().includes(q) ||
+        x.source.toUpperCase().includes(q))
+    )
+    .slice(0,1000);
+
+  $('results').innerHTML = filtered.map(x => `
+    <tr>
+      <td>${escapeHtml(x.text)}</td>
+      <td>${escapeHtml(x.letter)}</td>
+      <td>${escapeHtml(x.source)}</td>
+      <td><span class="badge">${escapeHtml(x.status)}</span></td>
+    </tr>
+  `).join('');
+}
+
+async function getDir(parent,name){
+  return await parent.getDirectoryHandle(name,{create:true});
+}
+
+async function writeFile(dir,name,content){
+  const handle = await dir.getFileHandle(name,{create:true});
+  const writable = await handle.createWritable();
+  await writable.write(content);
+  await writable.close();
+}
+
+async function saveOutputs(){
+  if(!rootHandle){
+    setStatus('Connect a Windows Work Hub folder first.');
+    return;
+  }
+
+  if(!uniqueEntries.length){
+    setStatus('Merge files before saving.');
+    return;
+  }
+
+  try{
+    const az = await getDir(rootHandle,'03_OUTPUT_A-Z');
+    const master = await getDir(rootHandle,'04_MASTER_INDEX');
+    const review = await getDir(rootHandle,'06_REVIEW_QUEUE');
+    const logs = await getDir(rootHandle,'07_LOGS');
+
+    await getDir(rootHandle,'00_DROP_ZONE_INBOX');
+    await getDir(rootHandle,'01_RAW_INTAKE');
+    await getDir(rootHandle,'02_PROCESSING');
+    await getDir(rootHandle,'05_EXPORTS');
+    await getDir(rootHandle,'08_BACKUPS');
+    await getDir(rootHandle,'99_ARCHIVE');
+
+    const masterTxt = uniqueEntries.map(x => x.text).join('\r\n');
+    await writeFile(master,'MASTER_ALLITERATIONS.txt',masterTxt);
+
+    const csv = [
+      'entry,letter,source,status',
+      ...uniqueEntries.map(x =>
+        [x.text,x.letter,x.source,x.status].map(csvEscape).join(',')
+      )
+    ].join('\r\n');
+    await writeFile(master,'MASTER_SEARCH_INDEX.csv',csv);
+
+    for(const letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){
+      const content = uniqueEntries
+        .filter(x => x.letter === letter)
+        .map(x => x.text)
+        .join('\r\n');
+
+      await writeFile(az,letter + '.txt',content);
+    }
+
+    const dupText = duplicates.map(x =>
+      `${x.text}\tDUPLICATE SOURCE: ${x.source}\tFIRST SOURCE: ${x.firstSource}`
+    ).join('\r\n');
+    await writeFile(review,'DUPLICATES_REVIEW.txt',dupText);
+
+    const report = [
+      'MASTER A-Z WORK HUB IMPORT LOG',
+      'Date: ' + new Date().toLocaleString(),
+      'Source files: ' + loadedFiles.length,
+      'Loaded lines: ' + rawEntries.length,
+      'Unique lines: ' + uniqueEntries.length,
+      'Duplicates: ' + duplicates.length,
+      '',
+      'SOURCE FILES',
+      ...loadedFiles.map(f => f.name)
+    ].join('\r\n');
+    await writeFile(logs,'IMPORT_LOG.txt',report);
+
+    setStatus(
+      'SUCCESS: Master index, A-Z files, duplicate review, and activity log were saved.'
+    );
+  }catch(error){
+    console.error(error);
+    setStatus('Save failed: ' + error.message);
+  }
+}
+
+function buildLetters(){
+  const container = $('letters');
+
+  const all = document.createElement('button');
+  all.className = 'letter active';
+  all.textContent = 'ALL';
+  all.onclick = () => chooseLetter('ALL', all);
+  container.appendChild(all);
+
+  for(const letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){
+    const b = document.createElement('button');
+    b.className = 'letter';
+    b.textContent = letter;
+    b.onclick = () => chooseLetter(letter, b);
+    container.appendChild(b);
+  }
+}
+
+function chooseLetter(letter, button){
+  selectedLetter = letter;
+  $('activeLetter').textContent = letter;
+  document.querySelectorAll('.letter').forEach(x => x.classList.remove('active'));
+  button.classList.add('active');
+  render();
+}
+
+$('connectBtn').addEventListener('click', connectFolder);
+$('fileInput').addEventListener('change', e => loadFiles(e.target.files));
+$('mergeBtn').addEventListener('click', mergeFiles);
+$('saveBtn').addEventListener('click', saveOutputs);
+$('search').addEventListener('input', render);
+
+const dropZone = $('dropZone');
+
+['dragenter','dragover'].forEach(eventName => {
+  dropZone.addEventListener(eventName, e => {
+    e.preventDefault();
+    dropZone.classList.add('drag');
+  });
+});
+
+['dragleave','drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag');
+  });
+});
+
+dropZone.addEventListener('drop', e => loadFiles(e.dataTransfer.files));
+
+buildLetters();
+log('Dashboard opened. No source files have been changed.');
+</script>
+</body>
+</html>

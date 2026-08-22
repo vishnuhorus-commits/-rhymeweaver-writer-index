@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Build Block Alliteration Reporter V1</title>
+<style>
+  :root {
+    --bg:#0b1020; --panel:#121a31; --panel2:#18223f; --text:#edf2ff; --muted:#a9b4d0;
+    --accent:#7dd3fc; --accent2:#a78bfa; --good:#86efac; --warn:#fde68a; --danger:#fca5a5;
+    --line:#2a365d; --shadow:0 14px 34px rgba(0,0,0,.28);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:linear-gradient(180deg,#080c18,#111933 65%,#0b1020);color:var(--text);font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+  .wrap{max-width:1280px;margin:0 auto;padding:18px}
+  header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px}
+  h1{margin:0;font-size:clamp(1.45rem,4vw,2.3rem);line-height:1.05;letter-spacing:.01em}
+  .subtitle{color:var(--muted);margin-top:8px;max-width:780px;line-height:1.45}
+  .badge{padding:8px 11px;border:1px solid var(--line);background:rgba(125,211,252,.08);border-radius:999px;color:var(--accent);font-weight:750;white-space:nowrap}
+  .grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);gap:16px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr} header{display:block}.badge{display:inline-block;margin-top:12px}}
+  .card{background:rgba(18,26,49,.94);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+  .card h2{font-size:1rem;margin:0}.card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+  .card-body{padding:16px}
+  textarea{width:100%;min-height:340px;resize:vertical;border:1px solid var(--line);border-radius:14px;background:#0a1022;color:var(--text);padding:14px;font:500 16px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;outline:none}
+  textarea:focus,input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(125,211,252,.14)}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.row + .row{margin-top:12px}
+  button,.file-label,select,input[type="number"],input[type="text"]{border:1px solid var(--line);border-radius:11px;background:var(--panel2);color:var(--text);padding:10px 13px;font-weight:700;font-size:.94rem}
+  button,.file-label{cursor:pointer;touch-action:manipulation}button:hover,.file-label:hover{border-color:var(--accent)}
+  button.primary{background:linear-gradient(135deg,#2563eb,#7c3aed);border:none;padding:12px 18px}
+  button.safe{background:linear-gradient(135deg,#14532d,#166534);border-color:#2f855a}
+  button.warn{background:#3b2f10;border-color:#806b25}
+  button.danger{background:#3a1720;border-color:#7f3244}
+  input[type=file]{display:none}
+  .hint{font-size:.86rem;color:var(--muted);line-height:1.45}
+  .switch{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:.9rem}.switch input{width:18px;height:18px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px}@media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:#0a1022;border:1px solid var(--line);padding:11px;border-radius:12px}.stat b{display:block;font-size:1.25rem}.stat span{color:var(--muted);font-size:.79rem}
+  .tabs{display:flex;gap:8px;overflow:auto;padding-bottom:4px}.tab{white-space:nowrap;padding:8px 11px}.tab.active{border-color:var(--accent);background:rgba(125,211,252,.12)}
+  .report-list{max-height:620px;overflow:auto;padding-right:4px}.letter-group{margin:0 0 16px}.letter-title{position:sticky;top:0;z-index:2;background:#121a31;border-bottom:1px solid var(--line);padding:8px 0;font-size:1.1rem;color:var(--accent)}
+  .bucket{margin-top:10px}.bucket-title{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
+  .cluster{background:#0a1022;border:1px solid var(--line);border-left:4px solid var(--accent2);border-radius:11px;padding:10px;margin:7px 0}
+  .cluster-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.phrase{font-weight:800;line-height:1.35}.score{font-variant-numeric:tabular-nums;color:var(--good);font-weight:800;white-space:nowrap}.meta{color:var(--muted);font-size:.78rem;margin-top:6px;word-break:break-word}
+  .highlight-view{white-space:pre-wrap;line-height:1.75;background:#0a1022;border:1px solid var(--line);border-radius:12px;padding:14px;max-height:650px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  mark{background:rgba(167,139,250,.38);color:#fff;border-bottom:2px solid #c4b5fd;border-radius:4px;padding:1px 2px}
+  .empty{padding:34px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
+  .footer{color:var(--muted);font-size:.8rem;text-align:center;padding:18px 0 8px}
+  .notice{background:rgba(134,239,172,.08);border:1px solid rgba(134,239,172,.3);padding:10px 12px;border-radius:11px;color:#d7ffe4;font-size:.86rem}
+  .anchor{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--accent);font-size:.78rem;word-break:break-all}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>BUILD BLOCK ALLITERATION REPORTER V1</h1>
+      <div class="subtitle">Offline, loss-resistant alliteration analysis for iPad. Original text stays untouched. Every result receives a stable anchor for later database import and ProWritingAid comparison.</div>
+    </div>
+    <div class="badge">OFFLINE • NO SUPABASE • NO DELETION</div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <div class="card-head"><h2>1. Source Text</h2><span id="saveState" class="hint">Ready</span></div>
+      <div class="card-body">
+        <textarea id="sourceText" spellcheck="false" placeholder="Paste a large text block here, or load a TXT file…"></textarea>
+        <div class="row">
+          <label class="file-label" for="txtFile">Upload TXT</label><input id="txtFile" type="file" accept=".txt,text/plain" />
+          <button id="analyzeBtn" class="primary">Analyze Alliteration</button>
+          <button id="sampleBtn">Load Test Sample</button>
+          <button id="restoreBtn" class="safe">Restore Autosave</button>
+          <button id="clearBtn" class="danger">Clear Screen Only</button>
+        </div>
+        <div class="row">
+          <label class="switch"><input id="ignoreStopwords" type="checkbox" checked /> Bridge common words inside a cluster</label>
+          <label class="switch"><input id="strictConsecutive" type="checkbox" /> Strict consecutive words only</label>
+          <label class="switch">Max bridge words <input id="maxBridge" type="number" min="0" max="5" value="2" style="width:68px" /></label>
+        </div>
+        <p class="hint">Autosave stores the current text only in this browser on this device. “Clear Screen Only” does not erase the autosaved recovery copy.</p>
+        <div class="notice"><b>Safety anchor:</b> <span id="documentAnchor" class="anchor">Not generated yet</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>2. Report & Exports</h2><span id="runStamp" class="hint">No run yet</span></div>
+      <div class="card-body">
+        <div class="stats">
+          <div class="stat"><b id="statClusters">0</b><span>clusters</span></div>
+          <div class="stat"><b id="statWords">0</b><span>matched words</span></div>
+          <div class="stat"><b id="statSegments">0</b><span>segments scanned</span></div>
+          <div class="stat"><b id="statReview">0</b><span>review items</span></div>
+        </div>
+        <div class="row">
+          <button id="csvBtn" disabled>MASTER CSV</button>
+          <button id="azBtn" disabled>A–Z TXT</button>
+          <button id="reviewBtn" disabled>REVIEW TXT</button>
+          <button id="logBtn" disabled>PROCESS LOG</button>
+        </div>
+        <p class="hint">Downloads are newly generated copies. The source is never modified or deleted.</p>
+        <div class="tabs">
+          <button class="tab active" data-tab="report">Report</button>
+          <button class="tab" data-tab="highlight">Highlighted Text</button>
+          <button class="tab" data-tab="compare">Compare Guide</button>
+        </div>
+        <div id="reportPanel" class="report-list"></div>
+        <div id="highlightPanel" class="highlight-view hidden"></div>
+        <div id="comparePanel" class="hidden">
+          <div class="empty" style="text-align:left">
+            <b>ProWritingAid comparison procedure</b><br><br>
+            1. Analyze the exact same source block in both tools.<br>
+            2. Export <b>MASTER_ALLITERATION_REPORT.csv</b> here.<br>
+            3. Record ProWritingAid clusters in a second sheet with phrase, letter, and word count.<br>
+            4. Match first by normalized phrase, then by letter + source segment.<br><br>
+            Result labels:<br>
+            • MATCH = both tools found it<br>
+            • OURS_ONLY = ours found extra<br>
+            • PWA_ONLY = ours missed it<br><br>
+            Stable IDs in the CSV make future database comparison safe and repeatable.
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="footer">V1 • Single-file local analyzer • No external libraries • No network calls</div>
+</div>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const els = {
+    source:$('sourceText'), file:$('txtFile'), analyze:$('analyzeBtn'), sample:$('sampleBtn'), restore:$('restoreBtn'), clear:$('clearBtn'),
+    ignore:$('ignoreStopwords'), strict:$('strictConsecutive'), maxBridge:$('maxBridge'), saveState:$('saveState'), anchor:$('documentAnchor'), stamp:$('runStamp'),
+    report:$('reportPanel'), highlight:$('highlightPanel'), compare:$('comparePanel'),
+    statClusters:$('statClusters'), statWords:$('statWords'), statSegments:$('statSegments'), statReview:$('statReview'),
+    csv:$('csvBtn'), az:$('azBtn'), review:$('reviewBtn'), log:$('logBtn')
+  };
+  const STORAGE_KEY = 'BUILD_BLOCK_ALLITERATION_REPORTER_V1_AUTOSAVE';
+  const STOPWORDS = new Set('a an and are as at be been being but by for from had has have he her hers him his i if in into is it its me my nor not of on or our ours she so than that the their theirs them then there these they this those to too us was we were what when where which who whom why will with you your yours'.split(' '));
+  let state = {source:'',segments:[],clusters:[],review:[],anchor:'',timestamp:'',settings:{}};
+  let saveTimer;
+
+  function simpleHash(str){
+    let h1=0xdeadbeef^str.length,h2=0x41c6ce57^str.length;
+    for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}
+    h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+    h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+    return (4294967296*(2097151&h2)+(h1>>>0)).toString(36).toUpperCase();
+  }
+  function isoSafe(){return new Date().toISOString().replace(/[:.]/g,'-')}
+  function html(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+  function csvCell(v){const s=String(v??'');return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+  function normalizeWord(w){return w.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/^[^A-Za-z]+|[^A-Za-z'-]+$/g,'').toLowerCase()}
+  function tokenize(segment){
+    const re=/\b[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ'’-]*\b/g; const out=[]; let m;
+    while((m=re.exec(segment.text))){const n=normalizeWord(m[0]);if(n)out.push({raw:m[0],norm:n,letter:n[0].toUpperCase(),start:segment.start+m.index,end:segment.start+m.index+m[0].length,localStart:m.index,localEnd:m.index+m[0].length})}
+    return out;
+  }
+  function splitSegments(text){
+    const out=[]; let start=0; const re=/[^.!?;:\n]+(?:[.!?;:]+|\n+|$)/g; let m;
+    while((m=re.exec(text))){const raw=m[0];const lead=raw.search(/\S/);if(lead<0)continue;const trimmed=raw.trim();const actualStart=m.index+lead;out.push({id:out.length+1,text:trimmed,start:actualStart,end:actualStart+trimmed.length})}
+    if(!out.length&&text.trim())out.push({id:1,text:text.trim(),start:text.search(/\S/),end:text.trim().length});
+    return out;
+  }
+  function scoreCluster(words, spanWordCount, bridged, segmentText){
+    const n=words.length; const density=n/Math.max(spanWordCount,1); const lengthPts=Math.min(55,n*11); const densityPts=Math.round(density*25); const proximityPts=Math.max(0,15-bridged*3); const rarity=new Set(words.map(w=>w.norm)).size===n?5:2;
+    return Math.min(100,lengthPts+densityPts+proximityPts+rarity);
+  }
+  function detectInSegment(segment, settings){
+    const tokens=tokenize(segment); const clusters=[]; const usedKeys=new Set();
+    for(let i=0;i<tokens.length;i++){
+      const first=tokens[i];
+      if(settings.ignoreStopwords && STOPWORDS.has(first.norm))continue;
+      let matched=[first], lastMatch=i, bridges=0;
+      for(let j=i+1;j<tokens.length;j++){
+        const t=tokens[j];
+        if(t.letter===first.letter && !(settings.ignoreStopwords&&STOPWORDS.has(t.norm))){matched.push(t);lastMatch=j;continue}
+        const bridgeable=settings.ignoreStopwords&&STOPWORDS.has(t.norm)&&!settings.strict;
+        if(bridgeable && bridges<settings.maxBridge){bridges++;continue}
+        break;
+      }
+      if(matched.length>=2){
+        const spanTokens=tokens.slice(i,lastMatch+1); const phrase=segment.text.slice(first.localStart,tokens[lastMatch].localEnd);
+        const key=`${segment.id}|${first.letter}|${matched.map(x=>x.norm).join('|')}|${first.start}`;
+        if(!usedKeys.has(key)){
+          usedKeys.add(key); const id=`CL-${first.letter}-${simpleHash(key+'|'+phrase)}`;
+          clusters.push({id,letter:first.letter,count:matched.length,bucket:matched.length>=5?'5+':String(matched.length),phrase,matchedWords:matched.map(x=>x.raw),normalized:matched.map(x=>x.norm).join(' '),segmentId:segment.id,segmentText:segment.text,start:first.start,end:tokens[lastMatch].end,bridgedWords:spanTokens.length-matched.length,score:scoreCluster(matched,spanTokens.length,spanTokens.length-matched.length,segment.text)});
+        }
+      }
+    }
+    return clusters;
+  }
+  function analyze(){
+    const source=els.source.value; if(!source.trim()){alert('Paste text or upload a TXT file first.');return}
+    const settings={ignoreStopwords:els.ignore.checked,strict:els.strict.checked,maxBridge:Math.max(0,Math.min(5,Number(els.maxBridge.value)||0))};
+    const segments=splitSegments(source); let clusters=[]; const review=[];
+    for(const seg of segments){const found=detectInSegment(seg,settings);clusters.push(...found);if(!found.length&&seg.text.trim())review.push({type:'NO_CLUSTER_DETECTED',segmentId:seg.id,text:seg.text})}
+    const unusual=[...source.matchAll(/[^\x09\x0A\x0D\x20-\x7EÀ-ÖØ-öø-ÿ]/g)];
+    unusual.slice(0,500).forEach(m=>review.push({type:'NON_STANDARD_CHARACTER_PRESERVED',position:m.index,character:m[0],text:`Character preserved at source position ${m.index}`}));
+    clusters=dedupeClusters(clusters);
+    const timestamp=new Date().toISOString(); const anchor=`DOC-${simpleHash(source)}-${source.length}`;
+    state={source,segments,clusters,review,anchor,timestamp,settings};
+    els.anchor.textContent=anchor; els.stamp.textContent=new Date(timestamp).toLocaleString(); render(); autosave(true);
+  }
+  function dedupeClusters(items){
+    const map=new Map();
+    for(const c of items){const k=`${c.segmentId}|${c.start}|${c.end}|${c.letter}|${c.normalized}`;if(!map.has(k)||map.get(k).score<c.score)map.set(k,c)}
+    return [...map.values()].sort((a,b)=>a.letter.localeCompare(b.letter)||b.count-a.count||a.segmentId-b.segmentId||a.start-b.start);
+  }
+  function render(){
+    els.statClusters.textContent=state.clusters.length.toLocaleString();
+    els.statWords.textContent=state.clusters.reduce((n,c)=>n+c.count,0).toLocaleString();
+    els.statSegments.textContent=state.segments.length.toLocaleString();
+    els.statReview.textContent=state.review.length.toLocaleString();
+    [els.csv,els.az,els.review,els.log].forEach(b=>b.disabled=false);
+    if(!state.clusters.length){els.report.innerHTML='<div class="empty">No repeated-initial clusters were detected. The original text remains preserved and review output is available.</div>'}
+    else{
+      let out=''; for(const letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){
+        const list=state.clusters.filter(c=>c.letter===letter); if(!list.length)continue;
+        out+=`<section class="letter-group"><div class="letter-title">${letter} — ${list.length} cluster${list.length===1?'':'s'}</div>`;
+        for(const bucket of ['2','3','4','5+']){const rows=list.filter(c=>c.bucket===bucket);if(!rows.length)continue;
+          out+=`<div class="bucket"><div class="bucket-title">${bucket==='5+'?'5+ word':bucket+'-word'} clusters</div>`;
+          for(const c of rows)out+=`<article class="cluster"><div class="cluster-top"><div class="phrase">${html(c.phrase)}</div><div class="score">${c.score}/100</div></div><div class="meta">${html(c.id)} • Segment ${c.segmentId} • ${c.count} matched words${c.bridgedWords?` • ${c.bridgedWords} bridge word${c.bridgedWords===1?'':'s'}`:''}<br>${html(c.matchedWords.join(' · '))}</div></article>`;
+          out+='</div>';
+        } out+='</section>';
+      } els.report.innerHTML=out;
+    }
+    renderHighlights();
+  }
+  function renderHighlights(){
+    const ranges=state.clusters.map(c=>({start:c.start,end:c.end,ids:[c.id]})).sort((a,b)=>a.start-b.start||b.end-a.end); const merged=[];
+    for(const r of ranges){const last=merged[merged.length-1];if(last&&r.start<=last.end){last.end=Math.max(last.end,r.end);last.ids.push(...r.ids)}else merged.push({...r})}
+    let pos=0,out='';for(const r of merged){out+=html(state.source.slice(pos,r.start));out+=`<mark title="${html(r.ids.join(', '))}">${html(state.source.slice(r.start,r.end))}</mark>`;pos=r.end}out+=html(state.source.slice(pos));
+    els.highlight.innerHTML=out||'<span class="hint">No highlighted text yet.</span>';
+  }
+  function buildCSV(){
+    const headers=['document_anchor','cluster_id','letter','cluster_bucket','matched_word_count','score','bridged_word_count','phrase','matched_words','normalized_words','segment_id','segment_text','source_start','source_end','run_timestamp'];
+    const rows=[headers.join(',')];
+    for(const c of state.clusters)rows.push([state.anchor,c.id,c.letter,c.bucket,c.count,c.score,c.bridgedWords,c.phrase,c.matchedWords.join(' | '),c.normalized,c.segmentId,c.segmentText,c.start,c.end,state.timestamp].map(csvCell).join(','));
+    return rows.join('\r\n');
+  }
+  function buildAZ(){
+    const lines=[`BUILD BLOCK ALLITERATION REPORTER V1`,`DOCUMENT ANCHOR: ${state.anchor}`,`RUN: ${state.timestamp}`,`TOTAL CLUSTERS: ${state.clusters.length}`,''];
+    for(const letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){
+      const list=state.clusters.filter(c=>c.letter===letter);lines.push(`===== ${letter} =====`);
+      if(!list.length){lines.push('(NONE)','');continue}
+      for(const bucket of ['2','3','4','5+']){const rows=list.filter(c=>c.bucket===bucket);if(!rows.length)continue;lines.push(`-- ${bucket==='5+'?'5+ WORD':bucket+'-WORD'} CLUSTERS --`);for(const c of rows)lines.push(`[${c.score}/100] ${c.phrase} | ${c.id} | SEGMENT ${c.segmentId}`);lines.push('')}
+    } return lines.join('\n');
+  }
+  function buildReview(){
+    const lines=['REVIEW_NOT_DELETED','Nothing in this report was deleted. Items below were preserved for human review.',`DOCUMENT ANCHOR: ${state.anchor}`,`RUN: ${state.timestamp}`,''];
+    if(!state.review.length)lines.push('NO REVIEW ITEMS.'); else state.review.forEach((r,i)=>lines.push(`${i+1}. ${r.type} | ${r.segmentId?'SEGMENT '+r.segmentId:'POSITION '+r.position}\n${r.text||r.character}\n`));
+    lines.push('\n----- ORIGINAL SOURCE TEXT (PRESERVED COPY) -----\n',state.source);return lines.join('\n');
+  }
+  function buildLog(){
+    return [
+      'BUILD BLOCK ALLITERATION REPORTER V1 — PROCESS LOG',
+      `RUN_TIMESTAMP=${state.timestamp}`,`DOCUMENT_ANCHOR=${state.anchor}`,`SOURCE_CHARACTERS=${state.source.length}`,`SOURCE_LINES=${state.source.split(/\r?\n/).length}`,
+      `SEGMENTS_SCANNED=${state.segments.length}`,`CLUSTERS_FOUND=${state.clusters.length}`,`MATCHED_WORD_REFERENCES=${state.clusters.reduce((n,c)=>n+c.count,0)}`,
+      `REVIEW_ITEMS=${state.review.length}`,`IGNORE_STOPWORDS=${state.settings.ignoreStopwords}`,`STRICT_CONSECUTIVE=${state.settings.strict}`,`MAX_BRIDGE_WORDS=${state.settings.maxBridge}`,
+      'SOURCE_MODIFIED=NO','SOURCE_DELETED=NO','NETWORK_CALLS=NO','SUPABASE_CONNECTED=NO','AUTOSAVE=LOCAL_BROWSER_ONLY',
+      '', 'COUNT_BREAKDOWN:', ...['2','3','4','5+'].map(b=>`${b}_WORD=${state.clusters.filter(c=>c.bucket===b).length}`),
+      '', 'LETTER_BREAKDOWN:', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(l=>`${l}=${state.clusters.filter(c=>c.letter===l).length}`)
+    ].join('\n');
+  }
+  function download(name,content,type='text/plain;charset=utf-8'){
+    const blob=new Blob(['\ufeff',content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }
+  function autosave(immediate=false){clearTimeout(saveTimer);const save=()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify({source:els.source.value,savedAt:new Date().toISOString()}));els.saveState.textContent='Autosaved '+new Date().toLocaleTimeString()}catch(e){els.saveState.textContent='Autosave unavailable'}};if(immediate)save();else saveTimer=setTimeout(save,650)}
+  function restore(){try{const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(!data?.source){alert('No autosaved text was found on this device.');return}els.source.value=data.source;els.saveState.textContent='Restored '+new Date(data.savedAt).toLocaleString()}catch(e){alert('The autosave could not be restored.')}}
+  els.source.addEventListener('input',()=>autosave(false));
+  els.file.addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;els.source.value=await f.text();autosave(true);els.saveState.textContent=`Loaded ${f.name}`});
+  els.analyze.addEventListener('click',analyze);
+  els.sample.addEventListener('click',()=>{els.source.value='Silver stars shimmer softly over silent seas. The patient poet carefully carried bright blue books between broken bridges. Worthy words weave wondrous worlds, while ancient answers awaken attentive artists.';autosave(true)});
+  els.restore.addEventListener('click',restore);
+  els.clear.addEventListener('click',()=>{if(confirm('Clear only the visible text and current report? The browser autosave recovery copy will remain.')){els.source.value='';state={source:'',segments:[],clusters:[],review:[],anchor:'',timestamp:'',settings:{}};els.report.innerHTML='';els.highlight.innerHTML='';els.anchor.textContent='Not generated yet';els.stamp.textContent='No run yet';['statClusters','statWords','statSegments','statReview'].forEach(id=>$(id).textContent='0');[els.csv,els.az,els.review,els.log].forEach(b=>b.disabled=true)}});
+  els.csv.addEventListener('click',()=>download('MASTER_ALLITERATION_REPORT.csv',buildCSV(),'text/csv;charset=utf-8'));
+  els.az.addEventListener('click',()=>download('A_Z_ALLITERATION_REPORT.txt',buildAZ()));
+  els.review.addEventListener('click',()=>download('REVIEW_NOT_DELETED.txt',buildReview()));
+  els.log.addEventListener('click',()=>download('PROCESS_LOG.txt',buildLog()));
+  document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===btn));els.report.classList.toggle('hidden',btn.dataset.tab!=='report');els.highlight.classList.toggle('hidden',btn.dataset.tab!=='highlight');els.compare.classList.toggle('hidden',btn.dataset.tab!=='compare')}));
+  els.report.innerHTML='<div class="empty">Paste text or upload a TXT file, then press <b>Analyze Alliteration</b>.</div>';
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DROP SCAN A-Z MASTER SYSTEM — STRICT QC</title>
+<style>
+:root{--bg:#08090c;--panel:#151821;--panel2:#1f2430;--text:#eef2f7;--muted:#aab3c2;--line:#303849;--go:#9af7c1;--warn:#ffd39a;--bad:#ff9a9a;--blue:#8ecbff}*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#07080b,#0d1118);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}.wrap{max-width:1180px;margin:auto;padding:16px}h1{font-size:27px;margin:0 0 8px}h2{font-size:18px;margin:0 0 10px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:15px;margin:12px 0}.grid{display:grid;gap:12px;grid-template-columns:1fr}@media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}input,textarea,select,button{font:inherit;border-radius:12px;border:1px solid var(--line);background:#0b0e14;color:var(--text);padding:11px}textarea{width:100%;min-height:220px;resize:vertical;white-space:pre-wrap}input[type=file]{width:100%;border-style:dashed}.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.muted{color:var(--muted);font-size:13px}.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 8px;background:#0b0e14;font-size:12px;color:var(--muted);margin:2px}button{cursor:pointer;font-weight:800;background:var(--blue);color:#06101a;border:none}.good{background:var(--go);color:#06140c}.warnbtn{background:var(--warn);color:#151005}.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}.bad{color:var(--bad)}.ok{color:var(--go)}.warn{color:var(--warn)}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}@media(min-width:760px){.stats{grid-template-columns:repeat(5,1fr)}}.stat{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px}.n{font-size:24px;font-weight:900}.out{white-space:pre-wrap;max-height:430px;overflow:auto;background:#0b0e14;border:1px solid var(--line);border-radius:14px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}.letters{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}@media(min-width:850px){.letters{grid-template-columns:repeat(6,1fr)}}.letter{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px}.letter b{font-size:16px}.small{font-size:12px;color:var(--muted)}label{display:flex;gap:6px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 10px}.searchbar{width:min(100%,430px)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>DROP SCAN A-Z MASTER SYSTEM — STRICT QC</h1>
+    <div class="muted">Purpose: load existing A-Z masters + new text files, keep originals, reject junk/corruption to review, add only new clean lines, export 26 letter files + searchable index + junk reports.</div>
+    <div class="pill">No silent deleting</div><div class="pill">Duplicates caught</div><div class="pill">Junk quarantined</div><div class="pill">Searchable TSV index</div><div class="pill">iPad browser friendly</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>1. Load OLD A-Z master files</h2>
+      <input id="oldFiles" type="file" multiple accept=".txt,.csv,text/plain,text/csv" />
+      <p class="muted">Load your old A.txt through Z.txt files. ZIP reading is not included because iPad browser zip import is unreliable without a library. Unzip first in Files app, then select the TXT files.</p>
+      <textarea id="oldPaste" placeholder="Optional: paste old master text here."></textarea>
+    </div>
+    <div class="card">
+      <h2>2. Load NEW files to add</h2>
+      <input id="newFiles" type="file" multiple accept=".txt,.csv,text/plain,text/csv" />
+      <p class="muted">These are scanned. Clean new lines get added. Duplicates and junk go to reports.</p>
+      <textarea id="newPaste" placeholder="Optional: paste new text here."></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3. Strict checking rules</h2>
+    <div class="row">
+      <label><input id="uppercase" type="checkbox" checked> UPPERCASE</label>
+      <label><input id="removeOneWord" type="checkbox" checked> ONE-WORD → REVIEW</label>
+      <label><input id="rejectNumbers" type="checkbox" checked> DIGIT-HEAVY → JUNK</label>
+      <label><input id="rejectSymbols" type="checkbox" checked> SYMBOL-HEAVY → JUNK</label>
+      <label><input id="rejectCorrupt" type="checkbox" checked> CORRUPT TEXT → JUNK</label>
+      <label><input id="strictAllit" type="checkbox"> REQUIRE 2 SAME START LETTER WORDS</label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="runBtn" class="good">SCAN + ADD NEW ONLY</button>
+      <button id="clearBtn" class="ghost">CLEAR</button>
+      <button id="downloadZipBtn" class="warnbtn" disabled>DOWNLOAD STRICT OUTPUT ZIP</button>
+    </div>
+    <p id="status" class="muted">Ready.</p>
+  </div>
+
+  <div class="card">
+    <h2>Results Counter</h2>
+    <div class="stats">
+      <div class="stat"><div class="small">OLD CLEAN</div><div id="oldClean" class="n">0</div></div>
+      <div class="stat"><div class="small">NEW ADDED</div><div id="newAdded" class="n ok">0</div></div>
+      <div class="stat"><div class="small">DUPLICATES</div><div id="dupes" class="n warn">0</div></div>
+      <div class="stat"><div class="small">JUNK</div><div id="junk" class="n bad">0</div></div>
+      <div class="stat"><div class="small">REVIEW</div><div id="review" class="n warn">0</div></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Searchable Index</h2>
+      <div class="row"><input id="searchBox" class="searchbar" placeholder="Search word or phrase..." /><select id="letterFilter"><option value="">All letters</option></select><select id="statusFilter"><option value="">All statuses</option><option>CLEAN_OLD</option><option>NEW_ADDED</option><option>DUPLICATE</option><option>JUNK</option><option>REVIEW</option></select><button id="searchBtn">SEARCH</button></div>
+      <div id="searchOut" class="out">No index built yet.</div>
+    </div>
+    <div class="card">
+      <h2>Junk / Review Preview</h2>
+      <div id="badOut" class="out">Nothing scanned yet.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>A-Z Updated Master Breakdown</h2>
+    <div id="letters" class="letters"></div>
+  </div>
+</div>
+<script>
+(() => {
+const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const $=id=>document.getElementById(id);
+const E={oldFiles:$('oldFiles'),newFiles:$('newFiles'),oldPaste:$('oldPaste'),newPaste:$('newPaste'),uppercase:$('uppercase'),removeOneWord:$('removeOneWord'),rejectNumbers:$('rejectNumbers'),rejectSymbols:$('rejectSymbols'),rejectCorrupt:$('rejectCorrupt'),strictAllit:$('strictAllit'),runBtn:$('runBtn'),clearBtn:$('clearBtn'),downloadZipBtn:$('downloadZipBtn'),status:$('status'),oldClean:$('oldClean'),newAdded:$('newAdded'),dupes:$('dupes'),junk:$('junk'),review:$('review'),searchBox:$('searchBox'),letterFilter:$('letterFilter'),statusFilter:$('statusFilter'),searchBtn:$('searchBtn'),searchOut:$('searchOut'),badOut:$('badOut'),letters:$('letters')};
+let oldText='',newText='',state=null;
+A.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;E.letterFilter.appendChild(o)});
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function setStatus(s,cls=''){E.status.className='muted '+cls;E.status.textContent=s}
+async function readFiles(input){let parts=[];for(const f of [...(input.files||[])]){let txt='';try{txt=await f.text()}catch(e){txt=''}if(f.name.toLowerCase().endsWith('.csv')) txt=txt.split(/\r?\n/).map(r=>r.split(',').map(x=>x.trim()).filter(Boolean).join(' ')).join('\n');parts.push(`\n[SOURCE_FILE:${f.name}]\n`+txt)}return parts.join('\n')}
+function firstLetter(s){const m=s.match(/[A-Z]/i);return m?m[0].toUpperCase():'#'}
+function cleanLine(raw){let s=String(raw||'').replace(/\r/g,' ').replace(/\t/g,' ').replace(/\s+/g,' ').trim();s=s.replace(/^\[[A-Z_ -]+:.*?\]$/,'').trim();s=s.replace(/^["'`“”‘’.,;:!?()\[\]{}<>|\\/\-—–_+=*#@$%^&~]+/,'').replace(/["'`“”‘’.,;:!?()\[\]{}<>|\\/\-—–_+=*#@$%^&~]+$/,'').trim();if(E.uppercase.checked)s=s.toUpperCase();return s.replace(/\s+/g,' ').trim()}
+function classify(clean, raw){if(!clean) return {status:'JUNK',reason:'BLANK_OR_EMPTY'};const words=(clean.match(/[A-Z]+(?:'[A-Z]+)?/g)||[]);const digits=(clean.match(/\d/g)||[]).length;const letters=(clean.match(/[A-Z]/g)||[]).length;const symbols=(clean.match(/[^A-Z0-9\s'\-]/g)||[]).length;const weird=(clean.match(/[�\u0000-\u0008\u000B\u000C\u000E-\u001F]/g)||[]).length;if(E.rejectCorrupt.checked&&(weird>0||/(.)\1{8,}/.test(clean))) return {status:'JUNK',reason:'CORRUPT_TEXT'};if(E.rejectNumbers.checked&&digits>0&&(digits>=letters||digits>=8)) return {status:'JUNK',reason:'DIGIT_HEAVY'};if(E.rejectSymbols.checked&&symbols>0&&(symbols>=Math.max(3,Math.ceil(letters*.25)))) return {status:'JUNK',reason:'SYMBOL_HEAVY'};if(E.removeOneWord.checked&&words.length<2) return {status:'REVIEW',reason:'ONE_WORD_OR_NO_WORDS'};if(words.length>=2 && E.strictAllit.checked){const counts={};words.forEach(w=>{const k=w[0];counts[k]=(counts[k]||0)+1});if(Math.max(...Object.values(counts))<2) return {status:'REVIEW',reason:'NO_2_WORD_ALLITERATION_MATCH'};}if(clean.length>250) return {status:'REVIEW',reason:'VERY_LONG_LINE'};return {status:'CLEAN',reason:'PASS'};}
+function parse(text, sourceLabel){const rows=[];let currentSource=sourceLabel;String(text||'').replace(/\r/g,'\n').split(/\n+/).forEach((raw,i)=>{const src=raw.match(/^\[SOURCE_FILE:(.*?)\]$/);if(src){currentSource=src[1];return}const clean=cleanLine(raw);const c=classify(clean, raw);rows.push({id:rows.length+1,raw,clean,letter:firstLetter(clean),source:currentSource,status:c.status,reason:c.reason});});return rows;}
+function build(){const oldRows=parse(oldText+'\n'+E.oldPaste.value,'OLD_PASTE');const newRows=parse(newText+'\n'+E.newPaste.value,'NEW_PASTE');const index=[];const master={};A.forEach(l=>master[l]=[]);const seen=new Set();let oldClean=0,newAdded=0,dupes=0,junk=0,review=0;
+oldRows.forEach(r=>{if(r.status==='CLEAN'&&A.includes(r.letter)){if(!seen.has(r.clean)){seen.add(r.clean);master[r.letter].push(r.clean);oldClean++;index.push({...r,status:'CLEAN_OLD'});}else{dupes++;index.push({...r,status:'DUPLICATE',reason:'OLD_DUPLICATE'});}}else{if(r.status==='JUNK')junk++;else review++;index.push(r)}});
+newRows.forEach(r=>{if(r.status==='CLEAN'&&A.includes(r.letter)){if(seen.has(r.clean)){dupes++;index.push({...r,status:'DUPLICATE',reason:'ALREADY_IN_MASTER'});}else{seen.add(r.clean);master[r.letter].push(r.clean);newAdded++;index.push({...r,status:'NEW_ADDED'});}}else{if(r.status==='JUNK')junk++;else review++;index.push(r)}});
+A.forEach(l=>master[l].sort((a,b)=>a.localeCompare(b)));
+state={master,index,counts:{oldClean,newAdded,dupes,junk,review}};render();}
+function render(){const c=state.counts;E.oldClean.textContent=c.oldClean;E.newAdded.textContent=c.newAdded;E.dupes.textContent=c.dupes;E.junk.textContent=c.junk;E.review.textContent=c.review;E.downloadZipBtn.disabled=false;E.letters.innerHTML=A.map(l=>`<div class="letter"><b>${l}</b><div class="pill">${state.master[l].length}</div><div class="small">${esc(state.master[l].slice(0,3).join('\n'))}${state.master[l].length>3?'\n…':''}</div></div>`).join('');const bad=state.index.filter(r=>['JUNK','REVIEW','DUPLICATE'].includes(r.status)).slice(0,200).map(r=>`${r.status}\t${r.reason}\t${r.source}\t${r.clean||r.raw}`).join('\n');E.badOut.textContent=bad||'No junk/review/duplicates.';search();setStatus('Strict QC complete. Clean lines added only. Junk/review/duplicates quarantined.','ok')}
+function search(){if(!state){E.searchOut.textContent='No index built yet.';return}const q=E.searchBox.value.trim().toUpperCase();const lf=E.letterFilter.value;const sf=E.statusFilter.value;let rows=state.index.filter(r=>(!q||(r.clean||r.raw).toUpperCase().includes(q))&&(!lf||r.letter===lf)&&(!sf||r.status===sf));E.searchOut.textContent=`MATCHES: ${rows.length}\n\n`+rows.slice(0,500).map(r=>`${r.status}\t${r.letter}\t${r.reason}\t${r.source}\t${r.clean||r.raw}`).join('\n')}
+function downloadBlob(name,blob){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+function crc32(buf){let c,t=crc32.t;if(!t){t=crc32.t=new Uint32Array(256);for(let n=0;n<256;n++){c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0}}let crc=0^(-1);for(let i=0;i<buf.length;i++)crc=(crc>>>8)^t[(crc^buf[i])&255];return(crc^(-1))>>>0}
+function zip(files){const enc=new TextEncoder();let off=0,ch=[],cen=[];const d=new Date(),time=((d.getHours()&31)<<11)|((d.getMinutes()&63)<<5)|((d.getSeconds()/2)&31),date=(((Math.max(1980,d.getFullYear())-1980)&127)<<9)|(((d.getMonth()+1)&15)<<5)|(d.getDate()&31);for(const f of files){const nb=enc.encode(f.name),db=enc.encode(f.content),crc=crc32(db),sz=db.length;let local=new Uint8Array(30+nb.length),lv=new DataView(local.buffer);lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(10,time,true);lv.setUint16(12,date,true);lv.setUint32(14,crc,true);lv.setUint32(18,sz,true);lv.setUint32(22,sz,true);lv.setUint16(26,nb.length,true);local.set(nb,30);ch.push(local,db);let ce=new Uint8Array(46+nb.length),cv=new DataView(ce.buffer);cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(12,time,true);cv.setUint16(14,date,true);cv.setUint32(16,crc,true);cv.setUint32(20,sz,true);cv.setUint32(24,sz,true);cv.setUint16(28,nb.length,true);cv.setUint32(42,off,true);ce.set(nb,46);cen.push(ce);off+=local.length+db.length}let cs=cen.reduce((a,b)=>a+b.length,0),end=new Uint8Array(22),ev=new DataView(end.buffer);ev.setUint32(0,0x06054b50,true);ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);ev.setUint32(12,cs,true);ev.setUint32(16,off,true);return new Blob([...ch,...cen,end],{type:'application/zip'})}
+function exportZip(){if(!state)return;const files=[];files.push({name:'00_READ_ME_FIRST.txt',content:'STRICT QC OUTPUT\n\n02_A_Z_MASTER has updated A-Z master files.\n03_SEARCHABLE_INDEX has TSV index.\n04_JUNK_QUARANTINE has corrupt/junk/review/duplicates.\n01_ORIGINAL_INPUTS keeps pasted/file-loaded source text snapshots.\n'});files.push({name:'01_ORIGINAL_INPUTS/OLD_INPUT_SNAPSHOT.txt',content:oldText+'\n'+E.oldPaste.value});files.push({name:'01_ORIGINAL_INPUTS/NEW_INPUT_SNAPSHOT.txt',content:newText+'\n'+E.newPaste.value});A.forEach(l=>files.push({name:`02_A_Z_MASTER/${l}.txt`,content:state.master[l].join('\n')}));const tsv=['STATUS\tLETTER\tREASON\tSOURCE\tTEXT'].concat(state.index.map(r=>`${r.status}\t${r.letter}\t${r.reason}\t${r.source}\t${(r.clean||r.raw).replace(/\t/g,' ')}`)).join('\n');files.push({name:'03_SEARCHABLE_INDEX/SEARCHABLE_MASTER_INDEX.tsv',content:tsv});files.push({name:'03_SEARCHABLE_INDEX/MASTER_INDEX_READ_ME.txt',content:'Open SEARCHABLE_MASTER_INDEX.tsv in Numbers, Excel, Google Sheets, or a text editor. Columns: STATUS, LETTER, REASON, SOURCE, TEXT.'});['JUNK','REVIEW','DUPLICATE','NEW_ADDED'].forEach(st=>files.push({name:`04_JUNK_QUARANTINE/${st}.txt`,content:state.index.filter(r=>r.status===st).map(r=>`${r.reason}\t${r.source}\t${r.clean||r.raw}`).join('\n')}));files.push({name:'05_PROCESS_LOG/COUNTS.txt',content:Object.entries(state.counts).map(([k,v])=>`${k}: ${v}`).join('\n')});downloadBlob('STRICT_QC_AZ_MASTER_OUTPUT.zip',zip(files));}
+E.oldFiles.addEventListener('change',async()=>{oldText=await readFiles(E.oldFiles);setStatus('Old files loaded.','ok')});E.newFiles.addEventListener('change',async()=>{newText=await readFiles(E.newFiles);setStatus('New files loaded.','ok')});E.runBtn.onclick=build;E.searchBtn.onclick=search;E.searchBox.addEventListener('input',search);E.letterFilter.onchange=search;E.statusFilter.onchange=search;E.downloadZipBtn.onclick=exportZip;E.clearBtn.onclick=()=>{oldText=newText='';state=null;E.oldFiles.value='';E.newFiles.value='';E.oldPaste.value='';E.newPaste.value='';E.oldClean.textContent=E.newAdded.textContent=E.dupes.textContent=E.junk.textContent=E.review.textContent='0';E.searchOut.textContent='No index built yet.';E.badOut.textContent='Nothing scanned yet.';E.letters.innerHTML='';E.downloadZipBtn.disabled=true;setStatus('Cleared.')};
+E.letters.innerHTML=A.map(l=>`<div class="letter"><b>${l}</b><div class="pill">0</div></div>`).join('');
+})();
+</script>
+</body>
+</html>

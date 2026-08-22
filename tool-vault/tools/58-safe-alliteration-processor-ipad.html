@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Safe Alliteration Processor — iPad Local</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #181c24;
+    --ink: #f4f6fb;
+    --muted: #aeb7c8;
+    --border: #2a3140;
+    --accent: #8bc6ff;
+    --danger: #ffb3b3;
+    --good: #a9f5c2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  header {
+    padding: 22px 18px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  h1 { margin: 0 0 8px; font-size: 1.55rem; }
+  p { color: var(--muted); margin: 8px 0; }
+  main { padding: 18px; max-width: 980px; margin: auto; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 14px 0;
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button, .fileLabel {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: #222938;
+    color: var(--ink);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.primary { background: #24445f; border-color: #39698e; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  input[type="file"] { display: none; }
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    background: #0c0f15;
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 10px;
+  }
+  .stat {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    background: #111620;
+  }
+  .stat b { display:block; font-size: 1.25rem; color: var(--accent); }
+  .small { font-size: .92rem; color: var(--muted); }
+  .good { color: var(--good); }
+  .danger { color: var(--danger); }
+  a.download {
+    display: inline-block;
+    margin: 5px 7px 5px 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-decoration: none;
+    background: #1b2a20;
+    border: 1px solid #315b3f;
+    color: var(--good);
+    font-weight: 700;
+  }
+  code {
+    color: var(--accent);
+    background: #0c0f15;
+    padding: 2px 5px;
+    border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Safe Alliteration Processor — iPad Local</h1>
+  <p>No Drive AI login. No cloud processing. Files stay in your browser until you download the outputs.</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1. Load files or paste text</h2>
+    <p>Use actual <code>.txt</code>, <code>.md</code>, or <code>.csv</code> files. Avoid links and preview pages.</p>
+    <div class="row">
+      <label class="fileLabel">
+        Choose text files
+        <input id="fileInput" type="file" accept=".txt,.md,.csv,text/plain,text/markdown,text/csv" multiple />
+      </label>
+      <button id="clearBtn">Clear</button>
+    </div>
+    <p id="fileStatus" class="small">No files loaded yet.</p>
+    <textarea id="pasteBox" placeholder="Or paste raw lines here..."></textarea>
+  </section>
+
+  <section class="card">
+    <h2>2. Run safe processor</h2>
+    <p>This processor keeps uncertain lines in review instead of deleting them.</p>
+    <div class="row">
+      <button id="processBtn" class="primary">Run Safe Processor</button>
+      <button id="downloadAllBtn" disabled>Prepare Downloads</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. Results</h2>
+    <div class="stats" id="stats">
+      <div class="stat"><span>Total raw lines</span><b>0</b></div>
+      <div class="stat"><span>Kept unique</span><b>0</b></div>
+      <div class="stat"><span>Review preserved</span><b>0</b></div>
+      <div class="stat"><span>Duplicates</span><b>0</b></div>
+      <div class="stat"><span>A–Z buckets</span><b>0</b></div>
+    </div>
+    <div id="downloads"></div>
+  </section>
+
+  <section class="card">
+    <h2>Preview</h2>
+    <p class="small">First 100 kept lines.</p>
+    <textarea id="preview" readonly></textarea>
+  </section>
+
+  <section class="card">
+    <h2>Rules used</h2>
+    <ul>
+      <li>Preserve original wording in output records.</li>
+      <li>Normalize for duplicate detection only.</li>
+      <li>Blank lines go to review.</li>
+      <li>Symbol-heavy, number-heavy, or one-word lines go to review, not deletion.</li>
+      <li>Duplicates are preserved in <code>DUPLICATES_REVIEW.txt</code>.</li>
+      <li>A–Z candidate groups are created without touching any final archive.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+let loadedFiles = [];
+let outputs = {};
+
+function normalizeLine(line) {
+  return line
+    .replace(/[^\p{L}\p{N} ]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+function firstLetter(clean) {
+  const m = clean.match(/[A-Z]/i);
+  return m ? m[0].toUpperCase() : "#";
+}
+
+function rhymeKey(clean) {
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+  const last = parts[parts.length - 1];
+  return last.slice(-3).toUpperCase();
+}
+
+function classify(original, clean) {
+  if (!original.trim()) return {bucket: "review", reason: "BLANK_LINE"};
+  if (!clean) return {bucket: "review", reason: "NO_ALPHANUMERIC_CONTENT"};
+  const words = clean.split(/\s+/).filter(Boolean);
+  const symbolCount = (original.match(/[^\p{L}\p{N}\s]/gu) || []).length;
+  const digitCount = (original.match(/\d/g) || []).length;
+  const charCount = original.replace(/\s/g, "").length || 1;
+  if (words.length < 2) return {bucket: "review", reason: "ONE_WORD_OR_FRAGMENT"};
+  if (symbolCount / charCount > 0.25) return {bucket: "review", reason: "SYMBOL_HEAVY"};
+  if (digitCount / charCount > 0.35) return {bucket: "review", reason: "NUMBER_HEAVY"};
+  return {bucket: "kept", reason: "KEPT"};
+}
+
+async function readFiles(files) {
+  loadedFiles = [];
+  for (const file of files) {
+    const text = await file.text();
+    loadedFiles.push({ name: file.name, text });
+  }
+  document.getElementById("fileStatus").textContent =
+    `${loadedFiles.length} file(s) loaded: ` + loadedFiles.map(f => f.name).join(", ");
+}
+
+function processAll() {
+  const pasted = document.getElementById("pasteBox").value || "";
+  const sources = [...loadedFiles];
+  if (pasted.trim()) sources.push({ name: "PASTED_TEXT", text: pasted });
+
+  const rawLines = [];
+  for (const src of sources) {
+    const lines = src.text.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      rawLines.push({ source: src.name, lineNumber: i + 1, original: lines[i] });
+    }
+  }
+
+  const seen = new Map();
+  const kept = [];
+  const review = [];
+  const duplicates = [];
+  const az = {};
+  const masterRows = [
+    "ID,LETTER,RAW_TEXT,CLEAN_TEXT,WORD_COUNT,RHYME_KEY,SOURCE_FILE,SOURCE_LINE,STATUS,REASON"
+  ];
+
+  let idCounter = 1;
+
+  for (const row of rawLines) {
+    const clean = normalizeLine(row.original);
+    const key = clean;
+    const wordCount = clean ? clean.split(/\s+/).filter(Boolean).length : 0;
+    const letter = firstLetter(clean);
+    const rhyme = rhymeKey(clean);
+    const cls = classify(row.original, clean);
+
+    if (key && seen.has(key)) {
+      duplicates.push(`${row.original}\tSOURCE=${row.source}:${row.lineNumber}\tDUP_OF=${seen.get(key)}`);
+      masterRows.push(csvRow([`DUP_${idCounter++}`, letter, row.original, clean, wordCount, rhyme, row.source, row.lineNumber, "DUPLICATE", "DUPLICATE_REVIEW"]));
+      continue;
+    }
+
+    if (key) seen.set(key, `${row.source}:${row.lineNumber}`);
+
+    if (cls.bucket === "kept") {
+      kept.push(row.original);
+      if (!az[letter]) az[letter] = [];
+      az[letter].push(row.original);
+      masterRows.push(csvRow([`IDX_${idCounter++}`, letter, row.original, clean, wordCount, rhyme, row.source, row.lineNumber, "KEPT", cls.reason]));
+    } else {
+      review.push(`${row.original}\tSOURCE=${row.source}:${row.lineNumber}\tREASON=${cls.reason}`);
+      masterRows.push(csvRow([`REV_${idCounter++}`, letter, row.original, clean, wordCount, rhyme, row.source, row.lineNumber, "REVIEW", cls.reason]));
+    }
+  }
+
+  const azTxt = Object.keys(az).sort().map(letter => {
+    const lines = az[letter].slice().sort((a,b) => normalizeLine(a).localeCompare(normalizeLine(b)));
+    return `## ${letter}\n` + lines.join("\n");
+  }).join("\n\n");
+
+  const azJson = JSON.stringify(az, null, 2);
+
+  const log = [
+    "SAFE ALLITERATION PROCESS LOG",
+    `Generated: ${new Date().toISOString()}`,
+    `Files loaded: ${loadedFiles.map(f => f.name).join(", ") || "None"}`,
+    `Pasted text included: ${pasted.trim() ? "YES" : "NO"}`,
+    `Total raw lines: ${rawLines.length}`,
+    `Kept unique lines: ${kept.length}`,
+    `Review preserved lines: ${review.length}`,
+    `Duplicates preserved: ${duplicates.length}`,
+    `A-Z buckets used: ${Object.keys(az).length}`,
+    "",
+    "Rule: Nothing questionable was silently deleted.",
+    "Rule: Final archive was not touched.",
+    "Rule: This is candidate output only."
+  ].join("\n");
+
+  outputs = {
+    "KEPT.txt": kept.slice().sort((a,b) => normalizeLine(a).localeCompare(normalizeLine(b))).join("\n"),
+    "REVIEW_NOT_DELETED.txt": review.join("\n"),
+    "DUPLICATES_REVIEW.txt": duplicates.join("\n"),
+    "PROCESS_LOG.txt": log,
+    "A_Z_CANDIDATE.txt": azTxt,
+    "A_Z_CANDIDATE.json": azJson,
+    "MASTER_INDEX.csv": masterRows.join("\n")
+  };
+
+  updateStats(rawLines.length, kept.length, review.length, duplicates.length, Object.keys(az).length);
+  document.getElementById("preview").value = outputs["KEPT.txt"].split("\n").slice(0, 100).join("\n");
+  document.getElementById("downloadAllBtn").disabled = false;
+  createDownloads();
+}
+
+function csvRow(vals) {
+  return vals.map(v => {
+    const s = String(v ?? "");
+    return '"' + s.replace(/"/g, '""') + '"';
+  }).join(",");
+}
+
+function updateStats(total, kept, review, duplicates, buckets) {
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><span>Total raw lines</span><b>${total}</b></div>
+    <div class="stat"><span>Kept unique</span><b>${kept}</b></div>
+    <div class="stat"><span>Review preserved</span><b>${review}</b></div>
+    <div class="stat"><span>Duplicates</span><b>${duplicates}</b></div>
+    <div class="stat"><span>A–Z buckets</span><b>${buckets}</b></div>
+  `;
+}
+
+function createDownloads() {
+  const box = document.getElementById("downloads");
+  box.innerHTML = "<h3>Download outputs</h3>";
+  for (const [name, content] of Object.entries(outputs)) {
+    const blob = new Blob([content], {type: name.endsWith(".csv") ? "text/csv" : "text/plain"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.textContent = name;
+    a.className = "download";
+    box.appendChild(a);
+  }
+}
+
+document.getElementById("fileInput").addEventListener("change", e => readFiles(e.target.files));
+document.getElementById("processBtn").addEventListener("click", processAll);
+document.getElementById("downloadAllBtn").addEventListener("click", createDownloads);
+document.getElementById("clearBtn").addEventListener("click", () => {
+  loadedFiles = [];
+  outputs = {};
+  document.getElementById("fileInput").value = "";
+  document.getElementById("pasteBox").value = "";
+  document.getElementById("preview").value = "";
+  document.getElementById("downloads").innerHTML = "";
+  document.getElementById("fileStatus").textContent = "No files loaded yet.";
+  updateStats(0,0,0,0,0);
+  document.getElementById("downloadAllBtn").disabled = true;
+});
+</script>
+</body>
+</html>

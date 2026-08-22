@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Automation Hub" />
+<meta name="theme-color" content="#0f1115" />
+<title>RHYMEWEAVER AUTOMATION HUB</title>
+<style>
+:root{--bg:#0f1115;--card:#181c24;--ink:#f4f6fb;--muted:#aeb7c8;--border:#2a3140;--accent:#8bc6ff;--good:#a9f5c2;--warn:#ffd78a;--bad:#ffb3b3}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.45;padding-bottom:env(safe-area-inset-bottom)}header{padding:calc(16px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#171b23 0%,#0f1115 100%);position:sticky;top:0;z-index:5}h1{margin:0 0 5px;font-size:1.34rem;letter-spacing:.02em}h2{margin:0 0 9px;font-size:1.05rem}p,li{color:var(--muted)}main{padding:12px;max-width:1100px;margin:auto}.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:14px;margin:12px 0;box-shadow:0 8px 30px rgba(0,0,0,.18)}.grid{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:850px){.grid.two{grid-template-columns:1fr 1fr}.grid.three{grid-template-columns:1fr 1fr 1fr}}.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}a.btn,button{display:inline-block;appearance:none;border:1px solid var(--border);background:#222938;color:var(--ink);border-radius:13px;padding:12px 14px;font-weight:900;cursor:pointer;font-size:14px;text-decoration:none}a.primary,button.primary{background:#24445f;border-color:#39698e}.good{background:#1b3b29!important;border-color:#366b49!important;color:var(--good)!important}.warn{background:#4a3918!important;border-color:#745d25!important;color:var(--warn)!important}.badge{display:inline-block;border:1px solid var(--border);color:var(--warn);border-radius:999px;padding:4px 9px;font-size:.76rem;font-weight:800;margin:2px 4px 2px 0}.small{font-size:.9rem;color:var(--muted)}textarea,input{width:100%;background:#0c0f15;color:var(--ink);border:1px solid var(--border);border-radius:13px;padding:11px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}textarea{min-height:150px}.step{border:1px solid var(--border);background:#111620;border-radius:15px;padding:12px;margin:10px 0}.step b{color:var(--accent)}.check{display:flex;gap:10px;align-items:flex-start;border-bottom:1px solid #1e2530;padding:9px 0}.check:last-child{border-bottom:none}.check input{width:auto;margin-top:3px;transform:scale(1.25)}.result{white-space:pre-wrap;background:#0c0f15;border:1px solid var(--border);border-radius:13px;padding:10px;min-height:120px;color:var(--good);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}.danger{color:var(--bad)}code{color:var(--accent);background:#0c0f15;padding:2px 5px;border-radius:5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>RHYMEWEAVER AUTOMATION HUB</h1>
+  <div class="small">One route: Clean · A-Z Sort · Rhyme/Phon Test · Export · Archive</div>
+  <div><span class="badge">SAFE MODE</span><span class="badge">NO DELETES</span><span class="badge">ONE SESSION ROUTE</span></div>
+</header>
+<main>
+  <section class="card">
+    <h2>TODAY'S SIMPLE ROUTE</h2>
+    <p>This is the control-center page. Use this when you sit down to work so you do not wander between tools.</p>
+    <div class="grid three">
+      <a class="btn primary" href="index.html">OPEN MAIN RHYMEWEAVER INDEX</a>
+      <a class="btn good" href="phon-rhyme-lab.html">OPEN PHON RHYME LAB</a>
+      <a class="btn warn" href="https://github.com/vishnuhorus-commits/-rhymeweaver-writer-index" target="_blank" rel="noopener">OPEN GITHUB REPO</a>
+    </div>
+  </section>
+
+  <section class="grid two">
+    <div class="card">
+      <h2>PRODUCTION CHECKLIST</h2>
+      <div id="checks"></div>
+      <div class="row" style="margin-top:10px"><button id="resetChecks">RESET CHECKLIST</button><button id="copyChecklist" class="good">COPY CHECKLIST REPORT</button></div>
+    </div>
+    <div class="card">
+      <h2>SESSION LOG</h2>
+      <p class="small">Write what file you ran and what happened. Download this at the end so we do not lose track.</p>
+      <textarea id="sessionLog" placeholder="Example: Ran ALLITERATIONS_11-25.txt through main sorter. Exported A-Z and review files."></textarea>
+      <div class="row" style="margin-top:10px"><button id="stampBtn">ADD TIME STAMP</button><button id="downloadLog" class="good">DOWNLOAD SESSION LOG</button></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>FILE NAME BUILDER</h2>
+    <p class="small">Type a source name once. This makes clean production names for outputs.</p>
+    <input id="sourceName" value="ALLITERATIONS_11_25" />
+    <div class="row" style="margin-top:10px"><button id="buildNames" class="primary">BUILD OUTPUT NAMES</button><button id="copyNames" class="good">COPY NAMES</button></div>
+    <div id="nameResults" class="result" style="margin-top:10px"></div>
+  </section>
+
+  <section class="card">
+    <h2>WHAT THIS AUTOMATES</h2>
+    <div class="step"><b>1. Intake</b><br>Pick one source file only. Do not run five sources at once until one completes.</div>
+    <div class="step"><b>2. Clean + Sort</b><br>Open the main RhymeWeaver Index. Load file. Run everything. Export kept, review, duplicate, A-Z, and master outputs.</div>
+    <div class="step"><b>3. Sound Test</b><br>Open Phon Rhyme Lab. Run important words or batch word lists through rhymes, homophones, syllables, and sounds-like.</div>
+    <div class="step"><b>4. Archive</b><br>Keep originals untouched. Save clean outputs with production names. Put questionable lines in REVIEW, not trash.</div>
+  </section>
+</main>
+<script>
+const checklistItems=[
+  "Pick ONE source file for this session",
+  "Open MAIN RHYMEWEAVER INDEX",
+  "Load source file or paste source text",
+  "Run merge + dedupe + A-Z index",
+  "Download MASTER kept output",
+  "Download REVIEW_NOT_DELETED output",
+  "Download DUPLICATES_REVIEW output",
+  "Download A-Z letter outputs if needed",
+  "Open PHON RHYME LAB",
+  "Run important words through single or batch test",
+  "Download phon/rhyme report",
+  "Write session log",
+  "Save exports into correct archive folder"
+];
+function loadChecks(){const saved=JSON.parse(localStorage.getItem("rw_auto_checks")||"[]");document.getElementById("checks").innerHTML=checklistItems.map((txt,i)=>`<label class="check"><input type="checkbox" data-i="${i}" ${saved[i]?"checked":""}/><span>${i+1}. ${txt}</span></label>`).join("")}
+function saveChecks(){const arr=[];document.querySelectorAll('#checks input').forEach(cb=>arr[Number(cb.dataset.i)]=cb.checked);localStorage.setItem("rw_auto_checks",JSON.stringify(arr))}
+function cleanName(s){return String(s||"").trim().toUpperCase().replace(/[^A-Z0-9]+/g,"_").replace(/^_+|_+$/g,"")||"SOURCE"}
+function buildOutputNames(){const base=cleanName(document.getElementById("sourceName").value);const stamp=new Date().toISOString().slice(0,10).replaceAll("-","");const names=[`${base}_${stamp}_MASTER_KEPT.txt`,`${base}_${stamp}_A_Z_INDEX.txt`,`${base}_${stamp}_DUPLICATES_REVIEW.txt`,`${base}_${stamp}_REVIEW_NOT_DELETED.txt`,`${base}_${stamp}_PHON_RHYME_REPORT.txt`,`${base}_${stamp}_SESSION_LOG.txt`].join("\n");document.getElementById("nameResults").textContent=names;return names}
+function downloadText(filename,text){const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+document.getElementById("checks").addEventListener("change",saveChecks);document.getElementById("resetChecks").addEventListener("click",()=>{localStorage.removeItem("rw_auto_checks");loadChecks()});document.getElementById("copyChecklist").addEventListener("click",async()=>{const arr=[];document.querySelectorAll('#checks .check').forEach((row,i)=>{const cb=row.querySelector('input');arr.push(`${cb.checked?'DONE':'TODO'} - ${checklistItems[i]}`)});const report="RHYMEWEAVER AUTOMATION CHECKLIST\n"+new Date().toLocaleString()+"\n\n"+arr.join("\n");await navigator.clipboard.writeText(report).catch(()=>{});document.getElementById("sessionLog").value += (document.getElementById("sessionLog").value?"\n\n":"")+report});document.getElementById("stampBtn").addEventListener("click",()=>{const log=document.getElementById("sessionLog");log.value+=(log.value?"\n":"")+"["+new Date().toLocaleString()+"] ";log.focus()});document.getElementById("downloadLog").addEventListener("click",()=>downloadText(cleanName(document.getElementById("sourceName").value)+"_SESSION_LOG.txt",document.getElementById("sessionLog").value));document.getElementById("buildNames").addEventListener("click",buildOutputNames);document.getElementById("copyNames").addEventListener("click",async()=>{await navigator.clipboard.writeText(buildOutputNames()).catch(()=>{})});loadChecks();buildOutputNames();
+</script>
+</body>
+</html>
+

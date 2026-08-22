@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Alliteration Machine V3 — Graphic + Phonetic Verifier</title>
+<style>
+  :root{--bg:#0f172a;--panel:#111827;--ink:#e5e7eb;--muted:#9ca3af;--line:#374151;--accent:#93c5fd;--good:#86efac;--warn:#fde68a;--bad:#fca5a5;--button:#1f2937;}
+  *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0f172a,#020617);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.45}
+  header{padding:28px 20px;border-bottom:1px solid var(--line);background:rgba(17,24,39,.88);position:sticky;top:0;z-index:3;backdrop-filter:blur(8px)}
+  h1{margin:0;font-size:clamp(1.45rem,2.5vw,2.35rem);letter-spacing:.02em} .tag{color:var(--accent);font-weight:700}.sub{color:var(--muted);margin:.45rem 0 0;max-width:980px}
+  main{max-width:1180px;margin:0 auto;padding:20px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.card{grid-column:span 12;background:rgba(17,24,39,.92);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 10px 24px rgba(0,0,0,.22)}
+  @media(min-width:900px){.half{grid-column:span 6}.third{grid-column:span 4}.twoThird{grid-column:span 8}}
+  h2{margin:.1rem 0 1rem;font-size:1.1rem}.small{font-size:.9rem;color:var(--muted)}
+  button,label.btn{appearance:none;border:1px solid #4b5563;background:var(--button);color:var(--ink);border-radius:12px;padding:10px 13px;font-weight:750;cursor:pointer;display:inline-flex;gap:8px;align-items:center;margin:5px 6px 5px 0;text-decoration:none}
+  button:hover,label.btn:hover{border-color:#9ca3af} button.primary{background:#172554;border-color:#60a5fa} button.good{background:#064e3b;border-color:#34d399} button.warn{background:#713f12;border-color:#facc15} button.bad{background:#7f1d1d;border-color:#f87171}
+  input[type=file]{display:none}.drop{border:2px dashed #475569;border-radius:16px;padding:18px;text-align:center;background:rgba(15,23,42,.66)}
+  textarea{width:100%;min-height:220px;background:#020617;color:#d1d5db;border:1px solid #334155;border-radius:12px;padding:12px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.88rem;white-space:pre;resize:vertical}
+  table{width:100%;border-collapse:collapse;font-size:.88rem} th,td{border-bottom:1px solid #263244;padding:8px;text-align:left;vertical-align:top} th{color:#bfdbfe;position:sticky;top:110px;background:#111827;z-index:2}.pill{display:inline-block;border:1px solid #475569;border-radius:999px;padding:2px 8px;margin:2px;color:#dbeafe;background:#0f172a}.ok{color:var(--good)}.warnText{color:var(--warn)}.badText{color:var(--bad)}
+  .stat{font-size:1.45rem;font-weight:900}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.checkrow{display:flex;flex-wrap:wrap;gap:12px}.checkrow label{border:1px solid #334155;border-radius:999px;padding:7px 10px;background:#020617}.footer{color:var(--muted);font-size:.85rem;margin-top:18px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Alliteration Machine <span class="tag">V3</span> — Graphic + Phonetic Initial Sound Verifier</h1>
+  <p class="sub">Keeps your old A–Z written-letter archive, then adds a spoken-sound key so <b>KNIGHT</b> and <b>NIGHT</b> match, while <b>CHEF / CHAIR / CYCLONE / COLD</b> get separated by real initial sound.</p>
+</header>
+<main class="grid">
+  <section class="card twoThird">
+    <h2>1) Load files or a folder</h2>
+    <div class="drop">
+      <label class="btn primary" for="filePicker">Choose Files</label>
+      <input id="filePicker" type="file" multiple accept=".txt,.rtf,.csv,.md,.log,.json,.html,.htm" />
+      <label class="btn primary" for="folderPicker">Choose Folder</label>
+      <input id="folderPicker" type="file" webkitdirectory directory multiple />
+      <p class="small">Best on Windows: choose <span class="mono">ALLITERATION_ARCHIVE_V1 / 01_RAW_IN</span>. ZIP files are skipped safely unless already extracted.</p>
+    </div>
+    <div class="checkrow" style="margin-top:12px">
+      <label><input id="stripRtf" type="checkbox" checked> Strip RTF formatting</label>
+      <label><input id="dedupe" type="checkbox" checked> Remove exact duplicates</label>
+      <label><input id="ignoreStop" type="checkbox" checked> Ignore tiny connector words</label>
+      <label><input id="vowels" type="checkbox"> Count vowel-starts</label>
+      <label><input id="keepAllLines" type="checkbox"> Keep non-alliteration lines too</label>
+    </div>
+    <div style="margin-top:12px">
+      <button class="good" id="processBtn">Process Batch</button>
+      <button id="demoBtn">Run Demo Test</button>
+      <button class="bad" id="clearBtn">Clear</button>
+    </div>
+  </section>
+
+  <section class="card third">
+    <h2>Batch status</h2>
+    <div><span class="stat" id="fileCount">0</span><span class="small"> files loaded</span></div>
+    <div><span class="stat" id="lineCount">0</span><span class="small"> clean phrases seen</span></div>
+    <div><span class="stat ok" id="phoneticCount">0</span><span class="small"> phonetic matches</span></div>
+    <div><span class="stat warnText" id="mismatchCount">0</span><span class="small"> graphic/sound mismatches</span></div>
+    <p id="status" class="small">Ready.</p>
+  </section>
+
+  <section class="card">
+    <h2>2) Download or copy outputs</h2>
+    <button class="primary" id="zipBtn" disabled>Download Full ZIP</button>
+    <button id="phoneticTxtBtn" disabled>Download Master PHONETIC TXT</button>
+    <button id="graphicTxtBtn" disabled>Download Master GRAPHIC TXT</button>
+    <button id="azTxtBtn" disabled>Download A–Z Combined TXT</button>
+    <button id="soundTxtBtn" disabled>Download SOUND Combined TXT</button>
+    <button id="csvBtn" disabled>Download Dual Index CSV</button>
+    <button id="mismatchBtn" disabled>Download Mismatch Review CSV</button>
+    <button id="logBtn" disabled>Download Process Log TXT</button>
+    <button class="good" id="copyBtn" disabled>Copy Selected Output</button>
+    <button class="warn" id="folderSaveBtn" disabled>Save All to Folder</button>
+    <p class="small">If a download button fails, select an output below and click <b>Copy Selected Output</b>, then paste into Notepad and save as <span class="mono">.txt</span> or <span class="mono">.csv</span>.</p>
+    <select id="outputSelect" style="width:100%;padding:9px;border-radius:10px;background:#020617;color:#e5e7eb;border:1px solid #334155;margin:8px 0">
+      <option value="readme">README_NEXT_STEPS.txt</option>
+      <option value="phoneticMaster">MASTER_ALLITERATIONS_PHONETIC.txt</option>
+      <option value="graphicMaster">MASTER_ALLITERATIONS_GRAPHIC.txt</option>
+      <option value="dualCsv">MASTER_DUAL_GRAPHIC_PHONETIC_INDEX.csv</option>
+      <option value="mismatchCsv">PHONETIC_MISMATCH_REVIEW.csv</option>
+      <option value="trueAudioCsv">TRUE_AUDIO_EXTRA_MATCHES.csv</option>
+      <option value="falseGraphicCsv">FALSE_GRAPHIC_REVIEW.csv</option>
+      <option value="azCombined">A_Z_COMBINED.txt</option>
+      <option value="soundCombined">PHONETIC_SOUND_COMBINED.txt</option>
+      <option value="log">PROCESS_LOG.txt</option>
+    </select>
+    <textarea id="outputBox" spellcheck="false" placeholder="Outputs will appear here after processing."></textarea>
+  </section>
+
+  <section class="card half">
+    <h2>3) Live verifier preview</h2>
+    <textarea id="testInput" style="min-height:100px" spellcheck="false">Pneumatic parade of night knights
+Chef chair cyclone cold
+Wrath wrote righteous rhymes
+Phone phantom phrases flow</textarea>
+    <button id="verifyBtn">Verify This Text</button>
+    <div id="preview" style="overflow:auto;max-height:420px;margin-top:10px"></div>
+  </section>
+
+  <section class="card half">
+    <h2>Sound rules built in</h2>
+    <p class="small">V3 is local and offline. It uses a compact rule engine plus hand-coded exceptions. A future V4 can load a full CMUdict file for dictionary-grade phonemes.</p>
+    <div>
+      <span class="pill">KN/GN/PN → N</span>
+      <span class="pill">WR/RH → R</span>
+      <span class="pill">PS → S</span>
+      <span class="pill">PH → F</span>
+      <span class="pill">CH → CH / SH / K</span>
+      <span class="pill">C + E/I/Y → S</span>
+      <span class="pill">C hard → K</span>
+      <span class="pill">G soft → J</span>
+      <span class="pill">X initial → Z</span>
+      <span class="pill">QU → KW</span>
+    </div>
+    <p class="footer">Important: this does not replace folder routing. Folder routing stays graphic A–Z. The phonetic sound key is a second index for true spoken alliteration.</p>
+  </section>
+
+  <section class="card">
+    <h2>Results table</h2>
+    <div id="tableWrap" style="overflow:auto;max-height:520px"><p class="small">No run yet.</p></div>
+  </section>
+</main>
+<script>
+'use strict';
+
+const STOPWORDS = new Set('A AN AND ARE AS AT BE BUT BY FOR FROM HAS HAVE HE HER HIS I IN IS IT ITS ME MY OF ON OR OUR SHE THE THEIR THEY THIS TO WAS WE WERE WITH YOU YOUR'.split(' '));
+const VOWELS = new Set(['A','E','I','O','U']);
+const CH_SH = new Set('CHEF CHIFFON CHAGRIN CHAMPAGNE CHARLATAN CHAUFFEUR CHIC CHICANERY CHIVALRY MACHINE MUSTACHE PARACHUTE'.split(' '));
+const CH_K = new Set('CHAOS CHARACTER CHARISMA CHEMICAL CHEMIST CHEMISTRY CHIRO CHIROPRACTOR CHLORINE CHOIR CHOLERA CHORD CHOREOGRAPH CHORUS CHRIST CHRISTIAN CHRONIC CHRONICLE CHROME CHRYSALIS ECHO EPOCH ORCHID PSYCHE SCHOOL SCHOLAR SCHISM'.split(' '));
+const HARD_G = new Set('GELDING GET GIFT GIG GILD GILL GILT GIRL GIVE GEAR GEESE GEEK GEEZER GEYSER'.split(' '));
+const SOFT_G = new Set('GIANT GIRAFFE GINGER GYM GYPSY GERM GESTURE GEL GEM GENIE GENTLE GEOLOGY'.split(' '));
+const OVERRIDES = new Map(Object.entries({
+  'KNIGHT':'N','KNIGHTS':'N','KNEE':'N','KNEES':'N','KNEW':'N','KNIFE':'N','KNIVES':'N','KNOW':'N','KNOWN':'N','KNOWLEDGE':'N',
+  'NIGHT':'N','NIGHTS':'N','PNEUMATIC':'N','PNEUMONIA':'N','PNEUMA':'N','GNOME':'N','GNOSTIC':'N','GNARLY':'N','GNASH':'N',
+  'PSALM':'S','PSALMS':'S','PSYCHE':'S','PSYCHIC':'S','PSYCHOLOGY':'S','PSEUDO':'S',
+  'WRAP':'R','WRAPS':'R','WRATH':'R','WRITE':'R','WRITES':'R','WROTE':'R','WRITTEN':'R','WRONG':'R','WREN':'R','WRESTLE':'R',
+  'PHONE':'F','PHONES':'F','PHONETIC':'F','PHANTOM':'F','PHRASE':'F','PHRASES':'F','PHARAOH':'F',
+  'CHEF':'SH','CHEFS':'SH','CHAIR':'CH','CHAIRS':'CH','CHIEF':'CH','CHILD':'CH','CHURN':'CH','CHURCH':'CH','CHOSEN':'CH',
+  'CYCLONE':'S','CYCLE':'S','CYBER':'S','CELL':'S','CENTER':'S','CENTRE':'S','CERTAIN':'S','CITY':'S','CIVIL':'S',
+  'COLD':'K','COSMIC':'K','CHRIST':'K','CHRISTOS':'K','CHAOS':'K','CHEMICAL':'K','CHORUS':'K','CHOIR':'K',
+  'ONE':'W','ONCE':'W','UNIT':'Y','UNION':'Y','UNIQUE':'Y','UNIVERSE':'Y','UNIVERSAL':'Y','EUROPE':'Y','EULOGY':'Y','EUPHORIA':'Y','USE':'Y','USER':'Y',
+  'HONEST':'VOWEL','HONOR':'VOWEL','HONOUR':'VOWEL','HOUR':'VOWEL','HEIR':'VOWEL','HERB':'VOWEL'
+}));
+
+let loadedFiles = [];
+let outputs = null;
+let lastRows = [];
+
+const $ = id => document.getElementById(id);
+function setStatus(msg){ $('status').textContent = msg; }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function stripDiacritics(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function stripRtf(text){
+  return text
+    .replace(/\{\\\*?\\[^{}]+}|[{}]/g,' ')
+    .replace(/\\'[0-9a-fA-F]{2}/g,' ')
+    .replace(/\\par[d]?/g,'\n')
+    .replace(/\\tab/g,' ')
+    .replace(/\\[a-zA-Z]+-?\d* ?/g,' ')
+    .replace(/\s+\n/g,'\n');
+}
+function cleanPhrase(raw){
+  let s = stripDiacritics(String(raw || ''));
+  s = s.replace(/[’‘`]/g,"'").replace(/[“”]/g,'"');
+  s = s.replace(/https?:\/\/\S+/gi,' ');
+  s = s.replace(/[_=~|<>\[\]{}()*^@#$%+\\/]+/g,' ');
+  s = s.replace(/[^A-Za-z\s'\-.,;:!?]/g,' ');
+  s = s.replace(/[.,;:!?]+/g,' ');
+  s = s.replace(/[\-']/g,' ');
+  s = s.replace(/\s+/g,' ').trim().toUpperCase();
+  return s;
+}
+function splitCandidateLines(text){
+  return text.split(/\r?\n|[.!?]+/).map(x => x.trim()).filter(Boolean);
+}
+function wordsOf(phrase){
+  return cleanPhrase(phrase).split(/\s+/).filter(w => /^[A-Z]+$/.test(w));
+}
+function graphicInitial(word){ return (word && /^[A-Z]/.test(word)) ? word[0] : ''; }
+function isVowelKey(k){ return k === 'VOWEL' || VOWELS.has(k); }
+function getPhoneticInitial(rawWord){
+  let word = cleanPhrase(rawWord).split(/\s+/)[0] || '';
+  if (!word) return '';
+  if (OVERRIDES.has(word)) return OVERRIDES.get(word);
+
+  if (/^(KN|GN|PN)/.test(word)) return 'N';
+  if (/^WR/.test(word)) return 'R';
+  if (/^RH/.test(word)) return 'R';
+  if (/^PS/.test(word)) return 'S';
+  if (/^WH/.test(word)) return 'W';
+  if (/^PH/.test(word)) return 'F';
+  if (/^TH/.test(word)) return 'TH';
+  if (/^SH/.test(word)) return 'SH';
+  if (/^QU/.test(word)) return 'KW';
+  if (/^X/.test(word)) return 'Z';
+
+  if (/^CH/.test(word)) {
+    if (CH_SH.has(word)) return 'SH';
+    if (CH_K.has(word) || /^CHR/.test(word) || /^CHL/.test(word) || /^CHEM/.test(word) || /^CHOR/.test(word)) return 'K';
+    return 'CH';
+  }
+  if (/^SCH/.test(word)) {
+    if (/^SCH(O|A|U|R|L)/.test(word)) return 'SK';
+    return 'SH';
+  }
+  if (/^C/.test(word)) {
+    if (/^C[EIY]/.test(word)) return 'S';
+    return 'K';
+  }
+  if (/^G/.test(word)) {
+    if (SOFT_G.has(word)) return 'J';
+    if (HARD_G.has(word)) return 'G';
+    if (/^G[EIY]/.test(word)) return 'J';
+    return 'G';
+  }
+  if (/^J/.test(word)) return 'J';
+  if (/^[AEIOU]/.test(word)) return 'VOWEL';
+  return word[0];
+}
+function significantWords(words){
+  if (!$('ignoreStop').checked) return words;
+  return words.filter(w => !STOPWORDS.has(w) && w.length > 1);
+}
+function dominantGroup(words, keyFn){
+  const map = new Map();
+  for (const w of words) {
+    const k = keyFn(w);
+    if (!k) continue;
+    if (!$('vowels').checked && isVowelKey(k)) continue;
+    if (!map.has(k)) map.set(k, []);
+    map.get(k).push(w);
+  }
+  let bestKey = '', bestWords = [];
+  for (const [k, arr] of map.entries()) {
+    if (arr.length > bestWords.length) { bestKey = k; bestWords = arr; }
+  }
+  return { key: bestKey, words: bestWords, count: bestWords.length, groups: map };
+}
+function analyzePhrase(rawPhrase, sourceFile='MANUAL_TEST', lineNo=1){
+  const clean = cleanPhrase(rawPhrase);
+  const allWords = wordsOf(clean);
+  const sig = significantWords(allWords);
+  if (allWords.length < 2 || sig.length < 2) return null;
+  const graphic = dominantGroup(sig, graphicInitial);
+  const phonetic = dominantGroup(sig, getPhoneticInitial);
+  const graphicCandidate = graphic.count >= 2;
+  const phoneticCandidate = phonetic.count >= 2;
+  const firstWord = sig[0] || allWords[0] || '';
+  const firstGraphic = graphicInitial(firstWord);
+  const firstPhonetic = getPhoneticInitial(firstWord);
+  const perWord = sig.map(w => ({word:w, graphic:graphicInitial(w), phonetic:getPhoneticInitial(w)}));
+  const wordMismatch = perWord.some(x => x.graphic && x.phonetic && x.graphic !== x.phonetic && !(x.graphic === 'C' && ['K','S','CH'].includes(x.phonetic)));
+  const falseGraphic = graphicCandidate && !phoneticCandidate;
+  const trueAudioExtra = phoneticCandidate && !graphicCandidate;
+  const flags = [];
+  if (graphicCandidate) flags.push('GRAPHIC_MATCH');
+  if (phoneticCandidate) flags.push('PHONETIC_MATCH');
+  if (trueAudioExtra) flags.push('TRUE_AUDIO_EXTRA');
+  if (falseGraphic) flags.push('FALSE_GRAPHIC_REVIEW');
+  if (wordMismatch || graphic.key !== phonetic.key) flags.push('GRAPHIC_SOUND_MISMATCH');
+  return {
+    sourceFile,lineNo,rawPhrase:String(rawPhrase).trim(),clean,allWords,sig,graphic,phonetic,
+    graphicCandidate,phoneticCandidate,firstWord,firstGraphic,firstPhonetic,perWord,wordMismatch,falseGraphic,trueAudioExtra,flags
+  };
+}
+function csvEscape(v){ const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; }
+function rowsToCsv(rows, kind='main'){
+  const header = ['KEPT_PHRASE','GRAPHIC_LETTER','PHONETIC_SOUND_KEY','GRAPHIC_MATCH_WORDS','PHONETIC_MATCH_WORDS','FIRST_WORD','FIRST_WORD_GRAPHIC','FIRST_WORD_SOUND','FLAGS','SOURCE_FILE','LINE_NO','WORD_SOUND_MAP'];
+  const lines = [header.join(',')];
+  for (const r of rows) {
+    lines.push([
+      r.clean,
+      r.graphic.key,
+      r.phonetic.key,
+      r.graphic.words.join(' '),
+      r.phonetic.words.join(' '),
+      r.firstWord,
+      r.firstGraphic,
+      r.firstPhonetic,
+      r.flags.join('|'),
+      r.sourceFile,
+      r.lineNo,
+      r.perWord.map(x => `${x.word}:${x.graphic}->${x.phonetic}`).join(' ')
+    ].map(csvEscape).join(','));
+  }
+  return lines.join('\n');
+}
+function groupTxt(rows, key, title){
+  const groups = new Map();
+  for (const r of rows) {
+    const k = key === 'phonetic' ? r.phonetic.key : r.graphic.key;
+    if (!k) continue;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(r.clean);
+  }
+  const parts = [title, 'Generated: ' + new Date().toLocaleString(), ''];
+  [...groups.keys()].sort().forEach(k => {
+    parts.push(`[${k}]`);
+    [...new Set(groups.get(k))].sort().forEach(line => parts.push(line));
+    parts.push('');
+  });
+  return parts.join('\n');
+}
+function perLetterTxt(rows){
+  const groups = new Map();
+  for (let c=65;c<=90;c++) groups.set(String.fromCharCode(c), []);
+  for (const r of rows) {
+    const k = r.graphic.key || (r.clean[0] || '#');
+    if (groups.has(k)) groups.get(k).push(r.clean);
+  }
+  const parts = ['A_Z_COMBINED — GRAPHIC FOLDER SORT', 'Generated: ' + new Date().toLocaleString(), ''];
+  for (let c=65;c<=90;c++) {
+    const k = String.fromCharCode(c);
+    parts.push(`[${k}]`);
+    [...new Set(groups.get(k))].sort().forEach(line => parts.push(line));
+    parts.push('');
+  }
+  return parts.join('\n');
+}
+function perSoundTxt(rows){
+  return groupTxt(rows, 'phonetic', 'PHONETIC_SOUND_COMBINED — TRUE AUDIO SORT');
+}
+function buildReadme(summary){
+  return `ALLITERATION MACHINE V3 — NEXT STEPS\n\nWhat this run did:\n- Kept the old GRAPHIC A-Z folder logic.\n- Added PHONETIC_SOUND_KEY for spoken initial consonant matching.\n- Created separate review files for graphic/sound mismatches.\n\nCounts:\n- Files loaded: ${summary.files}\n- Clean phrases seen: ${summary.lines}\n- Rows exported: ${summary.rows}\n- Phonetic matches: ${summary.phonetic}\n- Graphic/sound mismatches: ${summary.mismatch}\n\nWhere to place outputs in Google Drive:\n- MASTER_ALLITERATIONS_PHONETIC.txt -> 04_MASTER_INDEX\n- MASTER_ALLITERATIONS_GRAPHIC.txt -> 04_MASTER_INDEX\n- MASTER_DUAL_GRAPHIC_PHONETIC_INDEX.csv -> 04_MASTER_INDEX\n- A_Z_COMBINED.txt -> 03_OUTPUT_A_Z\n- PHONETIC_SOUND_COMBINED.txt -> 04_MASTER_INDEX\n- PHONETIC_MISMATCH_REVIEW.csv -> 06_REVIEW_REQUIRED\n- TRUE_AUDIO_EXTRA_MATCHES.csv -> 06_REVIEW_REQUIRED\n- FALSE_GRAPHIC_REVIEW.csv -> 06_REVIEW_REQUIRED\n- PROCESS_LOG.txt -> 07_LOGS\n\nRule:\nDo not delete originals. Do not overwrite old master files. Add date suffix if needed.\n`;
+}
+async function loadFiles(fileList){
+  loadedFiles = Array.from(fileList || []).filter(f => /\.(txt|rtf|csv|md|log|json|html?|)$/i.test(f.name) || /^text\//.test(f.type));
+  $('fileCount').textContent = loadedFiles.length;
+  setStatus(`Loaded ${loadedFiles.length} readable files. ZIP files should be extracted first.`);
+}
+$('filePicker').addEventListener('change', e => loadFiles(e.target.files));
+$('folderPicker').addEventListener('change', e => loadFiles(e.target.files));
+$('clearBtn').addEventListener('click', () => { loadedFiles=[]; outputs=null; lastRows=[]; $('fileCount').textContent='0'; $('lineCount').textContent='0'; $('phoneticCount').textContent='0'; $('mismatchCount').textContent='0'; $('outputBox').value=''; $('tableWrap').innerHTML='<p class="small">No run yet.</p>'; enableOutputs(false); setStatus('Cleared.'); });
+$('demoBtn').addEventListener('click', async () => {
+  const demo = $('testInput').value;
+  const rows = demo.split(/\n+/).map((line,i)=>analyzePhrase(line,'DEMO_TEST',i+1)).filter(Boolean);
+  finishRows(rows, 1, demo.split(/\n+/).length);
+});
+$('verifyBtn').addEventListener('click', () => {
+  const rows = $('testInput').value.split(/\n+/).map((line,i)=>analyzePhrase(line,'MANUAL_VERIFY',i+1)).filter(Boolean);
+  renderPreview(rows);
+});
+$('processBtn').addEventListener('click', processBatch);
+async function processBatch(){
+  if (!loadedFiles.length) { setStatus('Choose files or a folder first.'); return; }
+  setStatus('Processing...');
+  const rows = [];
+  const seen = new Set();
+  let cleanLineCount = 0;
+  for (const f of loadedFiles) {
+    const name = f.webkitRelativePath || f.name;
+    if (/\.(zip|7z|rar)$/i.test(name)) continue;
+    let text = await f.text();
+    if ($('stripRtf').checked || /\.rtf$/i.test(name)) text = stripRtf(text);
+    const lines = splitCandidateLines(text);
+    let n = 0;
+    for (const line of lines) {
+      n++;
+      const row = analyzePhrase(line, name, n);
+      if (!row) continue;
+      cleanLineCount++;
+      if (!$('keepAllLines').checked && !(row.graphicCandidate || row.phoneticCandidate)) continue;
+      const key = row.clean;
+      if ($('dedupe').checked && seen.has(key)) continue;
+      seen.add(key);
+      rows.push(row);
+    }
+  }
+  finishRows(rows, loadedFiles.length, cleanLineCount);
+}
+function finishRows(rows, fileCount, cleanLineCount){
+  lastRows = rows;
+  const phoneticRows = rows.filter(r => r.phoneticCandidate);
+  const graphicRows = rows.filter(r => r.graphicCandidate);
+  const mismatchRows = rows.filter(r => r.flags.includes('GRAPHIC_SOUND_MISMATCH'));
+  const trueAudioRows = rows.filter(r => r.trueAudioExtra);
+  const falseGraphicRows = rows.filter(r => r.falseGraphic);
+  const summary = {files:fileCount, lines:cleanLineCount, rows:rows.length, phonetic:phoneticRows.length, mismatch:mismatchRows.length};
+  outputs = {
+    readme: buildReadme(summary),
+    phoneticMaster: groupTxt(phoneticRows,'phonetic','MASTER_ALLITERATIONS_PHONETIC — TRUE AUDIO INDEX'),
+    graphicMaster: groupTxt(graphicRows,'graphic','MASTER_ALLITERATIONS_GRAPHIC — WRITTEN LETTER INDEX'),
+    dualCsv: rowsToCsv(rows),
+    mismatchCsv: rowsToCsv(mismatchRows),
+    trueAudioCsv: rowsToCsv(trueAudioRows),
+    falseGraphicCsv: rowsToCsv(falseGraphicRows),
+    azCombined: perLetterTxt(rows),
+    soundCombined: perSoundTxt(phoneticRows),
+    log: `PROCESS_LOG\nGenerated: ${new Date().toLocaleString()}\nFiles loaded: ${summary.files}\nClean phrases seen: ${summary.lines}\nRows exported: ${summary.rows}\nPhonetic matches: ${summary.phonetic}\nGraphic/sound mismatches: ${summary.mismatch}\nSettings: stripRtf=${$('stripRtf').checked}; dedupe=${$('dedupe').checked}; ignoreStop=${$('ignoreStop').checked}; vowels=${$('vowels').checked}; keepAllLines=${$('keepAllLines').checked}\n`
+  };
+  $('fileCount').textContent = summary.files;
+  $('lineCount').textContent = summary.lines;
+  $('phoneticCount').textContent = summary.phonetic;
+  $('mismatchCount').textContent = summary.mismatch;
+  $('outputBox').value = outputs[$('outputSelect').value] || outputs.readme;
+  renderTable(rows);
+  enableOutputs(true);
+  setStatus(`Done. Exported ${summary.rows} rows. Phonetic matches: ${summary.phonetic}. Mismatches: ${summary.mismatch}.`);
+}
+$('outputSelect').addEventListener('change', () => { if (outputs) $('outputBox').value = outputs[$('outputSelect').value] || ''; });
+function enableOutputs(on){ ['zipBtn','phoneticTxtBtn','graphicTxtBtn','azTxtBtn','soundTxtBtn','csvBtn','mismatchBtn','logBtn','copyBtn','folderSaveBtn'].forEach(id => $(id).disabled = !on); }
+function renderPreview(rows){
+  if (!rows.length) { $('preview').innerHTML='<p class="small">No valid phrases found.</p>'; return; }
+  $('preview').innerHTML = `<table><thead><tr><th>Phrase</th><th>Graphic</th><th>Sound</th><th>Map</th><th>Flags</th></tr></thead><tbody>` + rows.map(r => `<tr><td>${esc(r.clean)}</td><td>${esc(r.graphic.key)}: ${esc(r.graphic.words.join(' '))}</td><td>${esc(r.phonetic.key)}: ${esc(r.phonetic.words.join(' '))}</td><td>${r.perWord.map(x=>`<span class="pill">${esc(x.word)} ${esc(x.graphic)}→${esc(x.phonetic)}</span>`).join(' ')}</td><td>${esc(r.flags.join(' | '))}</td></tr>`).join('') + `</tbody></table>`;
+}
+function renderTable(rows){
+  const sample = rows.slice(0, 300);
+  if (!sample.length) { $('tableWrap').innerHTML='<p class="small">No rows exported. Try checking “Keep non-alliteration lines too.”</p>'; return; }
+  $('tableWrap').innerHTML = `<p class="small">Showing first ${sample.length} of ${rows.length} rows.</p><table><thead><tr><th>Phrase</th><th>Graphic Letter</th><th>Phonetic Sound</th><th>Sound Words</th><th>Flags</th><th>Source</th></tr></thead><tbody>` + sample.map(r => `<tr><td>${esc(r.clean)}</td><td>${esc(r.graphic.key)}</td><td>${esc(r.phonetic.key)}</td><td>${esc(r.phonetic.words.join(' '))}</td><td>${esc(r.flags.join(' | '))}</td><td>${esc(r.sourceFile)}:${r.lineNo}</td></tr>`).join('') + `</tbody></table>`;
+}
+function downloadBlob(filename, text, mime='text/plain;charset=utf-8'){
+  const blob = text instanceof Blob ? text : new Blob([text], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1500);
+}
+$('phoneticTxtBtn').onclick = () => downloadBlob('MASTER_ALLITERATIONS_PHONETIC.txt', outputs.phoneticMaster);
+$('graphicTxtBtn').onclick = () => downloadBlob('MASTER_ALLITERATIONS_GRAPHIC.txt', outputs.graphicMaster);
+$('azTxtBtn').onclick = () => downloadBlob('A_Z_COMBINED.txt', outputs.azCombined);
+$('soundTxtBtn').onclick = () => downloadBlob('PHONETIC_SOUND_COMBINED.txt', outputs.soundCombined);
+$('csvBtn').onclick = () => downloadBlob('MASTER_DUAL_GRAPHIC_PHONETIC_INDEX.csv', outputs.dualCsv, 'text/csv;charset=utf-8');
+$('mismatchBtn').onclick = () => downloadBlob('PHONETIC_MISMATCH_REVIEW.csv', outputs.mismatchCsv, 'text/csv;charset=utf-8');
+$('logBtn').onclick = () => downloadBlob('PROCESS_LOG.txt', outputs.log);
+$('copyBtn').onclick = async () => { try { await navigator.clipboard.writeText($('outputBox').value); setStatus('Copied selected output to clipboard.'); } catch(e){ $('outputBox').select(); document.execCommand('copy'); setStatus('Selected/copy fallback attempted.'); } };
+$('zipBtn').onclick = () => {
+  const files = makeOutputFileMap();
+  const blob = makeZipBlob(files);
+  downloadBlob('ALLITERATION_MACHINE_V3_OUTPUTS.zip', blob, 'application/zip');
+};
+$('folderSaveBtn').onclick = async () => {
+  if (!window.showDirectoryPicker) { setStatus('Folder save is not available in this browser. Use TXT/CSV buttons or copy/paste.'); return; }
+  try {
+    const dir = await window.showDirectoryPicker();
+    const files = makeOutputFileMap();
+    for (const [name, content] of Object.entries(files)) {
+      const h = await dir.getFileHandle(name, {create:true});
+      const w = await h.createWritable(); await w.write(content); await w.close();
+    }
+    setStatus('Saved all outputs to chosen folder.');
+  } catch(e){ setStatus('Folder save cancelled or blocked. Use TXT/CSV buttons.'); }
+};
+function makeOutputFileMap(){
+  const files = {
+    'README_NEXT_STEPS.txt': outputs.readme,
+    'MASTER_ALLITERATIONS_PHONETIC.txt': outputs.phoneticMaster,
+    'MASTER_ALLITERATIONS_GRAPHIC.txt': outputs.graphicMaster,
+    'MASTER_DUAL_GRAPHIC_PHONETIC_INDEX.csv': outputs.dualCsv,
+    'PHONETIC_MISMATCH_REVIEW.csv': outputs.mismatchCsv,
+    'TRUE_AUDIO_EXTRA_MATCHES.csv': outputs.trueAudioCsv,
+    'FALSE_GRAPHIC_REVIEW.csv': outputs.falseGraphicCsv,
+    'A_Z_COMBINED.txt': outputs.azCombined,
+    'PHONETIC_SOUND_COMBINED.txt': outputs.soundCombined,
+    'PROCESS_LOG.txt': outputs.log
+  };
+  const letters = {};
+  for (let c=65;c<=90;c++) letters[String.fromCharCode(c)] = [];
+  for (const r of lastRows) { const k = r.graphic.key; if (letters[k]) letters[k].push(r.clean); }
+  for (const [k, arr] of Object.entries(letters)) files[`A_Z/${k}.txt`] = `[${k}]\n` + [...new Set(arr)].sort().join('\n') + '\n';
+  const soundGroups = new Map();
+  for (const r of lastRows.filter(x => x.phoneticCandidate)) { const k = r.phonetic.key || 'UNKNOWN'; if (!soundGroups.has(k)) soundGroups.set(k, []); soundGroups.get(k).push(r.clean); }
+  for (const [k, arr] of soundGroups.entries()) files[`PHONETIC_SOUND/${safeName(k)}.txt`] = `[${k}]\n` + [...new Set(arr)].sort().join('\n') + '\n';
+  return files;
+}
+function safeName(s){ return String(s).replace(/[^A-Z0-9_-]/gi,'_'); }
+
+// Tiny uncompressed ZIP builder, no external libraries.
+const crcTable = (()=>{let c, table=[]; for(let n=0;n<256;n++){c=n; for(let k=0;k<8;k++) c=((c&1)?(0xEDB88320^(c>>>1)):(c>>>1)); table[n]=c>>>0;} return table;})();
+function crc32(str){ const data = new TextEncoder().encode(str); let crc = 0 ^ (-1); for (let i=0;i<data.length;i++) crc = (crc>>>8) ^ crcTable[(crc ^ data[i]) & 0xFF]; return (crc ^ (-1)) >>> 0; }
+function u16(n){ return String.fromCharCode(n & 255, (n>>>8)&255); }
+function u32(n){ return String.fromCharCode(n & 255, (n>>>8)&255, (n>>>16)&255, (n>>>24)&255); }
+function dosTimeDate(){ const d = new Date(); const time = (d.getHours()<<11) | (d.getMinutes()<<5) | Math.floor(d.getSeconds()/2); const date = ((d.getFullYear()-1980)<<9) | ((d.getMonth()+1)<<5) | d.getDate(); return {time,date}; }
+function makeZipBlob(files){
+  const enc = new TextEncoder(); let localParts=[], centralParts=[], offset=0; const dt=dosTimeDate();
+  for (const [name, content] of Object.entries(files)) {
+    const data = enc.encode(content); const nameBytes = enc.encode(name); const crc = crc32(content); const size = data.length;
+    const localHeader = 'PK\x03\x04' + u16(20) + u16(0) + u16(0) + u16(dt.time) + u16(dt.date) + u32(crc) + u32(size) + u32(size) + u16(nameBytes.length) + u16(0);
+    localParts.push(enc.encode(localHeader), nameBytes, data);
+    const central = 'PK\x01\x02' + u16(20) + u16(20) + u16(0) + u16(0) + u16(dt.time) + u16(dt.date) + u32(crc) + u32(size) + u32(size) + u16(nameBytes.length) + u16(0) + u16(0) + u16(0) + u16(0) + u32(0) + u32(offset);
+    centralParts.push(enc.encode(central), nameBytes);
+    offset += localHeader.length + nameBytes.length + size;
+  }
+  const centralSize = centralParts.reduce((a,p)=>a+p.length,0); const centralOffset = offset;
+  const end = 'PK\x05\x06' + u16(0)+u16(0)+u16(Object.keys(files).length)+u16(Object.keys(files).length)+u32(centralSize)+u32(centralOffset)+u16(0);
+  return new Blob([...localParts, ...centralParts, enc.encode(end)], {type:'application/zip'});
+}
+
+renderPreview([analyzePhrase('Pneumatic parade of night knights','DEMO',1), analyzePhrase('Chef chair cyclone cold','DEMO',2)].filter(Boolean));
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OPEN THIS - A-Z Text Merger</title>
+<style>
+  :root{--bg:#111;--panel:#1c1c1c;--text:#f2eee8;--muted:#b8ada4;--line:#756a61;--btn:#3b2db7;--btn2:#222;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;padding:24px;line-height:1.35;}
+  h1{font-size:30px;margin:0 0 6px;letter-spacing:.5px} h2{font-size:22px;margin:0 0 14px}.small{color:var(--muted);font-size:15px;margin-bottom:20px}
+  .box{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:18px;margin:16px 0;}
+  button,.filelabel{display:inline-block;background:var(--btn);color:white;border:0;border-radius:12px;padding:14px 18px;font-weight:700;font-size:16px;margin:6px 8px 6px 0;text-decoration:none;}
+  button.secondary{background:var(--btn2);border:1px solid var(--line)} input[type=file]{font-size:16px;margin:8px 0;max-width:100%;}
+  textarea{width:100%;min-height:190px;background:#0e0c0c;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:15px;box-sizing:border-box;}
+  .status{white-space:pre-wrap;background:#0e0c0c;border:1px solid var(--line);border-radius:12px;padding:12px;min-height:58px;color:#e8ddcf;}
+  .downloads a{display:inline-block;background:#2c7a2c;color:white;border-radius:12px;padding:14px 18px;margin:6px 8px 6px 0;text-decoration:none;font-weight:700;}
+  .danger{color:#ffd7d7}.ok{color:#c6ffc6}.hint{color:#d8cfc8}.big{font-size:18px;font-weight:700}.mono{font-family:ui-monospace,Menlo,Consolas,monospace;}
+</style>
+</head>
+<body>
+<h1>A-Z TEXT MERGER</h1>
+<div class="small">No Python. No JSON needed. No CSV needed. Pick your text files, merge, deduplicate, download one clean TXT master index.</div>
+
+<div class="box">
+  <h2>1. Choose your files</h2>
+  <div class="hint">Select many files at once from Apple Files, iCloud Drive, or Google Drive. Best files: .txt, .md, .html, .csv, .json, .jsonl. Everything is read as plain text.</div>
+  <input id="files" type="file" multiple />
+  <br>
+  <button onclick="buildFromFiles()">Build A-Z Master TXT</button>
+  <button class="secondary" onclick="clearAll()">Clear</button>
+</div>
+
+<div class="box">
+  <h2>Optional: paste text here instead</h2>
+  <div class="hint">If files won’t select, open a file, copy its words/phrases, paste here, then tap Build From Paste.</div>
+  <textarea id="paste" placeholder="Paste words, phrases, lyric lines, title lists, or A-Z text here..."></textarea>
+  <button onclick="buildFromPaste()">Build From Paste</button>
+</div>
+
+<div class="box">
+  <h2>2. Results</h2>
+  <div id="status" class="status">Nothing built yet.</div>
+  <div id="downloads" class="downloads"></div>
+</div>
+
+<div class="box">
+  <h2>Preview</h2>
+  <textarea id="preview" readonly placeholder="Your merged A-Z TXT preview appears here."></textarea>
+</div>
+
+<script>
+let lastUrls=[];
+function normalizeEntry(s){
+  return s.toLowerCase()
+    .replace(/[’']/g,"'")
+    .replace(/\s+/g,' ')
+    .replace(/^[-–—•*\d\.\)\(\[\]\s]+/,'')
+    .replace(/\s+$/,'')
+    .trim();
+}
+function cleanVisible(s){
+  return s.replace(/<[^>]+>/g,' ')
+    .replace(/&nbsp;/gi,' ')
+    .replace(/&amp;/gi,'&')
+    .replace(/&lt;/gi,'<')
+    .replace(/&gt;/gi,'>')
+    .replace(/[\t|]+/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function extractEntries(text){
+  // Treat everything as text. Split on new lines first; also split comma-heavy short lists.
+  text = text.replace(/\r/g,'\n');
+  const rawLines = text.split(/\n+/);
+  const out=[];
+  for(let line of rawLines){
+    line = cleanVisible(line);
+    if(!line) continue;
+    // Skip obvious JSON punctuation-only lines, but keep useful quoted values.
+    line = line.replace(/^['\"{\[,\s]+|['\"}\],\s]+$/g,'').trim();
+    if(!line) continue;
+    if(line.length > 240) {
+      // For huge paragraphs, split into sentence-ish pieces so it does not become one monster entry.
+      const parts = line.split(/[;]+/).map(cleanVisible).filter(Boolean);
+      for(const p of parts) if(p.length<=240) out.push(p);
+    } else if((line.match(/,/g)||[]).length >= 2 && line.length < 180){
+      line.split(',').map(cleanVisible).filter(Boolean).forEach(x=>out.push(x));
+    } else {
+      out.push(line);
+    }
+  }
+  return out;
+}
+function makeAZ(entries, sourceCount){
+  const seen=new Map(), dupes=[];
+  for(const e of entries){
+    const clean=cleanVisible(e);
+    const key=normalizeEntry(clean);
+    if(!key || key.length<1) continue;
+    if(key==='word' || key==='words' || key==='entry' || key==='entries') continue;
+    if(seen.has(key)) dupes.push(clean); else seen.set(key, clean);
+  }
+  const unique=[...seen.values()].sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:'base'}));
+  const groups={};
+  for(const item of unique){
+    const first = normalizeEntry(item).charAt(0).toUpperCase();
+    const letter = first >= 'A' && first <= 'Z' ? first : '#';
+    if(!groups[letter]) groups[letter]=[];
+    groups[letter].push(item);
+  }
+  let txt='A-Z MASTER INDEX\n';
+  txt+='Generated by OPEN THIS - A-Z Text Merger\n';
+  txt+='Sources selected: '+sourceCount+'\n';
+  txt+='Unique entries: '+unique.length+'\n';
+  txt+='Duplicates skipped: '+dupes.length+'\n\n';
+  const letters=['#','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+  for(const L of letters){
+    if(!groups[L] || !groups[L].length) continue;
+    txt+='\n===== '+L+' =====\n';
+    for(const item of groups[L]) txt+=item+'\n';
+  }
+  let report='MERGE REPORT\n\nSources selected: '+sourceCount+'\nRaw entries found: '+entries.length+'\nUnique entries kept: '+unique.length+'\nDuplicates skipped: '+dupes.length+'\n\n';
+  report+='First 300 duplicates skipped:\n'+dupes.slice(0,300).join('\n');
+  return {txt, report, uniqueCount:unique.length, rawCount:entries.length, dupCount:dupes.length};
+}
+function downloadLink(name, content){
+  const blob=new Blob([content],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob); lastUrls.push(url);
+  const a=document.createElement('a'); a.href=url; a.download=name; a.textContent='Download '+name; return a;
+}
+function showResult(res){
+  document.getElementById('status').innerHTML = '<span class="ok big">Built successfully.</span>\nRaw entries found: '+res.rawCount+'\nUnique entries kept: '+res.uniqueCount+'\nDuplicates skipped: '+res.dupCount+'\n\nTap the green download buttons below.';
+  document.getElementById('preview').value=res.txt.slice(0,20000);
+  const d=document.getElementById('downloads'); d.innerHTML=''; lastUrls.forEach(u=>URL.revokeObjectURL(u)); lastUrls=[];
+  d.appendChild(downloadLink('AZ_MASTER_INDEX.txt', res.txt));
+  d.appendChild(downloadLink('MERGE_REPORT.txt', res.report));
+}
+async function buildFromFiles(){
+  const files=[...document.getElementById('files').files];
+  if(!files.length){ document.getElementById('status').innerHTML='<span class="danger">No files chosen yet.</span>'; return; }
+  document.getElementById('status').textContent='Reading '+files.length+' files...';
+  let entries=[];
+  for(const f of files){
+    try { const text=await f.text(); entries=entries.concat(extractEntries(text)); }
+    catch(e){ entries.push('FAILED TO READ FILE: '+f.name); }
+  }
+  showResult(makeAZ(entries, files.length));
+}
+function buildFromPaste(){
+  const text=document.getElementById('paste').value || '';
+  if(!text.trim()){ document.getElementById('status').innerHTML='<span class="danger">Paste box is empty.</span>'; return; }
+  showResult(makeAZ(extractEntries(text), 1));
+}
+function clearAll(){
+  document.getElementById('files').value=''; document.getElementById('paste').value=''; document.getElementById('preview').value=''; document.getElementById('downloads').innerHTML=''; document.getElementById('status').textContent='Cleared.';
+}
+</script>
+</body>
+</html>

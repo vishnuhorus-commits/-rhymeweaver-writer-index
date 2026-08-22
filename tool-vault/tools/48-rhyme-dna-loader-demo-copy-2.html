@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RHYMING WRITING MASTERS MACHINE</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #09090b; color: #e4e4e7; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .card { background: #18181b; border: 1px solid #27272a; border-radius: 18px; padding: 18px; margin: 16px 0; }
+    h1 { margin-bottom: 4px; letter-spacing: -1px; }
+    input, button { border-radius: 12px; border: 1px solid #3f3f46; background: #09090b; color: #e4e4e7; padding: 10px 12px; font-size: 15px; }
+    button { cursor: pointer; background: #4f46e5; border-color: #4f46e5; font-weight: bold; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .muted { color: #a1a1aa; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    .output { white-space: pre-wrap; background: #09090b; border: 1px solid #27272a; border-radius: 12px; padding: 12px; min-height: 70px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>RHYMING WRITING MASTERS MACHINE</h1>
+    <div class="muted">Offline Rhyme DNA loader | Level 1 Perfect Rhymes | A-Z Word Finder | Alliteration Starter</div>
+
+    <div class="card">
+      <h2>1. Load rhyme_dna.json</h2>
+      <div class="row">
+        <input id="fileInput" type="file" accept=".json" />
+        <button onclick="loadFile()">Load Database</button>
+      </div>
+      <p id="status" class="muted">No database loaded yet.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>2. Find Perfect Rhymes</h2>
+        <div class="row">
+          <input id="wordInput" placeholder="climbing, flame, night..." />
+          <button onclick="findRhymes()">Find Rhymes</button>
+        </div>
+        <div id="rhymeOutput" class="output" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card">
+        <h2>3. Browse by Letter</h2>
+        <div class="row">
+          <input id="letterInput" maxlength="1" value="A" />
+          <button onclick="browseLetter()">Find Letter Words</button>
+        </div>
+        <div id="letterOutput" class="output" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>4. Generate Alliteration Line</h2>
+      <div class="row">
+        <input id="allitInput" maxlength="1" value="B" />
+        <button onclick="generateAlliteration()">Generate</button>
+      </div>
+      <div id="allitOutput" class="output" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <script>
+    let RHYME_DNA = null;
+
+    function loadFile() {
+      const file = document.getElementById("fileInput").files[0];
+      if (!file) { alert("Choose rhyme_dna.json first."); return; }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        RHYME_DNA = JSON.parse(e.target.result);
+        const meta = RHYME_DNA.metadata || {};
+        document.getElementById("status").textContent =
+          `Loaded ${meta.total_words || 0} words and ${meta.unique_rhyme_groups || 0} rhyme groups.`;
+      };
+      reader.readAsText(file);
+    }
+
+    function requireDb() {
+      if (!RHYME_DNA) { alert("Load rhyme_dna.json first."); return false; }
+      return true;
+    }
+
+    function findRhymes() {
+      if (!requireDb()) return;
+      const word = document.getElementById("wordInput").value.trim().toLowerCase();
+      const out = document.getElementById("rhymeOutput");
+      if (!word) { out.textContent = "Type a word first."; return; }
+
+      const record = RHYME_DNA.words[word];
+      if (!record) { out.textContent = `${word} was not found in the loaded database.`; return; }
+
+      const key = record.rhyme_key_str;
+      const rhymes = (RHYME_DNA.rhyme_index[key] || []).filter(w => w !== word);
+
+      out.textContent =
+        `WORD: ${word}\n` +
+        `PHONES: ${record.phones}\n` +
+        `RHYME KEY: ${key}\n\n` +
+        `LEVEL 1 PERFECT RHYMES:\n` +
+        (rhymes.slice(0, 80).join(", ") || "No rhymes found.");
+    }
+
+    function browseLetter() {
+      if (!requireDb()) return;
+      const letter = document.getElementById("letterInput").value.trim().toUpperCase();
+      const words = RHYME_DNA.first_letter_index[letter] || [];
+      document.getElementById("letterOutput").textContent =
+        `${letter} WORDS (${words.length})\n\n` + words.slice(0, 150).join(", ");
+    }
+
+    function generateAlliteration() {
+      if (!requireDb()) return;
+      const letter = document.getElementById("allitInput").value.trim().toUpperCase();
+      const words = RHYME_DNA.first_letter_index[letter] || [];
+
+      if (words.length < 5) {
+        document.getElementById("allitOutput").textContent = `Not enough ${letter} words loaded.`;
+        return;
+      }
+
+      const picked = [];
+      const pool = [...words];
+
+      while (picked.length < 5 && pool.length) {
+        const i = Math.floor(Math.random() * pool.length);
+        picked.push(pool.splice(i, 1)[0]);
+      }
+
+      const line = `${title(picked[0])} ${picked[1]} ${picked[2]} through ${picked[3]} and ${picked[4]}.`;
+      document.getElementById("allitOutput").textContent =
+        `LETTER: ${letter}\nWORDS: ${picked.join(", ")}\n\nLINE:\n${line}`;
+    }
+
+    function title(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Alliteration Extractor" />
+<title>OPEN THIS — ALLITERATION EXTRACTOR</title>
+<style>
+:root{--bg:#0f1115;--card:#181c24;--ink:#f4f6fb;--muted:#aeb7c8;--border:#2a3140;--accent:#8bc6ff;--good:#a9f5c2;--warn:#ffd78a;--bad:#ffb3b3}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+header{padding:18px 14px 10px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#171b23 0%,#0f1115 100%);position:sticky;top:0;z-index:5}
+h1{margin:0 0 5px;font-size:1.32rem;letter-spacing:.02em}h2{margin:0 0 9px;font-size:1.06rem}p,li{color:var(--muted)}
+main{padding:12px;max-width:1180px;margin:auto}.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:14px;margin:12px 0;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:900px){.grid.two{grid-template-columns:1fr 1fr}.grid.three{grid-template-columns:1fr 1fr 1fr}}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}button,.fileLabel,select{appearance:none;border:1px solid var(--border);background:#222938;color:var(--ink);border-radius:13px;padding:11px 13px;font-weight:900;cursor:pointer;font-size:14px}
+.primary{background:#24445f!important;border-color:#39698e!important}.good{background:#1b3b29!important;border-color:#366b49!important;color:var(--good)!important}.warn{background:#4a3918!important;border-color:#745d25!important;color:var(--warn)!important}
+input[type=file]{display:none}input[type=text],textarea{width:100%;background:#0c0f15;color:var(--ink);border:1px solid var(--border);border-radius:13px;padding:11px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}
+textarea{min-height:230px}.small{font-size:.9rem;color:var(--muted)}.badge{display:inline-block;border:1px solid var(--border);color:var(--warn);border-radius:999px;padding:4px 9px;font-size:.76rem;font-weight:800;margin:2px 4px 2px 0}
+.statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px}.stat{border:1px solid var(--border);border-radius:13px;padding:11px;background:#111620}.stat span{color:var(--muted);font-size:.8rem}.stat b{display:block;font-size:1.15rem;color:var(--accent)}
+.result{white-space:pre-wrap;background:#0c0f15;border:1px solid var(--border);border-radius:13px;padding:10px;min-height:220px;max-height:440px;overflow:auto;color:var(--good);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
+code{color:var(--accent);background:#0c0f15;padding:2px 5px;border-radius:5px}.danger{color:var(--bad)}
+</style>
+</head>
+<body>
+<header>
+  <h1>OPEN THIS — ALLITERATION EXTRACTOR</h1>
+  <div class="small">Use before the A-Z Folder Automator · Extract hits from ProWritingAid report text or raw manuscript</div>
+  <div><span class="badge">NO API</span><span class="badge">NO PYTHON</span><span class="badge">COPY-PASTE SAFE</span></div>
+</header>
+<main>
+  <section class="card">
+    <h2>WHAT THIS FIXES</h2>
+    <p>If ProWritingAid will not give a clean “copy all” list, paste whatever you can get here. This tool extracts likely alliteration phrases and gives you a clean TXT list for the A-Z automator.</p>
+    <p><b>Best order:</b> ProWritingAid report or raw text → this extractor → download clean hits TXT → A-Z Folder Automator.</p>
+  </section>
+
+  <section class="card">
+    <h2>1. LOAD OR PASTE</h2>
+    <div class="row">
+      <label class="fileLabel">CHOOSE TXT / CSV FILE<input id="fileInput" type="file" accept=".txt,.md,.csv,text/plain,text/markdown,text/csv" multiple /></label>
+      <button id="sampleBtn" class="warn">LOAD SAMPLE</button>
+      <button id="clearBtn">CLEAR</button>
+    </div>
+    <p id="fileStatus" class="small">No files loaded yet.</p>
+    <textarea id="inputBox" placeholder="Paste ProWritingAid report text, exported CSV text, or raw manuscript here..."></textarea>
+  </section>
+
+  <section class="card">
+    <h2>2. EXTRACTION SETTINGS</h2>
+    <div class="grid three">
+      <label class="small">Mode
+        <select id="mode">
+          <option value="auto" selected>Auto: report/export + raw text</option>
+          <option value="report">ProWritingAid report/export text only</option>
+          <option value="raw">Raw manuscript scan only</option>
+        </select>
+      </label>
+      <label class="small">Minimum matching words
+        <select id="minMatch">
+          <option value="2" selected>2 matching words</option>
+          <option value="3">3 matching words</option>
+          <option value="4">4 matching words</option>
+        </select>
+      </label>
+      <label class="small">Bridge words allowed
+        <select id="bridge">
+          <option value="0">0 — strict adjacent</option>
+          <option value="1">1 — allow small word</option>
+          <option value="2" selected>2 — phrase friendly</option>
+          <option value="3">3 — loose</option>
+        </select>
+      </label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label><input id="uppercase" type="checkbox" checked /> Uppercase output</label>
+      <label><input id="dedupe" type="checkbox" checked /> Remove exact duplicates</label>
+      <label><input id="removeUi" type="checkbox" checked /> Remove UI/junk lines</label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. RUN</h2>
+    <div class="row">
+      <button id="runBtn" class="primary">EXTRACT ALLITERATION HITS</button>
+      <button id="downloadBtn" class="good">DOWNLOAD CLEAN HITS TXT</button>
+      <button id="copyBtn" class="warn">COPY CLEAN HITS</button>
+    </div>
+  </section>
+
+  <section class="card"><h2>4. STATS</h2><div id="stats" class="statGrid"></div></section>
+
+  <section class="grid two">
+    <div class="card"><h2>CLEAN ALLITERATION HITS</h2><div id="results" class="result"></div></div>
+    <div class="card"><h2>REVIEW / LOG</h2><div id="log" class="result"></div></div>
+  </section>
+</main>
+<script>
+let loadedTexts=[], lastOutput="";
+const STOP=new Set("A AN AND ARE AS AT BE BY FOR FROM HAS HAVE HE HER HIS I IN IS IT ITS OF ON OR OUR SHE THE THEIR THEM THEY THIS TO WAS WE WERE WITH YOU YOUR".split(" "));
+const UIJUNK=["alliteration report","grammar","style","summary","suggestion","suggestions","found","ignore","readability","premium","upgrade","score","overused","sticky","echo","spelling","sentence","report","prowritingaid","document","export","csv","download","replace","edit"];
+function trimSpaces(s){return String(s||"").replace(/\s+/g," ").trim()}
+function cleanOut(s){s=trimSpaces(s);s=s.replace(/[“”]/g,'"').replace(/[‘’]/g,"'");if(document.getElementById("uppercase").checked)s=s.toUpperCase();return s}
+function wordParts(s){return String(s||"").match(/[A-Za-z]+(?:'[A-Za-z]+)?|\d+/g)||[]}
+function isJunkLine(line){const s=line.toLowerCase().trim();if(!s||s.length<3)return true;if(document.getElementById("removeUi").checked&&UIJUNK.some(j=>s===j||s.startsWith(j+":")))return true;if(/^\d+%?$/.test(s))return true;if(/^(issue|category|rule|start|end|line|column|text|substrings|found text)$/i.test(s))return true;return false}
+function csvParse(text){const rows=[];let row=[],cur="",q=false;for(let i=0;i<text.length;i++){const ch=text[i],nx=text[i+1];if(q&&ch==='"'&&nx==='"'){cur+='"';i++;continue}if(ch==='"'){q=!q;continue}if(!q&&ch===','){row.push(cur);cur="";continue}if(!q&&(ch==="\n"||ch==="\r")){if(ch==="\r"&&nx==="\n")i++;row.push(cur);rows.push(row);row=[];cur="";continue}cur+=ch}row.push(cur);rows.push(row);return rows.filter(r=>r.some(c=>trimSpaces(c)))}
+function extractFromCsv(text){const rows=csvParse(text);if(rows.length<2)return[];const headers=rows[0].map(h=>trimSpaces(h).toLowerCase());const preferred=["substrings","substring","found text","found_text","matched text","match","text","phrase","original","sentence"];let idx=-1;for(const name of preferred){idx=headers.findIndex(h=>h===name||h.includes(name));if(idx>=0)break}if(idx<0)return[];const out=[];for(let r=1;r<rows.length;r++){const val=trimSpaces(rows[r][idx]||"");if(val&&!isJunkLine(val))out.push(val)}return out}
+function likelyReportLines(text){const out=[];for(const raw of text.split(/\r?\n/)){let line=trimSpaces(raw).replace(/^["']|["']$/g,"");if(isJunkLine(line))continue;const words=wordParts(line);if(words.length>=2&&words.length<=24)out.push(line)}return out}
+function scanRawAlliteration(text){const minMatch=Number(document.getElementById("minMatch").value||2);const bridge=Number(document.getElementById("bridge").value||2);const out=[];const chunks=String(text||"").split(/(?<=[.!?;:])\s+|\n+/);for(const chunk of chunks){const words=[];const re=/[A-Za-z]+(?:'[A-Za-z]+)?/g;let m;while((m=re.exec(chunk))){words.push({txt:m[0],start:m.index,end:m.index+m[0].length})}for(let i=0;i<words.length;i++){const first=words[i].txt[0].toUpperCase();if(!/[A-Z]/.test(first))continue;let match=[words[i]],last=i;for(let j=i+1;j<words.length;j++){const w=words[j],norm=w.txt.toUpperCase(),letter=w.txt[0].toUpperCase();const gap=j-last-1;if(STOP.has(norm)&&gap<=bridge)continue;if(letter===first&&gap<=bridge){match.push(w);last=j;continue}break}if(match.length>=minMatch){const start=match[0].start,end=match[match.length-1].end;let phrase=chunk.slice(start,end);phrase=trimSpaces(phrase.replace(/[^\p{L}\p{N}' -]/gu," "));if(wordParts(phrase).length>=minMatch)out.push(phrase)}}}return out}
+function dedupeList(list){const seen=new Set(),out=[];for(let x of list){x=cleanOut(x).replace(/[^\p{L}\p{N}' -]/gu," ").replace(/\s+/g," ").trim();if(!x||isJunkLine(x))continue;if(wordParts(x).length<2)continue;const key=x.toUpperCase();if(document.getElementById("dedupe").checked&&seen.has(key))continue;seen.add(key);out.push(x)}return out}
+function extract(){const text=[...loadedTexts,document.getElementById("inputBox").value||""].join("\n");const mode=document.getElementById("mode").value;let raw=[],log=[];if(mode==="auto"||mode==="report"){const csv=extractFromCsv(text);raw.push(...csv);log.push(`CSV/export column hits: ${csv.length}`);const lines=likelyReportLines(text);raw.push(...lines);log.push(`Report/text line candidates: ${lines.length}`)}if(mode==="auto"||mode==="raw"){const scan=scanRawAlliteration(text);raw.push(...scan);log.push(`Raw manuscript scan candidates: ${scan.length}`)}const clean=dedupeList(raw).sort((a,b)=>a.localeCompare(b));lastOutput=clean.join("\n");document.getElementById("results").textContent=lastOutput||"No hits found. Try Mode = Raw manuscript scan, Minimum matching words = 2, Bridge words = 2 or 3.";document.getElementById("log").textContent=["ALLITERATION EXTRACTOR LOG",`Date: ${new Date().toLocaleString()}`,`Input characters: ${text.length.toLocaleString()}`,...log,`Final clean hits: ${clean.length}`,"","NEXT STEP:","Download CLEAN_HITS.txt, then open the A-Z Folder Automator and load that TXT."].join("\n");document.getElementById("stats").innerHTML=`<div class="stat"><span>INPUT CHARS</span><b>${text.length.toLocaleString()}</b></div><div class="stat"><span>RAW CANDIDATES</span><b>${raw.length.toLocaleString()}</b></div><div class="stat"><span>CLEAN HITS</span><b>${clean.length.toLocaleString()}</b></div><div class="stat"><span>MODE</span><b>${mode.toUpperCase()}</b></div>`;return clean}
+function downloadText(filename,text){const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+document.getElementById("fileInput").addEventListener("change",async e=>{loadedTexts=[];const files=Array.from(e.target.files||[]);for(const f of files)loadedTexts.push(await f.text());document.getElementById("fileStatus").textContent=`Loaded ${files.length} file(s): ${files.map(f=>f.name).join(", ")}`});
+document.getElementById("runBtn").addEventListener("click",extract);
+document.getElementById("downloadBtn").addEventListener("click",()=>{if(!lastOutput)extract();downloadText("CLEAN_ALLITERATION_HITS.txt",lastOutput)});
+document.getElementById("copyBtn").addEventListener("click",async()=>{if(!lastOutput)extract();try{await navigator.clipboard.writeText(lastOutput);document.getElementById("log").textContent+="\n\nCopied clean hits to clipboard."}catch(e){document.getElementById("log").textContent+="\n\nClipboard blocked. Use DOWNLOAD CLEAN HITS TXT."}});
+document.getElementById("clearBtn").addEventListener("click",()=>{loadedTexts=[];lastOutput="";document.getElementById("fileInput").value="";document.getElementById("inputBox").value="";document.getElementById("fileStatus").textContent="No files loaded yet.";document.getElementById("results").textContent="";document.getElementById("log").textContent="";document.getElementById("stats").innerHTML=""});
+document.getElementById("sampleBtn").addEventListener("click",()=>{document.getElementById("inputBox").value="Peter Piper picked a peck of pickled peppers. Short snippets of sound shimmer softly. Heavy hammer hits holy halls. Cosmic current carries coins across cold caverns. This normal sentence should mostly be ignored.";});
+document.getElementById("stats").innerHTML=`<div class="stat"><span>INPUT CHARS</span><b>0</b></div><div class="stat"><span>RAW CANDIDATES</span><b>0</b></div><div class="stat"><span>CLEAN HITS</span><b>0</b></div><div class="stat"><span>MODE</span><b>AUTO</b></div>`;
+</script>
+</body>
+</html>

@@ -1,0 +1,492 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Lyric Sorter Hybrid</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e2430; --text:#eef2f7; --muted:#a6b0bf;
+    --accent:#77c3ff; --accent2:#9af7c1; --border:#2a3242; --danger:#ff8f8f;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(180deg,#0c0f14,#10141b 35%,#0f1115);
+    color:var(--text);
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  .hero{
+    background:linear-gradient(180deg,rgba(119,195,255,.12),rgba(154,247,193,.06));
+    border:1px solid var(--border); border-radius:18px; padding:18px; margin-bottom:14px;
+  }
+  h1{margin:0 0 8px;font-size:28px;line-height:1.1}
+  p{margin:8px 0;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr;gap:14px}
+  @media (min-width:900px){ .grid{grid-template-columns:1.05fr .95fr} }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border); border-radius:18px; padding:14px;
+    box-shadow:0 6px 24px rgba(0,0,0,.25);
+  }
+  .title{font-weight:700;margin:0 0 10px;font-size:18px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+  .row > *{min-width:0}
+  textarea{
+    width:100%; min-height:280px; resize:vertical; border-radius:14px; border:1px solid var(--border);
+    background:#0d1016; color:var(--text); padding:14px; font-size:15px; line-height:1.45;
+  }
+  input[type="file"]{
+    width:100%; border:1px dashed var(--border); border-radius:14px; padding:14px; background:#0d1016; color:var(--muted);
+  }
+  button,.btn{
+    appearance:none; border:none; border-radius:999px; padding:12px 16px; font-weight:700; font-size:15px;
+    background:var(--accent); color:#07111a; cursor:pointer; text-decoration:none; display:inline-block;
+  }
+  button.secondary,.btn.secondary{background:#2d3748;color:var(--text)}
+  button.ghost,.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+  button.good,.btn.good{background:var(--accent2);color:#07140e}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  label.chk{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);padding:10px 12px;border-radius:12px}
+  .stats{
+    display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:10px;
+  }
+  @media (min-width:760px){ .stats{grid-template-columns:repeat(4,minmax(0,1fr))} }
+  .stat{background:var(--panel2); border:1px solid var(--border); border-radius:14px; padding:12px}
+  .stat .n{font-size:24px; font-weight:800}
+  .small{font-size:13px;color:var(--muted)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .out{
+    max-height:460px; overflow:auto; white-space:pre-wrap; word-break:break-word;
+    background:#0d1016; border:1px solid var(--border); border-radius:14px; padding:14px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  .letters{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  @media (min-width:700px){ .letters{grid-template-columns:repeat(4,1fr)} }
+  @media (min-width:980px){ .letters{grid-template-columns:repeat(3,1fr)} }
+  .letter{background:var(--panel2); border:1px solid var(--border); border-radius:14px; padding:10px}
+  .letter h3{margin:0 0 8px;font-size:15px}
+  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#0d1016;border:1px solid var(--border);font-size:12px;color:var(--muted)}
+  .warn{color:#ffd39a}
+  .ok{color:#baf8cf}
+  .err{color:var(--danger)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>Lyric Sorter Hybrid</h1>
+    <p>Built for iPad: <strong>paste first</strong>, but also supports <strong>upload</strong> when the browser allows it. Sorts A–Z, uppercases, dedupes, and downloads MASTER plus per-letter files.</p>
+    <p class="small">Best local compatibility: TXT, CSV, and copied text. DOCX/XLSX/PDF parsing is intentionally not included in this lightweight local fallback because those formats usually need external libraries or a live hosted page.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="title">Input</div>
+      <div class="row">
+        <input id="fileInput" type="file" multiple accept=".txt,.csv,text/plain,text/csv" />
+      </div>
+      <div id="fileMeta" class="small">No file loaded yet.</div>
+      <p class="small">Upload one or more <strong>.txt</strong> or <strong>.csv</strong> files, or paste directly below.</p>
+      <textarea id="inputText" placeholder="Paste text here. One phrase per line works best. CSV will also be normalized into lines."></textarea>
+
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="uppercase" checked> UPPERCASE</label>
+        <label class="chk"><input type="checkbox" id="dedupe" checked> DEDUPE</label>
+        <label class="chk"><input type="checkbox" id="removeOneWord"> REMOVE ONE-WORD LINES</label>
+        <label class="chk"><input type="checkbox" id="trimPunct"> TRIM EDGE PUNCTUATION</label>
+      </div>
+
+      <div class="row">
+        <button id="processBtn">SORT & BUILD</button>
+        <button id="appendSample" class="secondary">ADD SAMPLE</button>
+        <button id="clearBtn" class="ghost">CLEAR</button>
+      </div>
+      <div id="status" class="small">Ready.</div>
+
+      <div class="stats">
+        <div class="stat"><div class="small">RAW LINES</div><div id="rawCount" class="n">0</div></div>
+        <div class="stat"><div class="small">CLEAN LINES</div><div id="cleanCount" class="n">0</div></div>
+        <div class="stat"><div class="small">UNIQUE</div><div id="uniqueCount" class="n">0</div></div>
+        <div class="stat"><div class="small">LETTERS USED</div><div id="lettersUsed" class="n">0</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title">MASTER PREVIEW</div>
+      <div class="row">
+        <button id="downloadMaster" class="good" disabled>DOWNLOAD MASTER.txt</button>
+        <button id="downloadZip" class="secondary" disabled>DOWNLOAD A-Z ZIP</button>
+      </div>
+      <div id="preview" class="out">Nothing built yet.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="title">A–Z BREAKDOWN</div>
+    <div id="letters" class="letters"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    fileInput: $('fileInput'),
+    inputText: $('inputText'),
+    uppercase: $('uppercase'),
+    dedupe: $('dedupe'),
+    removeOneWord: $('removeOneWord'),
+    trimPunct: $('trimPunct'),
+    processBtn: $('processBtn'),
+    appendSample: $('appendSample'),
+    clearBtn: $('clearBtn'),
+    status: $('status'),
+    fileMeta: $('fileMeta'),
+    rawCount: $('rawCount'),
+    cleanCount: $('cleanCount'),
+    uniqueCount: $('uniqueCount'),
+    lettersUsed: $('lettersUsed'),
+    preview: $('preview'),
+    letters: $('letters'),
+    downloadMaster: $('downloadMaster'),
+    downloadZip: $('downloadZip'),
+  };
+
+  let state = {
+    masterText: '',
+    grouped: {}
+  };
+
+  function setStatus(msg, cls='') {
+    els.status.className = 'small ' + cls;
+    els.status.textContent = msg;
+  }
+
+  function setFileMeta(msg, cls='') {
+    els.fileMeta.className = 'small mono ' + cls;
+    els.fileMeta.textContent = msg;
+  }
+
+  function normalizeCsvToLines(text) {
+    return text
+      .split(/\r?\n/)
+      .map(row => row.split(',').map(cell => cell.trim()).filter(Boolean).join(' '))
+      .join('\n');
+  }
+
+  function trimEdgePunctuation(s) {
+    return s.replace(/^[\s"'`~!@#$%^&*()_+\-=[\]{};:,.<>/?\\|]+/, '')
+            .replace(/[\s"'`~!@#$%^&*()_+\-=[\]{};:,.<>/?\\|]+$/, '');
+  }
+
+  function firstLetterKey(line) {
+    const m = line.match(/[A-Z]/i);
+    return m ? m[0].toUpperCase() : '#';
+  }
+
+  function processText(rawText) {
+    const options = {
+      uppercase: els.uppercase.checked,
+      dedupe: els.dedupe.checked,
+      removeOneWord: els.removeOneWord.checked,
+      trimPunct: els.trimPunct.checked
+    };
+
+    const rawLines = rawText.replace(/\r/g, '\n').split(/\n+/).map(s => s.trim()).filter(Boolean);
+    let lines = rawLines.slice();
+
+    if (options.trimPunct) lines = lines.map(trimEdgePunctuation).filter(Boolean);
+    if (options.uppercase) lines = lines.map(s => s.toUpperCase());
+    lines = lines.map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    if (options.removeOneWord) lines = lines.filter(s => s.split(/\s+/).length > 1);
+
+    const beforeDedupe = lines.length;
+    if (options.dedupe) lines = [...new Set(lines)];
+
+    lines.sort((a,b) => a.localeCompare(b));
+
+    const grouped = {};
+    for (const line of lines) {
+      const key = firstLetterKey(line);
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(line);
+    }
+
+    const keys = Object.keys(grouped).sort();
+    const blocks = keys.map(k => `[${k}]\n` + grouped[k].join('\n'));
+    const masterText = blocks.join('\n\n');
+
+    return {
+      rawCount: rawLines.length,
+      cleanCount: beforeDedupe,
+      uniqueCount: lines.length,
+      lettersUsed: keys.length,
+      grouped,
+      masterText
+    };
+  }
+
+  function render(result) {
+    state.masterText = result.masterText;
+    state.grouped = result.grouped;
+
+    els.rawCount.textContent = String(result.rawCount);
+    els.cleanCount.textContent = String(result.cleanCount);
+    els.uniqueCount.textContent = String(result.uniqueCount);
+    els.lettersUsed.textContent = String(result.lettersUsed);
+
+    els.preview.textContent = result.masterText || 'Nothing built yet.';
+    els.downloadMaster.disabled = !result.masterText;
+    els.downloadZip.disabled = !result.masterText;
+
+    const keys = Object.keys(result.grouped).sort();
+    if (!keys.length) {
+      els.letters.innerHTML = '<div class="small">No grouped output yet.</div>';
+      return;
+    }
+
+    els.letters.innerHTML = keys.map(k => {
+      const count = result.grouped[k].length;
+      const sample = result.grouped[k].slice(0, 4).join('\n');
+      return `<div class="letter">
+        <h3>${k} <span class="pill">${count}</span></h3>
+        <div class="small">${sample ? sample.replace(/</g,'&lt;') : ''}${count > 4 ? '\n…' : ''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function downloadText(filename, text) {
+    const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function crc32(buf) {
+    let c, table = crc32.table;
+    if (!table) {
+      table = crc32.table = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) {
+        c = n;
+        for (let k = 0; k < 8; k++) c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+        table[n] = c >>> 0;
+      }
+    }
+    let crc = 0 ^ (-1);
+    for (let i = 0; i < buf.length; i++) crc = (crc >>> 8) ^ table[(crc ^ buf[i]) & 0xFF];
+    return (crc ^ (-1)) >>> 0;
+  }
+
+  function dosTimeDate(d = new Date()) {
+    const time = ((d.getHours() & 31) << 11) | ((d.getMinutes() & 63) << 5) | ((Math.floor(d.getSeconds()/2)) & 31);
+    const year = Math.max(1980, d.getFullYear());
+    const date = (((year - 1980) & 127) << 9) | (((d.getMonth()+1) & 15) << 5) | (d.getDate() & 31);
+    return { time, date };
+  }
+
+  function makeZip(files) {
+    const encoder = new TextEncoder();
+    let offset = 0;
+    const chunks = [];
+    const central = [];
+    const now = dosTimeDate();
+
+    for (const file of files) {
+      const nameBytes = encoder.encode(file.name);
+      const dataBytes = encoder.encode(file.content);
+      const crc = crc32(dataBytes);
+      const size = dataBytes.length;
+
+      const local = new Uint8Array(30 + nameBytes.length);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);
+      lv.setUint16(6, 0, true);
+      lv.setUint16(8, 0, true);
+      lv.setUint16(10, now.time, true);
+      lv.setUint16(12, now.date, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, size, true);
+      lv.setUint32(22, size, true);
+      lv.setUint16(26, nameBytes.length, true);
+      lv.setUint16(28, 0, true);
+      local.set(nameBytes, 30);
+
+      chunks.push(local, dataBytes);
+
+      const cen = new Uint8Array(46 + nameBytes.length);
+      const cv = new DataView(cen.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, now.time, true);
+      cv.setUint16(14, now.date, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, size, true);
+      cv.setUint32(24, size, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true);
+      cen.set(nameBytes, 46);
+      central.push(cen);
+
+      offset += local.length + dataBytes.length;
+    }
+
+    let centralSize = 0;
+    for (const c of central) centralSize += c.length;
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, offset, true);
+    ev.setUint16(20, 0, true);
+
+    return new Blob([...chunks, ...central, end], {type:'application/zip'});
+  }
+
+  async function readUploadedFiles(files) {
+    const out = [];
+    const notes = [];
+    for (const file of files) {
+      const name = file.name || 'unnamed';
+      const lower = name.toLowerCase();
+      const size = typeof file.size === 'number' ? file.size : 0;
+      if (!(lower.endsWith('.txt') || lower.endsWith('.csv'))) {
+        notes.push(`${name} — skipped (unsupported type)`);
+        out.push(`\n[SKIPPED ${name}] Unsupported in local hybrid page.`);
+        continue;
+      }
+      let text = '';
+      try {
+        text = await file.text();
+      } catch (err) {
+        try {
+          const buf = await file.arrayBuffer();
+          text = new TextDecoder('utf-8', {fatal:false}).decode(buf);
+        } catch (err2) {
+          notes.push(`${name} — read failed`);
+          continue;
+        }
+      }
+      if (lower.endsWith('.csv')) text = normalizeCsvToLines(text);
+      notes.push(`${name} — ${size} bytes — ${text.length} chars loaded`);
+      out.push(text);
+    }
+    return { text: out.join('\n'), notes };
+  }
+
+  els.fileInput.addEventListener('change', async (e) => {
+    const files = [...(e.target.files || [])];
+    if (!files.length) {
+      setFileMeta('No file selected.', '');
+      return;
+    }
+    try {
+      setStatus(`Reading ${files.length} file(s)...`, 'warn');
+      setFileMeta(files.map(f => `${f.name || 'unnamed'} — ${typeof f.size === 'number' ? f.size : 0} bytes`).join(' | '), 'warn');
+      const result = await readUploadedFiles(files);
+      const text = result.text || '';
+      if (els.inputText.value.trim() && text.trim()) els.inputText.value += '\n' + text;
+      else if (text.trim()) els.inputText.value = text;
+
+      if (!text.trim()) {
+        setStatus('File picker opened, but no readable text was loaded. Try Files app + Browse, or paste the text directly.', 'err');
+        setFileMeta(result.notes.join(' | ') || 'No readable text detected.', 'err');
+        return;
+      }
+
+      setFileMeta(result.notes.join(' | '), 'ok');
+      const built = processText(els.inputText.value || '');
+      render(built);
+      setStatus(`Loaded and built ${files.length} file(s) automatically.`, 'ok');
+    } catch (err) {
+      setStatus('Upload failed in this browser context. Paste text directly below instead.', 'err');
+      setFileMeta('Browser could not read the selected file contents.', 'err');
+      console.error(err);
+    }
+  });
+
+  els.processBtn.addEventListener('click', () => {
+    const text = els.inputText.value || '';
+    if (!text.trim()) {
+      setStatus('Nothing to process yet. Paste text or upload TXT/CSV.', 'err');
+      return;
+    }
+    try {
+      const result = processText(text);
+      render(result);
+      setStatus('Built successfully.', 'ok');
+    } catch (err) {
+      setStatus('Build failed. Try smaller chunks.', 'err');
+      console.error(err);
+    }
+  });
+
+  els.downloadMaster.addEventListener('click', () => {
+    if (!state.masterText) return;
+    downloadText('MASTER.txt', state.masterText);
+  });
+
+  els.downloadZip.addEventListener('click', () => {
+    const grouped = state.grouped || {};
+    const keys = Object.keys(grouped).sort();
+    if (!keys.length) return;
+
+    const files = keys.map(k => ({
+      name: `${k}.txt`,
+      content: grouped[k].join('\n')
+    }));
+    files.unshift({ name: 'MASTER.txt', content: state.masterText });
+
+    const blob = makeZip(files);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'A-Z_OUTPUT.zip';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  els.clearBtn.addEventListener('click', () => {
+    els.inputText.value = '';
+    els.fileInput.value = '';
+    state = { masterText:'', grouped:{} };
+    render({rawCount:0, cleanCount:0, uniqueCount:0, lettersUsed:0, grouped:{}, masterText:''});
+  setFileMeta('No file loaded yet.', '');
+    setStatus('Cleared.', '');
+    setFileMeta('No file loaded yet.', '');
+  });
+
+  els.appendSample.addEventListener('click', () => {
+    const sample = [
+      'CABINET CABLE',
+      'CABLE CAR',
+      'CACHE CASH',
+      'LOTUS LIGHT',
+      'LOGOS LORD',
+      'WORLD WORD',
+      'WORLD WORD'
+    ].join('\n');
+    els.inputText.value = (els.inputText.value ? els.inputText.value + '\n' : '') + sample;
+    setStatus('Sample added.', 'ok');
+  });
+
+  render({rawCount:0, cleanCount:0, uniqueCount:0, lettersUsed:0, grouped:{}, masterText:''});
+  setFileMeta('No file loaded yet.', '');
+})();
+</script>
+</body>
+</html>

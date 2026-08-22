@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Alliteration Machine — Windows Offline V1</title>
+<style>
+  :root{--bg:#0f172a;--panel:#111827;--ink:#e5e7eb;--muted:#9ca3af;--line:#334155;--ok:#86efac;--warn:#fde68a;--bad:#fca5a5;--accent:#c4b5fd;}
+  *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(160deg,#0f172a,#111827 55%,#1e1b4b);color:var(--ink)}
+  .wrap{max-width:1180px;margin:auto;padding:24px} h1{font-size:34px;margin:0 0 8px} h2{font-size:20px;margin:24px 0 10px} p{line-height:1.45} .muted{color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.card{background:rgba(17,24,39,.92);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .drop{border:2px dashed #64748b;border-radius:14px;padding:30px;text-align:center;background:rgba(15,23,42,.7);transition:.15s}.drop.drag{border-color:#c4b5fd;background:rgba(76,29,149,.35)}
+  button,.btn{appearance:none;border:0;border-radius:12px;background:#ede9fe;color:#111827;font-weight:700;padding:12px 16px;cursor:pointer;margin:6px 4px 6px 0;display:inline-block;text-decoration:none}
+  button.secondary{background:#1f2937;color:#e5e7eb;border:1px solid #475569} button.danger{background:#fee2e2;color:#7f1d1d}
+  button:disabled{opacity:.45;cursor:not-allowed}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.stat{display:inline-block;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#0b1220;margin:4px 4px 4px 0;min-width:130px}.stat b{display:block;font-size:20px}.tiny{font-size:12px}.log{white-space:pre-wrap;background:#020617;border:1px solid #334155;border-radius:12px;padding:12px;max-height:300px;overflow:auto;color:#d1d5db;font-family:Consolas,monospace;font-size:12px}
+  textarea{width:100%;min-height:150px;background:#020617;color:#e5e7eb;border:1px solid #334155;border-radius:12px;padding:12px;font-family:Consolas,monospace}.settings label{display:block;margin:10px 0}.settings input[type=number]{width:80px;background:#020617;color:#e5e7eb;border:1px solid #475569;border-radius:8px;padding:6px}.pill{display:inline-block;border:1px solid #475569;border-radius:999px;padding:4px 9px;margin:3px;color:#dbeafe;background:#0b1220}.good{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+  table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid #334155;padding:7px;text-align:left}th{color:#cbd5e1}.hide{display:none}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}.wrap{padding:14px}h1{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Alliteration Machine — Windows Offline V1</h1>
+  <p class="muted">Drop text/RTF files in, press Process, download a clean A–Z archive ZIP. No upload. No delete. Originals stay untouched.</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>1) Load files or a folder</h2>
+      <div id="drop" class="drop">
+        <p><b>Drag files/folders here</b></p>
+        <p class="muted">Best batch: 10–100 converted text chunks at a time. ZIP files are skipped.</p>
+        <input id="fileInput" type="file" multiple class="hide" accept=".txt,.rtf,.md,.csv,.log,.json,.html,.htm" />
+        <input id="folderInput" type="file" multiple webkitdirectory directory class="hide" />
+        <button onclick="fileInput.click()">Choose Files</button>
+        <button onclick="folderInput.click()" class="secondary">Choose Folder</button>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button id="processBtn" disabled>Process Batch</button>
+        <button id="downloadBtn" disabled>Download Output ZIP</button>
+        <button id="clearBtn" class="danger">Clear</button>
+      </div>
+      <p id="status" class="muted">No files loaded yet.</p>
+      <div id="stats"></div>
+    </section>
+
+    <section class="card settings">
+      <h2>Machine settings</h2>
+      <label><input id="stripRtf" type="checkbox" checked> Strip RTF formatting if detected</label>
+      <label><input id="dedupe" type="checkbox" checked> Remove exact duplicate cleaned phrases</label>
+      <label><input id="keepOnlyAllit" type="checkbox" checked> Keep only alliteration candidates</label>
+      <label>Minimum words per phrase: <input id="minWords" type="number" min="2" max="30" value="2"></label>
+      <label>Minimum repeated starting-letter words: <input id="minHits" type="number" min="2" max="20" value="2"></label>
+      <label>Long-line sentence split limit: <input id="splitLimit" type="number" min="80" max="2000" value="300"> characters</label>
+      <p class="tiny muted">All output is generated locally in your browser. The machine reads files you choose, but it does not modify Drive or your source folders.</p>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Loaded files</h2>
+    <div id="fileList" class="muted">None yet.</div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Preview / process log</h2>
+    <div id="log" class="log">Ready.</div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2>Emergency paste box</h2>
+    <p class="muted">If downloads are fighting you, paste text here and process it as one file.</p>
+    <textarea id="pasteBox" placeholder="Paste text here..."></textarea>
+    <button id="pasteBtn" class="secondary">Add Paste Box As File</button>
+  </section>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+let loadedFiles = [];
+let outputZipBlob = null;
+let lastResults = null;
+
+const STOP = new Set(['A','AN','AND','ARE','AS','AT','BE','BUT','BY','FOR','FROM','HAS','HAVE','HE','HER','HIS','I','IN','IS','IT','ITS','ME','MY','OF','ON','OR','OUR','SHE','SO','THE','THEIR','THEM','THEY','THIS','TO','WAS','WE','WERE','WITH','YOU','YOUR']);
+
+function log(msg){ $('log').textContent += '\n' + msg; $('log').scrollTop = $('log').scrollHeight; }
+function setLog(msg){ $('log').textContent = msg; }
+function fmtBytes(n){ if(!n) return '0 B'; const u=['B','KB','MB','GB']; let i=0; while(n>=1024&&i<u.length-1){n/=1024;i++;} return n.toFixed(i?1:0)+' '+u[i]; }
+function safeName(name){ return (name||'UNKNOWN').replace(/[\\/:*?"<>|]+/g,'_').slice(0,160); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function timestamp(){ const d=new Date(); return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds()); }
+
+function updateFileList(){
+  const div = $('fileList');
+  if(!loadedFiles.length){ div.textContent='None yet.'; $('processBtn').disabled=true; return; }
+  $('processBtn').disabled=false;
+  const total = loadedFiles.reduce((a,f)=>a+(f.size||0),0);
+  let rows = loadedFiles.slice(0,80).map((f,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(f.webkitRelativePath||f.name)}</td><td>${fmtBytes(f.size||0)}</td></tr>`).join('');
+  if(loadedFiles.length>80) rows += `<tr><td colspan="3">...and ${loadedFiles.length-80} more files</td></tr>`;
+  div.innerHTML = `<p><span class="pill">${loadedFiles.length} files</span><span class="pill">${fmtBytes(total)}</span></p><table><thead><tr><th>#</th><th>File</th><th>Size</th></tr></thead><tbody>${rows}</tbody></table>`;
+  $('status').textContent = `Loaded ${loadedFiles.length} files. Ready to process.`;
+}
+function escapeHtml(s){ return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
+function addFiles(fileList){
+  const arr = Array.from(fileList||[]).filter(f=>f && f.name);
+  const seen = new Set(loadedFiles.map(f => (f.webkitRelativePath||f.name)+'|'+f.size+'|'+f.lastModified));
+  for(const f of arr){
+    const key = (f.webkitRelativePath||f.name)+'|'+f.size+'|'+f.lastModified;
+    if(!seen.has(key)){ loadedFiles.push(f); seen.add(key); }
+  }
+  outputZipBlob = null; $('downloadBtn').disabled = true; lastResults = null;
+  updateFileList();
+}
+
+$('fileInput').addEventListener('change', e=>addFiles(e.target.files));
+$('folderInput').addEventListener('change', e=>addFiles(e.target.files));
+$('pasteBtn').addEventListener('click', ()=>{
+  const text = $('pasteBox').value || '';
+  if(!text.trim()){ alert('Paste box is empty.'); return; }
+  const blob = new Blob([text], {type:'text/plain'});
+  const file = new File([blob], 'PASTED_TEXT_'+timestamp()+'.txt', {type:'text/plain'});
+  addFiles([file]); $('pasteBox').value='';
+});
+$('clearBtn').addEventListener('click', ()=>{ loadedFiles=[]; outputZipBlob=null; lastResults=null; $('downloadBtn').disabled=true; $('stats').innerHTML=''; setLog('Ready.'); updateFileList(); });
+
+const drop = $('drop');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('drag'); }));
+drop.addEventListener('drop', async e=>{
+  const items = e.dataTransfer.items;
+  if(items && items.length && items[0].webkitGetAsEntry){
+    const files = [];
+    const promises = [];
+    for(const item of items){ const entry = item.webkitGetAsEntry(); if(entry) promises.push(walkEntry(entry, files)); }
+    await Promise.all(promises); addFiles(files);
+  } else addFiles(e.dataTransfer.files);
+});
+function walkEntry(entry, files){
+  return new Promise(resolve=>{
+    if(entry.isFile){ entry.file(f=>{ files.push(f); resolve(); }, resolve); }
+    else if(entry.isDirectory){
+      const reader = entry.createReader();
+      const readAll = () => reader.readEntries(async entries=>{
+        if(!entries.length) return resolve();
+        await Promise.all(entries.map(en=>walkEntry(en, files))); readAll();
+      }, resolve);
+      readAll();
+    } else resolve();
+  });
+}
+
+function readFileText(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result||''));
+    reader.onerror = () => reject(reader.error||new Error('File read failed'));
+    reader.readAsText(file);
+  });
+}
+
+function stripRtfText(s){
+  if(!/^\s*\{\\rtf/i.test(s)) return s;
+  // Decode simple hex escapes and remove common RTF control words.
+  s = s.replace(/\\'([0-9a-fA-F]{2})/g, (_,h)=>String.fromCharCode(parseInt(h,16)));
+  s = s.replace(/\\par[d]?/g, '\n').replace(/\\line/g,'\n').replace(/\\tab/g,' ');
+  s = s.replace(/\{\\\*[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, ' ');
+  s = s.replace(/\\[a-zA-Z]+-?\d* ?/g, ' ');
+  s = s.replace(/[{}]/g, ' ');
+  return s;
+}
+
+function normalizeLine(s){
+  return String(s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/&/g,' AND ')
+    .replace(/[^A-Za-z\s]/g,' ')
+    .toUpperCase()
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function splitUnits(text, limit){
+  const rough = text.replace(/\r/g,'\n').split(/\n+/);
+  const out = [];
+  for(const line of rough){
+    const t = line.trim(); if(!t) continue;
+    if(t.length > limit){
+      for(const part of t.split(/(?<=[.!?;:])\s+/)){ if(part.trim()) out.push(part.trim()); }
+    } else out.push(t);
+  }
+  return out;
+}
+function analyzeAlliteration(words, minHits){
+  const meaningful = words.filter(w => w.length>1 && !STOP.has(w));
+  const counts = new Map();
+  for(const w of meaningful){ const l=w[0]; if(/[A-Z]/.test(l)) counts.set(l,(counts.get(l)||0)+1); }
+  let bestLetter='', bestCount=0;
+  for(const [l,c] of counts.entries()){ if(c>bestCount){bestLetter=l; bestCount=c;} }
+  let adjacent=false;
+  for(let i=1;i<meaningful.length;i++){ if(meaningful[i][0]===meaningful[i-1][0]){ adjacent=true; break; } }
+  const matchWords = bestLetter ? meaningful.filter(w=>w[0]===bestLetter) : [];
+  const score = bestCount + (adjacent ? 1 : 0) + Math.max(0, matchWords.length-2)*0.25;
+  return {isAllit: bestCount>=minHits || adjacent, bestLetter, bestCount, adjacent, matchWords, score:Number(score.toFixed(2))};
+}
+function csvCell(v){ const s=String(v??''); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+
+$('processBtn').addEventListener('click', processBatch);
+$('downloadBtn').addEventListener('click', ()=>{
+  if(!outputZipBlob) return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(outputZipBlob);
+  a.download='ALLITERATION_MACHINE_OUTPUT_'+timestamp()+'.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+});
+
+async function processBatch(){
+  if(!loadedFiles.length) return;
+  setLog('Processing started...'); $('processBtn').disabled=true; $('downloadBtn').disabled=true; outputZipBlob=null;
+  const minWords = Math.max(2, parseInt($('minWords').value||'2',10));
+  const minHits = Math.max(2, parseInt($('minHits').value||'2',10));
+  const splitLimit = Math.max(80, parseInt($('splitLimit').value||'300',10));
+  const keepOnlyAllit = $('keepOnlyAllit').checked;
+  const doDedupe = $('dedupe').checked;
+  const doStrip = $('stripRtf').checked;
+  const acceptedExt = /\.(txt|rtf|md|csv|log|json|html?|text)$/i;
+  const seen = new Map();
+  const rows = [];
+  const dupes = [];
+  const rejected = [];
+  const perLetter = {}; 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(l=>perLetter[l]=[]);
+  let rawUnits=0, filesRead=0, skippedFiles=0, errors=0;
+
+  for(let fi=0; fi<loadedFiles.length; fi++){
+    const file = loadedFiles[fi];
+    const name = file.webkitRelativePath || file.name;
+    if(!acceptedExt.test(file.name)){
+      skippedFiles++; rejected.push({source:name,line:'',reason:'SKIPPED_UNSUPPORTED_FILE_TYPE',raw:file.name,clean:''}); continue;
+    }
+    try{
+      let text = await readFileText(file); filesRead++;
+      if(doStrip) text = stripRtfText(text);
+      const units = splitUnits(text, splitLimit);
+      rawUnits += units.length;
+      for(let i=0;i<units.length;i++){
+        const raw = units[i];
+        const clean = normalizeLine(raw);
+        if(!clean){ rejected.push({source:name,line:i+1,reason:'EMPTY_AFTER_CLEANING',raw:raw.slice(0,240),clean:''}); continue; }
+        const words = clean.split(' ').filter(Boolean);
+        if(words.length < minWords){ rejected.push({source:name,line:i+1,reason:'TOO_FEW_WORDS',raw:raw.slice(0,240),clean}); continue; }
+        const first = clean[0];
+        if(!/[A-Z]/.test(first)){ rejected.push({source:name,line:i+1,reason:'NON_AZ_START',raw:raw.slice(0,240),clean}); continue; }
+        const a = analyzeAlliteration(words, minHits);
+        if(keepOnlyAllit && !a.isAllit){ rejected.push({source:name,line:i+1,reason:'NO_ALLITERATION_PATTERN',raw:raw.slice(0,240),clean}); continue; }
+        if(doDedupe && seen.has(clean)){
+          dupes.push({phrase:clean,first_source:seen.get(clean).source,dupe_source:name,line:i+1}); continue;
+        }
+        const row = {letter:first, phrase:clean, word_count:words.length, source_file:name, line_number:i+1, allit_letter:a.bestLetter, allit_hits:a.bestCount, adjacent_match:a.adjacent?'YES':'NO', match_words:a.matchWords.join(' '), score:a.score};
+        seen.set(clean,row); rows.push(row); perLetter[first].push(clean);
+      }
+    }catch(err){ errors++; rejected.push({source:name,line:'',reason:'READ_ERROR',raw:String(err.message||err),clean:''}); }
+    if((fi+1)%10===0 || fi===loadedFiles.length-1){ $('status').textContent = `Processed ${fi+1}/${loadedFiles.length} files...`; await new Promise(r=>setTimeout(r,0)); }
+  }
+
+  for(const l of Object.keys(perLetter)) perLetter[l].sort((a,b)=>a.localeCompare(b));
+  rows.sort((a,b)=>a.letter.localeCompare(b.letter)||a.phrase.localeCompare(b.phrase));
+  const files = buildOutputs({rows,dupes,rejected,perLetter,rawUnits,filesRead,skippedFiles,errors,minWords,minHits,keepOnlyAllit,doDedupe});
+  outputZipBlob = makeZip(files);
+  lastResults = {rows,dupes,rejected,filesRead,skippedFiles,errors,rawUnits};
+  renderStats(lastResults);
+  setLog(files['PROCESS_LOG.txt'] + '\n\nPREVIEW FIRST 25 KEPT:\n' + rows.slice(0,25).map(r=>r.phrase).join('\n'));
+  $('downloadBtn').disabled=false; $('processBtn').disabled=false; $('status').textContent='Done. Download the output ZIP.';
+}
+
+function buildOutputs(x){
+  const files = {};
+  let master = [];
+  for(const l of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){
+    const arr = x.perLetter[l];
+    const text = arr.join('\n') + (arr.length?'\n':'');
+    files[`A_Z/${l}.txt`] = text;
+    if(arr.length){ master.push(`[${l}]`, ...arr, ''); }
+  }
+  files['MASTER_ALLITERATIONS.txt'] = master.join('\n');
+  const csvHead = ['LETTER','PHRASE','WORD_COUNT','SOURCE_FILE','LINE_NUMBER','ALLITERATION_LETTER','ALLITERATION_HITS','ADJACENT_MATCH','MATCH_WORDS','SCORE'];
+  files['MASTER_ALLITERATION_INDEX.csv'] = [csvHead.join(',')].concat(x.rows.map(r=>[r.letter,r.phrase,r.word_count,r.source_file,r.line_number,r.allit_letter,r.allit_hits,r.adjacent_match,r.match_words,r.score].map(csvCell).join(','))).join('\n')+'\n';
+  files['DUPLICATES_REVIEW.csv'] = ['PHRASE,FIRST_SOURCE,DUPE_SOURCE,DUPE_LINE'].concat(x.dupes.map(d=>[d.phrase,d.first_source,d.dupe_source,d.line].map(csvCell).join(','))).join('\n')+'\n';
+  files['REJECTED_REVIEW.csv'] = ['SOURCE_FILE,LINE_NUMBER,REASON,RAW_PREVIEW,CLEANED'].concat(x.rejected.map(r=>[r.source,r.line,r.reason,r.raw,r.clean].map(csvCell).join(','))).join('\n')+'\n';
+  const keptByLetter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(l=>`${l}: ${x.perLetter[l].length}`).join('\n');
+  files['PROCESS_LOG.txt'] = [
+    'ALLITERATION MACHINE PROCESS LOG',
+    'Run time: '+new Date().toISOString(),
+    'Files read: '+x.filesRead,
+    'Files skipped: '+x.skippedFiles,
+    'Read errors: '+x.errors,
+    'Raw text units seen: '+x.rawUnits,
+    'Kept phrases: '+x.rows.length,
+    'Duplicates removed: '+x.dupes.length,
+    'Rejected/review lines: '+x.rejected.length,
+    'Minimum words: '+x.minWords,
+    'Minimum repeated starting-letter words: '+x.minHits,
+    'Keep only alliteration: '+(x.keepOnlyAllit?'YES':'NO'),
+    'Dedupe: '+(x.doDedupe?'YES':'NO'),
+    '',
+    'KEPT BY LETTER',
+    keptByLetter,
+    '',
+    'NEXT HUMAN ACTION:',
+    'Upload this ZIP or its extracted files into Google Drive: ALLITERATION_ARCHIVE_V1 / 03_OUTPUT_A_Z, then put PROCESS_LOG.txt into 07_LOGS and MASTER_ALLITERATION_INDEX.csv into 04_MASTER_INDEX.'
+  ].join('\n');
+  files['README_NEXT_STEPS.txt'] = [
+    'WHAT THIS ZIP CONTAINS',
+    '- A_Z/A.txt through Z.txt: sorted alliteration lines by first letter.',
+    '- MASTER_ALLITERATIONS.txt: one readable A-Z master text file.',
+    '- MASTER_ALLITERATION_INDEX.csv: spreadsheet-ready master index.',
+    '- DUPLICATES_REVIEW.csv: duplicate lines removed safely.',
+    '- REJECTED_REVIEW.csv: lines not kept, with reasons.',
+    '- PROCESS_LOG.txt: exact run summary.',
+    '',
+    'SAFE RULES',
+    '- Originals were not moved, deleted, or overwritten.',
+    '- Review rejected files before deleting anything.',
+    '- Run batches, not the entire 27 GB archive at once.'
+  ].join('\n');
+  return files;
+}
+function renderStats(r){
+  $('stats').innerHTML = `
+    <span class="stat"><b>${r.filesRead}</b>files read</span>
+    <span class="stat"><b>${r.rawUnits}</b>text units</span>
+    <span class="stat"><b class="good">${r.rows.length}</b>kept</span>
+    <span class="stat"><b class="warn">${r.dupes.length}</b>duplicates</span>
+    <span class="stat"><b class="bad">${r.rejected.length}</b>review</span>
+    <span class="stat"><b>${r.skippedFiles}</b>skipped files</span>`;
+}
+
+// Minimal ZIP writer: STORE method, no compression. Works without external libraries.
+function makeZip(files){
+  const enc = new TextEncoder();
+  const names = Object.keys(files);
+  const parts = []; const central = [];
+  let offset = 0;
+  for(const name of names){
+    const data = enc.encode(files[name]); const nameBytes = enc.encode(name); const crc = crc32(data);
+    const local = new Uint8Array(30 + nameBytes.length);
+    const dv = new DataView(local.buffer);
+    u32(dv,0,0x04034b50); u16(dv,4,20); u16(dv,6,0); u16(dv,8,0); u16(dv,10,0); u16(dv,12,0); u32(dv,14,crc); u32(dv,18,data.length); u32(dv,22,data.length); u16(dv,26,nameBytes.length); u16(dv,28,0); local.set(nameBytes,30);
+    parts.push(local,data);
+    const cent = new Uint8Array(46 + nameBytes.length); const cdv = new DataView(cent.buffer);
+    u32(cdv,0,0x02014b50); u16(cdv,4,20); u16(cdv,6,20); u16(cdv,8,0); u16(cdv,10,0); u16(cdv,12,0); u16(cdv,14,0); u32(cdv,16,crc); u32(cdv,20,data.length); u32(cdv,24,data.length); u16(cdv,28,nameBytes.length); u16(cdv,30,0); u16(cdv,32,0); u16(cdv,34,0); u16(cdv,36,0); u32(cdv,38,0); u32(cdv,42,offset); cent.set(nameBytes,46);
+    central.push(cent); offset += local.length + data.length;
+  }
+  const centralSize = central.reduce((a,b)=>a+b.length,0);
+  const end = new Uint8Array(22); const edv = new DataView(end.buffer);
+  u32(edv,0,0x06054b50); u16(edv,4,0); u16(edv,6,0); u16(edv,8,names.length); u16(edv,10,names.length); u32(edv,12,centralSize); u32(edv,16,offset); u16(edv,20,0);
+  return new Blob([...parts, ...central, end], {type:'application/zip'});
+}
+function u16(dv,o,v){ dv.setUint16(o,v,true); } function u32(dv,o,v){ dv.setUint32(o,v>>>0,true); }
+let crcTable=null;
+function makeCrcTable(){ const t=[]; for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1); t[n]=c>>>0;} return t; }
+function crc32(data){ if(!crcTable) crcTable=makeCrcTable(); let c=0^(-1); for(let i=0;i<data.length;i++) c=(c>>>8)^crcTable[(c^data[i])&0xff]; return (c^(-1))>>>0; }
+
+updateFileList();
+</script>
+</body>
+</html>

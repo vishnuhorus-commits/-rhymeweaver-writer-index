@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Lyric Sorter iPad Fixed Upload</title>
+<style>
+:root{--bg:#f3efe8;--panel:#f8f5ef;--ink:#1e1a16;--muted:#6f665c;--line:#cfc6b8;--accent:#c78310;--black:#111;--white:#fff;--ok:#187a32;--err:#a12626}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Avenir Next","Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+.header{display:flex;justify-content:space-between;gap:16px;align-items:center;border-bottom:2px solid var(--line);padding-bottom:14px;margin-bottom:16px}
+.brand{display:flex;gap:14px;align-items:center}.logo{width:52px;height:52px;background:#111;color:#fff;display:grid;place-items:center;font-weight:900}
+h1{font-size:30px;margin:0}.sub{color:var(--muted);font-size:14px;margin-top:4px}.big{font-size:38px;color:var(--accent);font-weight:900;line-height:1;text-align:right}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}@media(max-width:900px){.grid{grid-template-columns:1fr}.header{align-items:flex-start}.big{text-align:left}}
+.card{background:var(--panel);border:2px solid var(--line);padding:14px;margin-bottom:14px}
+.title{font-weight:900;margin-bottom:10px;letter-spacing:.3px}.small{font-size:13px;color:var(--muted);line-height:1.35}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+input[type=file]{display:block;width:100%;border:3px dashed var(--accent);border-radius:12px;background:#fff8ea;padding:18px;font-size:16px;color:var(--ink)}
+textarea{width:100%;min-height:260px;border:2px solid var(--line);background:rgba(255,255,255,.65);padding:14px;font-size:16px;line-height:1.45;resize:vertical;color:var(--ink)}
+button{border:0;border-radius:0;background:#111;color:#fff;padding:12px 16px;font-weight:900;letter-spacing:.3px;font-size:14px}
+button.accent{background:var(--accent)}button.secondary{background:#867c70}button.good{background:#187a32}button:disabled{opacity:.5}
+label.chk{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:rgba(255,255,255,.5);padding:9px 10px;font-size:13px;font-weight:700}
+.statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:700px){.statgrid{grid-template-columns:repeat(2,1fr)}}
+.stat{border:1px solid var(--line);background:rgba(255,255,255,.5);padding:10px}.stat .n{font-size:24px;font-weight:900}.stat .l{font-size:12px;color:var(--muted)}
+.out{min-height:260px;max-height:440px;overflow:auto;white-space:pre-wrap;word-break:break-word;background:#fff;border:2px solid var(--line);padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}
+.log{white-space:pre-wrap;max-height:170px;overflow:auto;border-top:1px solid var(--line);padding-top:10px;margin-top:10px;font-size:13px;color:var(--muted)}
+.ok{color:var(--ok)}.err{color:var(--err)}.warn{color:#8a5a00}
+.letters{display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:8px}.cell{background:#111;color:#fff;padding:9px;text-align:center}.cell b{display:block;font-size:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="brand"><div class="logo">AZ</div><div><h1>LYRIC SORTER — IPAD FIXED UPLOAD</h1><div class="sub">Visible file picker + paste fallback. Best: TXT/CSV. DOCX/XLSX/PDF need internet libraries.</div></div></div>
+    <div><div class="big" id="totalEntries">0</div><div class="small">TOTAL ENTRIES</div></div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="title">1) LOAD FILES</div>
+      <input id="fileInput" type="file" multiple accept=".txt,.csv,.docx,.xlsx,.xls,.pdf,text/plain,text/csv,application/pdf">
+      <p class="small">On iPad: tap the box above, choose <b>Browse</b>, then choose files from <b>On My iPad</b>, <b>iCloud Drive</b>, or <b>Downloads</b>. If the ChatGPT preview blocks it, open this HTML in Safari or Files.</p>
+      <div class="title">2) OR PASTE TEXT</div>
+      <textarea id="manualInput" placeholder="Paste lyrics/alliterations here. One phrase per line works best."></textarea>
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="uppercaseToggle" checked> ALL CAPS</label>
+        <label class="chk"><input type="checkbox" id="dedupeToggle" checked> REMOVE DUPLICATES</label>
+        <label class="chk"><input type="checkbox" id="dropSinglesToggle"> REMOVE ONE-WORD LINES</label>
+        <label class="chk"><input type="checkbox" id="trimPunctToggle" checked> CLEAN EDGE PUNCTUATION</label>
+        <label class="chk"><input type="checkbox" id="splitCellsToggle" checked> CSV/XLSX CELLS BECOME LINES</label>
+      </div>
+      <div class="row">
+        <button id="processBtn" class="accent">SORT & BUILD</button>
+        <button id="clearBtn" class="secondary">CLEAR</button>
+        <button id="sampleBtn">ADD SAMPLE</button>
+        <button id="testBtn">TEST UPLOAD BOX</button>
+      </div>
+      <div class="statgrid">
+        <div class="stat"><div class="l">FILES LOADED</div><div class="n" id="filesLoaded">0</div></div>
+        <div class="stat"><div class="l">RAW BLOCKS</div><div class="n" id="blocksLoaded">0</div></div>
+        <div class="stat"><div class="l">CLEAN LINES</div><div class="n" id="cleanCount">0</div></div>
+        <div class="stat"><div class="l">LETTERS USED</div><div class="n" id="lettersUsed">0</div></div>
+      </div>
+      <div id="log" class="log">Ready. Tap the visible file box above.</div>
+    </div>
+    <div class="card">
+      <div class="title">OUTPUT</div>
+      <div class="row">
+        <button id="downloadMasterBtn" class="good" disabled>DOWNLOAD MASTER.txt</button>
+        <button id="downloadLettersBtn" disabled>DOWNLOAD A-Z FILES</button>
+      </div>
+      <div id="preview" class="out">Nothing built yet.</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="title">A–Z BREAKDOWN</div>
+    <div id="letters" class="letters"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const els = {
+    fileInput:$('fileInput'), manualInput:$('manualInput'), uppercase:$('uppercaseToggle'), dedupe:$('dedupeToggle'),
+    dropSingles:$('dropSinglesToggle'), trimPunct:$('trimPunctToggle'), splitCells:$('splitCellsToggle'),
+    processBtn:$('processBtn'), clearBtn:$('clearBtn'), sampleBtn:$('sampleBtn'), testBtn:$('testBtn'),
+    filesLoaded:$('filesLoaded'), blocksLoaded:$('blocksLoaded'), cleanCount:$('cleanCount'), lettersUsed:$('lettersUsed'),
+    totalEntries:$('totalEntries'), log:$('log'), preview:$('preview'), letters:$('letters'),
+    downloadMaster:$('downloadMasterBtn'), downloadLetters:$('downloadLettersBtn')
+  };
+  const state = { rawTextBlocks:[], fileCount:0, cleanedLines:[], groups:{} };
+  const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+
+  function log(msg, cls='') {
+    const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    els.log.innerHTML = `<span class="${cls}">${escapeHtml(line)}</span>\n` + els.log.innerHTML;
+  }
+  function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function normalizeCsv(text){return text.split(/\r?\n/).map(r=>r.split(',').map(c=>c.trim()).filter(Boolean).join(els.splitCells.checked?'\n':' ')).join('\n');}
+  function trimEdge(s){return s.replace(/^[\s\-–—|•·,:;.!?()[\]{}"'`~_]+/,'').replace(/[\s\-–—|•·,:;.!?()[\]{}"'`~_]+$/,'');}
+  function firstBucket(line){const m=String(line).match(/[A-Z]/i); return m?m[0].toUpperCase():'#';}
+  async function loadScript(src){
+    return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error('Could not load library: '+src));document.head.appendChild(s);});
+  }
+  async function parseDocx(file){
+    if(!window.mammoth) await loadScript('https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js');
+    const ab = await file.arrayBuffer();
+    const result = await window.mammoth.extractRawText({arrayBuffer:ab});
+    return result.value || '';
+  }
+  async function parseXlsx(file){
+    if(!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    const ab = await file.arrayBuffer();
+    const wb = window.XLSX.read(ab,{type:'array'});
+    const out=[];
+    wb.SheetNames.forEach(name=>{
+      const rows = window.XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,blankrows:false});
+      rows.forEach(row => out.push(row.map(v=>String(v??'').trim()).filter(Boolean).join(els.splitCells.checked?'\n':' ')));
+    });
+    return out.join('\n');
+  }
+  async function parsePdf(file){
+    const mod = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.min.mjs');
+    mod.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.worker.min.mjs';
+    const pdf = await mod.getDocument({data:await file.arrayBuffer()}).promise;
+    const out=[];
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const content=await page.getTextContent();
+      out.push(content.items.map(i=>i.str).join(' '));
+    }
+    return out.join('\n');
+  }
+  async function parseFile(file){
+    const name=(file.name||'').toLowerCase();
+    if(name.endsWith('.txt') || file.type.startsWith('text/')) return await file.text();
+    if(name.endsWith('.csv')) return normalizeCsv(await file.text());
+    if(name.endsWith('.docx')) return await parseDocx(file);
+    if(name.endsWith('.xlsx') || name.endsWith('.xls')) return await parseXlsx(file);
+    if(name.endsWith('.pdf')) return await parsePdf(file);
+    return await file.text();
+  }
+  async function handleFiles(files){
+    const list = Array.from(files||[]);
+    if(!list.length){ log('No files selected.', 'warn'); return; }
+    log(`Selected ${list.length} file(s). Reading now...`, 'warn');
+    for(const file of list){
+      try{
+        const text=await parseFile(file);
+        if(!text.trim()){ log(`${file.name}: read empty text. Scanned PDFs may need OCR.`, 'warn'); continue; }
+        state.rawTextBlocks.push(text);
+        state.fileCount++;
+        log(`Loaded ${file.name} (${Math.round(file.size/1024)} KB).`, 'ok');
+      }catch(err){
+        log(`ERROR ${file.name}: ${err.message}. Try TXT/CSV or paste text.`, 'err');
+      }
+    }
+    els.filesLoaded.textContent=state.fileCount;
+    els.blocksLoaded.textContent=state.rawTextBlocks.length;
+    cleanAndGroup();
+    els.fileInput.value='';
+  }
+  function cleanAndGroup(){
+    const blocks=[...state.rawTextBlocks];
+    if(els.manualInput.value.trim()) blocks.push(els.manualInput.value);
+    let lines=[];
+    for(const block of blocks){
+      for(let line of String(block).replace(/\r/g,'\n').split(/\n+/)){
+        let s=String(line).replace(/\t+/g,' ').replace(/\u00A0/g,' ').replace(/\s+/g,' ').trim();
+        if(!s) continue;
+        if(els.trimPunct.checked) s=trimEdge(s);
+        if(!s) continue;
+        if(els.uppercase.checked) s=s.toUpperCase();
+        if(els.dropSingles.checked && s.split(/\s+/).length<2) continue;
+        lines.push(s);
+      }
+    }
+    if(els.dedupe.checked) lines=[...new Set(lines)];
+    lines.sort((a,b)=>a.localeCompare(b));
+    const groups={}; alpha.forEach(k=>groups[k]=[]);
+    lines.forEach(line=>groups[firstBucket(line)].push(line));
+    state.cleanedLines=lines; state.groups=groups;
+    render();
+  }
+  function render(){
+    els.cleanCount.textContent=state.cleanedLines.length;
+    els.totalEntries.textContent=state.cleanedLines.length;
+    const used=Object.values(state.groups).filter(a=>a.length).length;
+    els.lettersUsed.textContent=used;
+    els.preview.textContent=state.cleanedLines.slice(0,1500).join('\n') || 'Nothing built yet.';
+    if(state.cleanedLines.length>1500) els.preview.textContent += `\n\n... preview capped at 1500 lines. Download MASTER for full output.`;
+    els.letters.innerHTML=alpha.map(k=>`<div class="cell"><b>${k}</b><span>${(state.groups[k]||[]).length}</span></div>`).join('');
+    els.downloadMaster.disabled=!state.cleanedLines.length; els.downloadLetters.disabled=!state.cleanedLines.length;
+  }
+  function downloadText(name,text){
+    const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  els.fileInput.addEventListener('change', e=>handleFiles(e.target.files));
+  els.processBtn.addEventListener('click', cleanAndGroup);
+  els.testBtn.addEventListener('click', ()=>els.fileInput.click());
+  els.sampleBtn.addEventListener('click', ()=>{
+    els.manualInput.value += (els.manualInput.value?'\n':'') + ['LOTUS LIGHT','LOGOS LORD','WORLD WORD','WORLD WORD','SACRED SOUND','SAVIOR SCRIBE'].join('\n');
+    cleanAndGroup(); log('Sample added.', 'ok');
+  });
+  els.clearBtn.addEventListener('click', ()=>{
+    state.rawTextBlocks=[]; state.fileCount=0; state.cleanedLines=[]; state.groups={};
+    els.fileInput.value=''; els.manualInput.value=''; els.filesLoaded.textContent='0'; els.blocksLoaded.textContent='0';
+    els.log.textContent='Cleared. Tap the visible file box above.'; render();
+  });
+  els.downloadMaster.addEventListener('click',()=>downloadText('MASTER.txt',state.cleanedLines.join('\n')));
+  els.downloadLetters.addEventListener('click',()=>{
+    let text='';
+    for(const k of alpha){ if((state.groups[k]||[]).length) text += `===== ${k}.txt =====\n${state.groups[k].join('\n')}\n\n`; }
+    downloadText('A-Z_FILES_COMBINED.txt', text.trim());
+  });
+  render();
+})();
+</script>
+</body>
+</html>

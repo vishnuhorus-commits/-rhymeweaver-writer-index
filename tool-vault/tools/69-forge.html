@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090712">
+<title>RhymeWeaver Image Forge</title>
+<style>
+:root{--bg:#090712;--panel:#151022;--panel2:#0d0a16;--line:#3b2d51;--ink:#f5f0ff;--muted:#a89dbb;--gold:#f6c85f;--violet:#9f7aea;--cyan:#49d7e8;--green:#62df9a;--red:#ff6b7a;--shadow:0 26px 70px rgba(0,0,0,.42)}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 15% 0,#2a1744 0,transparent 31%),radial-gradient(circle at 88% 10%,#103840 0,transparent 28%),var(--bg)}
+.shell{max-width:1450px;margin:auto;padding:18px}.hero{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:18px 3px 22px}.badge{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:8px 12px;color:var(--cyan);font-size:12px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;background:rgba(20,16,32,.78)}h1{font-size:clamp(34px,6vw,72px);line-height:.9;margin:12px 0 10px;letter-spacing:-.055em}h1 span{color:var(--gold)}.hero p{max-width:800px;color:var(--muted);font-size:16px;line-height:1.55}.state{padding:10px 13px;border:1px solid var(--line);border-radius:14px;background:rgba(15,11,24,.9);font-size:13px;color:var(--muted)}.state strong{color:var(--green)}
+.layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);gap:16px}.card{background:linear-gradient(180deg,rgba(25,19,39,.97),rgba(13,10,22,.99));border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:var(--shadow)}h2{font-size:18px;margin:0 0 14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}label{display:block;margin:0 0 6px;color:var(--muted);font-size:12px;font-weight:850;letter-spacing:.075em;text-transform:uppercase}input,textarea,select{width:100%;border:1px solid #3c2e52;border-radius:13px;background:#0b0912;color:var(--ink);padding:12px;font:inherit;outline:none}textarea{min-height:112px;resize:vertical}input:focus,textarea:focus,select:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(159,122,234,.15)}.palette{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.palette input{height:44px;padding:4px}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}button,.button{border:0;border-radius:12px;padding:11px 15px;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;color:white;background:linear-gradient(135deg,var(--violet),#6850db)}button:hover,.button:hover{filter:brightness(1.08)}button:disabled{opacity:.55;cursor:not-allowed}.gold{background:linear-gradient(135deg,#f6c85f,#d7982f);color:#1b1202}.green{background:linear-gradient(135deg,#62df9a,#2ba86b);color:#07150e}.secondary{background:#21182f;border:1px solid #46355f}.danger{background:#311725;border:1px solid #6a2e45}.status{margin-top:12px;min-height:22px;color:var(--muted);font-size:13px}.status.error{color:var(--red)}.status.ok{color:var(--green)}
+.preview{min-height:500px;border:1px dashed #4b3966;border-radius:18px;background:radial-gradient(circle,#211633,#0a0810 67%);display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center;padding:20px}.preview img{display:block;max-width:100%;max-height:720px;border-radius:14px}.placeholder strong{display:block;color:var(--gold);font-size:27px;margin-bottom:9px}.placeholder span{color:var(--muted);line-height:1.5}.promptbox{white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto;margin-top:12px;padding:13px;border:1px solid #302440;border-radius:14px;background:#090711;color:#e9dfff;font-size:13px;line-height:1.5}.history{display:grid;gap:8px;margin-top:12px;max-height:220px;overflow:auto}.history button{display:block;text-align:left;background:#0c0914;border:1px solid #302440;font-weight:600;padding:10px}.history b{display:block;color:var(--gold);margin-bottom:4px}.small{font-size:12px;color:var(--muted)}.footer{padding:20px 3px;color:var(--muted);font-size:13px}
+@media(max-width:920px){.layout{grid-template-columns:1fr}.hero{display:block}.state{margin-top:13px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.shell{padding:11px}.preview{min-height:390px}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="hero">
+<div><div class="badge">RhymeWeaver Visual Engine · Ideogram 4 Bridge</div><h1>IMAGE <span>FORGE</span></h1><p>Build exact-text artwork, cinematic scenes, storybook illustrations, sacred systems, logos, posters, and visual word worlds. The API key stays on the secure server.</p></div>
+<div class="state" id="health">Checking generation engine…</div>
+</header>
+<section class="layout">
+<div class="card">
+<h2>Creation Console</h2>
+<div class="grid">
+<div class="full"><label for="idea">Core idea, rhyme, poem, or scene</label><textarea id="idea" placeholder="Example: A cosmic computer archive where color-coded folders become glowing highways through deep space"></textarea></div>
+<div><label for="mode">Mode</label><select id="mode"><option>Poster / Typography</option><option>Cinematic Scene</option><option>Book Illustration</option><option>Logo / Emblem</option><option>App Interface Concept</option><option>Character Design</option><option>Diagram / System Map</option></select></div>
+<div><label for="style">Visual style</label><select id="style"><option>Cinematic sacred technology</option><option>Hyper-detailed photorealism</option><option>Illuminated manuscript</option><option>Cosmic cyberpunk</option><option>Polished 3D storybook</option><option>Anime ultra-detail</option><option>Surreal alchemical engraving</option><option>Luxury editorial poster</option></select></div>
+<div><label for="exactText">Exact text inside image</label><input id="exactText" placeholder="WORDS BUILD WORLDS"></div>
+<div><label for="resolution">Canvas</label><select id="resolution"><option value="2048x2048">Square 1:1</option><option value="1536x2048">Portrait 3:4</option><option value="2048x1536">Landscape 4:3</option><option value="1152x2048">Phone 9:16</option><option value="2048x1152">Wide 16:9</option><option value="2048x768">Banner 8:3</option></select></div>
+<div><label for="placement">Text placement</label><select id="placement"><option>Centered headline</option><option>Top title</option><option>Bottom title</option><option>Left panel</option><option>Right panel</option><option>Integrated into scene</option></select></div>
+<div><label for="speed">Rendering</label><select id="speed"><option value="TURBO">Turbo · lower API cost</option><option value="DEFAULT" selected>Default · balanced</option><option value="QUALITY">Quality · highest detail</option></select></div>
+<div class="full"><label>Color palette</label><div class="palette"><input type="color" id="c1" value="#f6c85f"><input type="color" id="c2" value="#1cc8d7"><input type="color" id="c3" value="#100b1d"><input type="color" id="c4" value="#ff7a18"></div></div>
+<div class="full"><label for="include">Must include</label><textarea id="include" placeholder="Objects, symbols, people, materials, lighting, exact layout…"></textarea></div>
+<div class="full"><label for="avoid">Must avoid</label><textarea id="avoid" placeholder="Misspelled words, duplicate objects, blurry text, clutter, extra limbs…"></textarea></div>
+</div>
+<div class="actions"><button class="gold" id="generate" onclick="generateImage()">Generate with Ideogram</button><button class="secondary" onclick="forgePrompt()">Preview Prompt</button><button class="secondary" onclick="surprise()">Inspire Me</button><button class="danger" onclick="clearForm()">Clear</button></div>
+<div class="status" id="status">Ready.</div>
+<div class="promptbox" id="promptBox">Your finished prompt will appear here.</div>
+</div>
+<div class="card">
+<h2>Generated Artwork</h2>
+<div class="preview" id="preview"><div class="placeholder"><strong>Your image lands here</strong><span>Enter your vision and press Generate with Ideogram.</span></div></div>
+<div class="actions"><a class="button green" id="openImage" href="#" target="_blank" rel="noopener" hidden>Open Full Image</a><button class="secondary" id="copyPrompt" onclick="copyPrompt()">Copy Prompt</button><button class="secondary" onclick="saveProject()">Save Project</button><label class="button secondary">Load Project<input type="file" accept="application/json,.json" hidden onchange="loadProject(event)"></label></div>
+<div class="history" id="history"></div>
+</div>
+</section>
+<footer class="footer">RhymeWeaver Image Forge v0.2 · secure server-side Ideogram integration · generated image links expire, so open and save finished images you want to keep.</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);let currentPrompt='';let latestImage='';
+const inspirations=[
+['A cosmic computer archive where color-coded folders become glowing highways through deep space','FROM CHAOS INTO ORDER','golden photon packets, transparent plasma conduits, galaxy motherboard, sacred geometry'],
+['An illuminated children’s etymology book where every broken word-part becomes a friendly living character','WORDS BUILD WORLDS','clear readable labels, joyful characters, educational hierarchy'],
+['A legendary bottom-up typography machine printing words upward through a temple of language','BOTTOMS UP GENERATOR','ascending text lanes, polished brass machinery, bright idea light, cinematic clarity']
+];
+function value(id){return $(id).value.trim()}
+function items(id){return value(id).split(/[,\n]/).map(x=>x.trim()).filter(Boolean)}
+function formData(){return{idea:value('idea'),mode:value('mode'),style:value('style'),exactText:value('exactText'),resolution:value('resolution'),placement:value('placement'),speed:value('speed'),colors:['c1','c2','c3','c4'].map(id=>$(id).value),include:items('include'),avoid:items('avoid')}}
+function forgePrompt(){const f=formData();const parts=[f.idea,`Output mode: ${f.mode}. Visual style: ${f.style}.`,`Color palette: ${f.colors.join(', ')}.`];if(f.exactText)parts.push(`Render this exact readable text with every character spelled exactly: "${f.exactText}". Placement: ${f.placement}. Give it strong hierarchy and clean typography.`);if(f.include.length)parts.push(`Must include: ${f.include.join(', ')}.`);parts.push(`Avoid: ${[...f.avoid,'unreadable text','misspelled text','watermark','blurry details','unwanted duplicate elements'].join(', ')}.`);currentPrompt=parts.filter(Boolean).join('\n\n');$('promptBox').textContent=currentPrompt;return currentPrompt}
+async function generateImage(){const prompt=forgePrompt();if(!value('idea'))return setStatus('Enter a core idea first.','error');const button=$('generate');button.disabled=true;setStatus('Sending your vision to Ideogram 4…');try{const response=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text_prompt:prompt,resolution:value('resolution'),rendering_speed:value('speed')})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||data.setup||`Generation failed (${response.status})`);latestImage=data.image_url||data.url;if(!latestImage)throw new Error('No image URL was returned.');$('preview').innerHTML=`<img src="${escapeAttr(latestImage)}" alt="Generated RhymeWeaver artwork">`;$('openImage').href=latestImage;$('openImage').hidden=false;remember({prompt,current:formData(),image:latestImage,created:new Date().toISOString()});renderHistory();setStatus('Image generated successfully. Open the full image and save it before its temporary link expires.','ok')}catch(error){setStatus(error.message||String(error),'error')}finally{button.disabled=false}}
+async function checkHealth(){try{const r=await fetch('/api/health',{cache:'no-store'});const x=await r.json();$('health').innerHTML=x.configured?'<strong>Generation engine connected</strong>':'Engine installed · API key still needs secure setup'}catch{$('health').textContent='Backend deploy required'}}
+function setStatus(text,type=''){$('status').className='status '+type;$('status').textContent=text}
+function surprise(){const x=inspirations[Math.floor(Math.random()*inspirations.length)];$('idea').value=x[0];$('exactText').value=x[1];$('include').value=x[2];forgePrompt()}
+function clearForm(){['idea','exactText','include','avoid'].forEach(id=>$(id).value='');currentPrompt='';latestImage='';$('promptBox').textContent='Your finished prompt will appear here.';$('preview').innerHTML='<div class="placeholder"><strong>Your image lands here</strong><span>Enter your vision and press Generate with Ideogram.</span></div>';$('openImage').hidden=true;setStatus('Cleared.')}
+function copyPrompt(){if(!currentPrompt)forgePrompt();navigator.clipboard.writeText(currentPrompt).then(()=>setStatus('Prompt copied.','ok')).catch(()=>setStatus('Copy failed; select the prompt manually.','error'))}
+function saveProject(){const project={version:'rhymeweaver-image-forge-v0.2',form:formData(),prompt:currentPrompt||forgePrompt(),image_url:latestImage,created_at:new Date().toISOString()};download('RHYMEWEAVER_IMAGE_PROJECT.json',JSON.stringify(project,null,2))}
+function loadProject(event){const file=event.target.files[0];if(!file)return;file.text().then(text=>{const p=JSON.parse(text),f=p.form||{};$('idea').value=f.idea||'';$('mode').value=f.mode||$('mode').value;$('style').value=f.style||$('style').value;$('exactText').value=f.exactText||'';$('resolution').value=f.resolution||$('resolution').value;$('placement').value=f.placement||$('placement').value;$('speed').value=f.speed||$('speed').value;(f.colors||[]).forEach((v,i)=>{const el=$('c'+(i+1));if(el)el.value=v});$('include').value=(f.include||[]).join(', ');$('avoid').value=(f.avoid||[]).join(', ');currentPrompt=p.prompt||forgePrompt();$('promptBox').textContent=currentPrompt;if(p.image_url){latestImage=p.image_url;$('preview').innerHTML=`<img src="${escapeAttr(latestImage)}" alt="Loaded project artwork">`;$('openImage').href=latestImage;$('openImage').hidden=false}setStatus('Project loaded.','ok')}).catch(()=>setStatus('That project file could not be read.','error'))}
+function remember(item){const h=JSON.parse(localStorage.getItem('rw-image-forge-history')||'[]');h.unshift(item);localStorage.setItem('rw-image-forge-history',JSON.stringify(h.slice(0,12)))}
+function renderHistory(){const h=JSON.parse(localStorage.getItem('rw-image-forge-history')||'[]');$('history').innerHTML=h.length?'<div class="small">Recent creations</div>'+h.map((x,i)=>`<button onclick="loadHistory(${i})"><b>${escapeHtml((x.current?.idea||x.prompt||'Creation').slice(0,85))}</b><span class="small">${new Date(x.created).toLocaleString()}</span></button>`).join(''):''}
+function loadHistory(i){const h=JSON.parse(localStorage.getItem('rw-image-forge-history')||'[]'),x=h[i];if(!x)return;const f=x.current||{};$('idea').value=f.idea||'';$('exactText').value=f.exactText||'';$('include').value=(f.include||[]).join(', ');$('avoid').value=(f.avoid||[]).join(', ');currentPrompt=x.prompt||'';$('promptBox').textContent=currentPrompt;if(x.image){latestImage=x.image;$('preview').innerHTML=`<img src="${escapeAttr(x.image)}" alt="Previous generated artwork">`;$('openImage').href=x.image;$('openImage').hidden=false}}
+function download(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),600)}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}function escapeAttr(s){return escapeHtml(s)}
+checkHealth();renderHistory();
+</script>
+</body>
+</html>
+

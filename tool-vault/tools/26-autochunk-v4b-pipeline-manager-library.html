@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AutoChunk Engine V4B Pipeline Manager</title>
+
+<!-- ZIP support -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- PDF text support. Text PDFs only. Scanned image PDFs need OCR later. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #111827;
+    --card: #1f2937;
+    --text: #f8fafc;
+    --muted: #cbd5e1;
+    --line: #334155;
+    --accent: #38bdf8;
+    --good: #22c55e;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.45;
+  }
+
+  header {
+    padding: 22px;
+    border-bottom: 1px solid var(--line);
+    background: #020617;
+  }
+
+  h1 {
+    margin: 0 0 6px;
+    font-size: 1.55rem;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  main {
+    padding: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  section {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    margin: 0 0 12px;
+    font-size: 1.1rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  label {
+    display: block;
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
+  input[type="file"],
+  textarea,
+  input[type="number"],
+  input[type="range"] {
+    width: 100%;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px;
+  }
+
+  textarea {
+    min-height: 170px;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .check {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px;
+  }
+
+  .check label {
+    color: var(--text);
+  }
+
+  button {
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 14px;
+    background: var(--accent);
+    color: #00111d;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  button.secondary {
+    background: #475569;
+    color: var(--text);
+  }
+
+  button.good {
+    background: var(--good);
+    color: #04130a;
+  }
+
+  button.warn {
+    background: var(--warn);
+    color: #1a1000;
+  }
+
+  button.bad {
+    background: var(--bad);
+    color: white;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 10px;
+  }
+
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .stat strong {
+    display: block;
+    font-size: 1.3rem;
+  }
+
+  .stat span {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #020617;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    max-height: 260px;
+    overflow: auto;
+  }
+
+  .az-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+    gap: 8px;
+  }
+
+  .letter {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px;
+    text-align: center;
+  }
+
+  .small {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+</style>
+</head>
+
+<body>
+<header>
+  <h1>AutoChunk Engine V4B Pipeline Manager</h1>
+  <div class="subtitle">TXT / CSV / PDF / ZIP → clean → A–Z → master index → reviews → process log → output ZIP. Deletes nothing.</div>
+</header>
+
+<main>
+
+<section>
+  <h2>1. Drop Files Here</h2>
+  <input id="fileInput" type="file" multiple accept=".txt,.csv,.md,.html,.htm,.pdf,.zip,text/plain,text/csv,application/pdf,application/zip" />
+  <p class="small">ZIP files may contain TXT, CSV, MD, HTML, or PDF files. PDF support reads text PDFs. Scanned PDFs need OCR later.</p>
+</section>
+
+<section>
+  <h2>2. Or Paste Text</h2>
+  <textarea id="pasteBox" placeholder="Paste ProWritingAid output, old A–Z file, or raw notes here..."></textarea>
+</section>
+
+<section>
+  <h2>3. Cleaning Checkers</h2>
+  <div class="grid">
+    <div class="check"><label><input type="checkbox" id="uppercase" checked> UPPERCASE</label></div>
+    <div class="check"><label><input type="checkbox" id="dedupe" checked> DEDUPE</label></div>
+    <div class="check"><label><input type="checkbox" id="dropBadChar" checked> DELETE LINES WITH �</label></div>
+    <div class="check"><label><input type="checkbox" id="dropNumberHeavy" checked> DROP NUMBER-HEAVY</label></div>
+    <div class="check"><label><input type="checkbox" id="dropSymbolHeavy" checked> DROP SYMBOL-HEAVY</label></div>
+    <div class="check"><label><input type="checkbox" id="minTwoWords" checked> MINIMUM 2 WORDS</label></div>
+    <div class="check"><label><input type="checkbox" id="lettersSpacesOnly" checked> KEEP LETTERS/SPACES ONLY</label></div>
+    <div class="check"><label><input type="checkbox" id="filterGibberish" checked> FILTER GIBBERISH</label></div>
+    <div class="check"><label><input type="checkbox" id="deleteCodeStrings" checked> DELETE CODE STRINGS</label></div>
+    <div class="check"><label><input type="checkbox" id="strictSameLetter" checked> STRICT ALLITERATION FIRST LETTER</label></div>
+  </div>
+</section>
+
+<section>
+  <h2>4. Ratio Controls</h2>
+  <div class="grid">
+    <label>Minimum Letter Ratio
+      <input id="minLetterRatio" type="range" min="0" max="1" value="0.55" step="0.05" oninput="ratioOut()">
+      <span id="minLetterRatioOut">0.55</span>
+    </label>
+    <label>Maximum Symbol Ratio
+      <input id="maxSymbolRatio" type="range" min="0" max="1" value="0.25" step="0.05" oninput="ratioOut()">
+      <span id="maxSymbolRatioOut">0.25</span>
+    </label>
+    <label>Maximum Number Ratio
+      <input id="maxNumberRatio" type="range" min="0" max="1" value="0.25" step="0.05" oninput="ratioOut()">
+      <span id="maxNumberRatioOut">0.25</span>
+    </label>
+    <label>Chunk Size: lines per pass
+      <input id="chunkSize" type="number" min="500" max="50000" value="7500" step="500">
+    </label>
+  </div>
+</section>
+
+<section>
+  <h2>5. Run Pipeline</h2>
+  <div class="row">
+    <button onclick="runPipeline()">CLEAN & SORT</button>
+    <button class="good" onclick="downloadOutputZip()">DOWNLOAD OUTPUT ZIP</button>
+    <button class="secondary" onclick="downloadMaster()">DOWNLOAD MASTER TXT</button>
+    <button class="secondary" onclick="downloadLog()">DOWNLOAD PROCESS LOG</button>
+    <button class="bad" onclick="clearAll()">CLEAR</button>
+  </div>
+</section>
+
+<section>
+  <h2>6. Batch Stats</h2>
+  <div class="stats">
+    <div class="stat"><strong id="statFiles">0</strong><span>Files loaded</span></div>
+    <div class="stat"><strong id="statRaw">0</strong><span>Raw lines</span></div>
+    <div class="stat"><strong id="statClean">0</strong><span>Clean kept</span></div>
+    <div class="stat"><strong id="statDupes">0</strong><span>Duplicates</span></div>
+    <div class="stat"><strong id="statRemoved">0</strong><span>Review / removed</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>7. A–Z Counts</h2>
+  <div class="az-grid" id="azCounts"></div>
+</section>
+
+<section>
+  <h2>8. Master Preview</h2>
+  <pre id="masterPreview"></pre>
+</section>
+
+<section>
+  <h2>9. Process Log</h2>
+  <pre id="logBox"></pre>
+</section>
+
+</main>
+
+<script>
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+let state = resetState();
+
+function resetState() {
+  const buckets = {};
+  LETTERS.forEach(l => buckets[l] = []);
+  return {
+    batchStamp: new Date().toISOString().replace(/[:.]/g, "-"),
+    filesLoaded: 0,
+    rawLines: 0,
+    cleanLines: [],
+    duplicateLines: [],
+    removedLines: [],
+    unsortedLines: [],
+    originals: [],
+    buckets,
+    log: []
+  };
+}
+
+function ratioOut() {
+  document.getElementById("minLetterRatioOut").textContent = document.getElementById("minLetterRatio").value;
+  document.getElementById("maxSymbolRatioOut").textContent = document.getElementById("maxSymbolRatio").value;
+  document.getElementById("maxNumberRatioOut").textContent = document.getElementById("maxNumberRatio").value;
+}
+ratioOut();
+drawAzCounts();
+
+function opts() {
+  return {
+    uppercase: checked("uppercase"),
+    dedupe: checked("dedupe"),
+    dropBadChar: checked("dropBadChar"),
+    dropNumberHeavy: checked("dropNumberHeavy"),
+    dropSymbolHeavy: checked("dropSymbolHeavy"),
+    minTwoWords: checked("minTwoWords"),
+    lettersSpacesOnly: checked("lettersSpacesOnly"),
+    filterGibberish: checked("filterGibberish"),
+    deleteCodeStrings: checked("deleteCodeStrings"),
+    strictSameLetter: checked("strictSameLetter"),
+    minLetterRatio: parseFloat(val("minLetterRatio")),
+    maxSymbolRatio: parseFloat(val("maxSymbolRatio")),
+    maxNumberRatio: parseFloat(val("maxNumberRatio")),
+    chunkSize: parseInt(val("chunkSize"), 10) || 7500
+  };
+}
+
+function checked(id) { return document.getElementById(id).checked; }
+function val(id) { return document.getElementById(id).value; }
+
+async function runPipeline() {
+  state = resetState();
+  state.log.push("AUTOCHUNK_ENGINE_V4B_PIPELINE_RUN");
+  state.log.push("Timestamp: " + new Date().toISOString());
+  state.log.push("Deletes: NONE");
+  state.log.push("Trash moves: NONE");
+  state.log.push("Source overwrites: NONE");
+  state.log.push("");
+
+  const files = Array.from(document.getElementById("fileInput").files || []);
+  const pasted = document.getElementById("pasteBox").value || "";
+  let sources = [];
+
+  if (pasted.trim()) {
+    sources.push({ name: "PASTED_TEXT_INPUT.txt", text: pasted, originalText: pasted });
+    state.filesLoaded++;
+  }
+
+  for (const file of files) {
+    const extracted = await extractFile(file);
+    extracted.forEach(item => {
+      sources.push(item);
+      state.filesLoaded++;
+    });
+  }
+
+  if (sources.length === 0) {
+    alert("Add files or paste text first.");
+    return;
+  }
+
+  const seen = new Set();
+  const options = opts();
+
+  for (const source of sources) {
+    state.log.push("SOURCE: " + source.name);
+    state.originals.push(source);
+
+    const lines = source.text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    state.rawLines += lines.length;
+    state.log.push("Raw nonblank lines: " + lines.length);
+
+    for (let start = 0; start < lines.length; start += options.chunkSize) {
+      const chunk = lines.slice(start, start + options.chunkSize);
+      state.log.push("Processing chunk lines " + (start + 1) + " - " + (start + chunk.length));
+
+      for (const line of chunk) {
+        const result = cleanLine(line, options);
+
+        if (!result.keep) {
+          state.removedLines.push(result.reason + " :: " + line);
+          continue;
+        }
+
+        const key = result.line;
+        if (options.dedupe && seen.has(key)) {
+          state.duplicateLines.push(key);
+          continue;
+        }
+
+        seen.add(key);
+        state.cleanLines.push(key);
+
+        const first = firstLetter(key);
+        if (first && state.buckets[first]) {
+          state.buckets[first].push(key);
+        } else {
+          state.unsortedLines.push(key);
+        }
+      }
+    }
+
+    state.log.push("STATUS: complete");
+    state.log.push("");
+  }
+
+  LETTERS.forEach(l => state.buckets[l].sort());
+  state.cleanLines = LETTERS.flatMap(l => state.buckets[l]);
+  state.log.push("SUMMARY");
+  state.log.push("Files loaded: " + state.filesLoaded);
+  state.log.push("Raw lines read: " + state.rawLines);
+  state.log.push("Clean kept: " + state.cleanLines.length);
+  state.log.push("Duplicates skipped: " + state.duplicateLines.length);
+  state.log.push("Removed/review lines: " + state.removedLines.length);
+  state.log.push("Unsorted lines: " + state.unsortedLines.length);
+  state.log.push("Status: VERIFIED_DONE_READY_FOR_REVIEW");
+  state.log.push("Deletes performed: 0");
+  state.log.push("Trash moves performed: 0");
+  state.log.push("Source overwrites performed: 0");
+
+  updateScreen();
+}
+
+function cleanLine(input, o) {
+  let line = String(input || "").trim().replace(/\s+/g, " ");
+
+  if (!line) return { keep: false, reason: "BLANK" };
+  if (o.dropBadChar && line.includes("�")) return { keep: false, reason: "BAD_CHARACTER_REPLACEMENT_SYMBOL" };
+
+  if (o.deleteCodeStrings && looksLikeCode(line)) return { keep: false, reason: "CODE_STRING" };
+
+  const total = Math.max(line.length, 1);
+  const letters = (line.match(/[A-Za-z]/g) || []).length;
+  const nums = (line.match(/[0-9]/g) || []).length;
+  const spaces = (line.match(/\s/g) || []).length;
+  const symbols = Math.max(total - letters - nums - spaces, 0);
+
+  if (letters / total < o.minLetterRatio) return { keep: false, reason: "LOW_LETTER_RATIO" };
+  if (o.dropNumberHeavy && nums / total > o.maxNumberRatio) return { keep: false, reason: "NUMBER_HEAVY" };
+  if (o.dropSymbolHeavy && symbols / total > o.maxSymbolRatio) return { keep: false, reason: "SYMBOL_HEAVY" };
+
+  if (o.lettersSpacesOnly) {
+    line = line.replace(/[^A-Za-z\s]/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  if (o.uppercase) line = line.toUpperCase();
+
+  const words = line.split(/\s+/).filter(Boolean);
+  if (o.minTwoWords && words.length < 2) return { keep: false, reason: "ONE_WORD_OR_TOO_SHORT" };
+
+  if (o.filterGibberish && looksGibberish(words)) return { keep: false, reason: "GIBBERISH_REVIEW" };
+
+  if (o.strictSameLetter && !passesStrictAlliteration(words)) return { keep: false, reason: "NOT_STRICT_ALLITERATION" };
+
+  return { keep: true, line };
+}
+
+function looksLikeCode(line) {
+  const codeHints = [
+    /function\s*\(/i, /const\s+\w+/i, /let\s+\w+/i, /var\s+\w+/i,
+    /<\/?[a-z][\s\S]*>/i, /\{[\s\S]*\}/, /=>/, /console\.log/i,
+    /SELECT\s+.+\s+FROM/i, /https?:\/\//i, /file:\/\//i
+  ];
+  return codeHints.some(r => r.test(line));
+}
+
+function looksGibberish(words) {
+  let longBad = 0;
+  for (const w of words) {
+    if (w.length >= 14 && !/[AEIOUY]/i.test(w)) longBad++;
+    if (/(.)\1{4,}/.test(w)) longBad++;
+  }
+  return longBad > 0;
+}
+
+function passesStrictAlliteration(words) {
+  const meaningful = words
+    .map(w => w.replace(/[^A-Z]/gi, ""))
+    .filter(w => w.length > 0);
+
+  if (meaningful.length < 2) return false;
+
+  const first = meaningful[0][0].toUpperCase();
+  let matching = 0;
+
+  meaningful.forEach(w => {
+    if (w[0].toUpperCase() === first) matching++;
+  });
+
+  return matching >= 2;
+}
+
+function firstLetter(line) {
+  const m = line.match(/[A-Z]/i);
+  return m ? m[0].toUpperCase() : null;
+}
+
+async function extractFile(file) {
+  const name = file.name || "UNKNOWN_FILE";
+  const lower = name.toLowerCase();
+
+  if (lower.endsWith(".zip")) {
+    return await extractZip(file);
+  }
+
+  if (lower.endsWith(".pdf")) {
+    const text = await extractPdfText(file);
+    return [{ name, text, originalText: "[PDF_BINARY_PRESERVED_BY_USER_UPLOAD]" }];
+  }
+
+  const text = await file.text();
+  return [{ name, text, originalText: text }];
+}
+
+async function extractZip(file) {
+  const out = [];
+  const zip = await JSZip.loadAsync(file);
+  const entries = Object.keys(zip.files);
+
+  for (const path of entries) {
+    const entry = zip.files[path];
+    if (entry.dir) continue;
+
+    const lower = path.toLowerCase();
+
+    if (lower.endsWith(".txt") || lower.endsWith(".csv") || lower.endsWith(".md") || lower.endsWith(".html") || lower.endsWith(".htm")) {
+      const text = await entry.async("string");
+      out.push({ name: file.name + "/" + path, text, originalText: text });
+    } else if (lower.endsWith(".pdf")) {
+      const blob = await entry.async("blob");
+      const text = await extractPdfText(blob);
+      out.push({ name: file.name + "/" + path, text, originalText: "[PDF_IN_ZIP_BINARY]" });
+    } else {
+      state.log.push("Skipped unsupported ZIP entry: " + path);
+    }
+  }
+
+  return out;
+}
+
+async function extractPdfText(fileOrBlob) {
+  try {
+    const buf = await fileOrBlob.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const pages = [];
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const text = content.items.map(item => item.str).join(" ");
+      pages.push(text);
+    }
+
+    return pages.join("\n");
+  } catch (err) {
+    state.log.push("PDF extraction failed: " + (err.message || err));
+    return "";
+  }
+}
+
+function updateScreen() {
+  document.getElementById("statFiles").textContent = state.filesLoaded;
+  document.getElementById("statRaw").textContent = state.rawLines;
+  document.getElementById("statClean").textContent = state.cleanLines.length;
+  document.getElementById("statDupes").textContent = state.duplicateLines.length;
+  document.getElementById("statRemoved").textContent = state.removedLines.length;
+
+  drawAzCounts();
+
+  document.getElementById("masterPreview").textContent =
+    state.cleanLines.slice(0, 1000).join("\n") +
+    (state.cleanLines.length > 1000 ? "\n\n...preview limited to first 1000 lines..." : "");
+
+  document.getElementById("logBox").textContent = state.log.join("\n");
+}
+
+function drawAzCounts() {
+  const box = document.getElementById("azCounts");
+  box.innerHTML = "";
+  LETTERS.forEach(l => {
+    const div = document.createElement("div");
+    div.className = "letter";
+    div.innerHTML = "<strong>" + l + "</strong><br><span class='small'>" + (state.buckets[l]?.length || 0) + "</span>";
+    box.appendChild(div);
+  });
+}
+
+function makeDoneManifest() {
+  const lines = [];
+  lines.push("AUTOCHUNK_ENGINE_V4B_DONE_MANIFEST");
+  lines.push("Batch stamp: " + state.batchStamp);
+  lines.push("Status: VERIFIED_DONE_READY_FOR_REVIEW");
+  lines.push("Files loaded: " + state.filesLoaded);
+  lines.push("Raw lines: " + state.rawLines);
+  lines.push("Clean kept: " + state.cleanLines.length);
+  lines.push("Duplicates: " + state.duplicateLines.length);
+  lines.push("Removed/review: " + state.removedLines.length);
+  lines.push("");
+  lines.push("A-Z COUNTS");
+  LETTERS.forEach(l => lines.push(l + ": " + state.buckets[l].length));
+  lines.push("");
+  lines.push("SOURCE FILES");
+  state.originals.forEach(s => lines.push("- " + s.name));
+  return lines.join("\n") + "\n";
+}
+
+function downloadMaster() {
+  downloadText("MASTER_AZ_INDEX_" + state.batchStamp + ".txt", state.cleanLines.join("\n") + "\n");
+}
+
+function downloadLog() {
+  downloadText("PROCESS_LOG_" + state.batchStamp + ".txt", state.log.join("\n") + "\n");
+}
+
+async function downloadOutputZip() {
+  if (!state.cleanLines.length && !state.log.length) {
+    alert("Run CLEAN & SORT first.");
+    return;
+  }
+
+  const zip = new JSZip();
+  const root = zip.folder("V4B_OUTPUT_BATCH_" + state.batchStamp);
+  const originals = root.folder("00_ORIGINALS_DO_NOT_DELETE");
+  const clean = root.folder("01_VERIFIED_CLEAN_AZ");
+  const master = root.folder("02_MASTER_READY");
+  const review = root.folder("03_REVIEW_NOT_DELETED");
+  const logs = root.folder("04_LOGS");
+
+  for (const src of state.originals) {
+    originals.file(safeName(src.name) + ".txt", src.text || "");
+  }
+
+  LETTERS.forEach(l => {
+    clean.file(l + ".txt", state.buckets[l].join("\n") + (state.buckets[l].length ? "\n" : ""));
+  });
+
+  master.file("MASTER_AZ_INDEX.txt", state.cleanLines.join("\n") + "\n");
+  review.file("DUPLICATES_REVIEW.txt", unique(state.duplicateLines).join("\n") + "\n");
+  review.file("REMOVED_REVIEW.txt", state.removedLines.join("\n") + "\n");
+  review.file("UNSORTED_REVIEW.txt", state.unsortedLines.join("\n") + "\n");
+  logs.file("PROCESS_LOG.txt", state.log.join("\n") + "\n");
+  root.file("DONE_MANIFEST.txt", makeDoneManifest());
+
+  const blob = await zip.generateAsync({ type: "blob" });
+  downloadBlob("V4B_OUTPUT_BATCH_" + state.batchStamp + ".zip", blob);
+}
+
+function unique(arr) {
+  return Array.from(new Set(arr));
+}
+
+function safeName(name) {
+  return String(name || "file")
+    .replace(/[\/\\:*?"<>|]+/g, "_")
+    .replace(/\s+/g, "_")
+    .slice(0, 150);
+}
+
+function downloadText(filename, text) {
+  downloadBlob(filename, new Blob([text], { type: "text/plain;charset=utf-8" }));
+}
+
+function downloadBlob(filename, blob) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(a.href);
+    a.remove();
+  }, 1000);
+}
+
+function clearAll() {
+  document.getElementById("fileInput").value = "";
+  document.getElementById("pasteBox").value = "";
+  state = resetState();
+  updateScreen();
+}
+</script>
+</body>
+</html>

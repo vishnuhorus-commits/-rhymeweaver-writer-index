@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Chunk Engine Ultra Sorter</title>
+<style>
+  :root{
+    --bg:#0d1015; --panel:#151a22; --panel2:#1b2230; --text:#eef3fb; --muted:#a9b5c7;
+    --line:#2b3445; --good:#9af7c1; --bad:#ff9e9e; --accent:#77c3ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b0e13,#10141b 40%,#0d1015);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  .hero,.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.24)}
+  .hero{padding:18px;margin-bottom:14px}
+  .card{padding:14px;margin-bottom:14px}
+  h1{margin:0 0 8px;font-size:28px;line-height:1.1}
+  h2{margin:0 0 10px;font-size:18px}
+  p{margin:8px 0;color:var(--muted)}
+  .small{font-size:13px;color:var(--muted)}
+  textarea{width:100%;min-height:220px;resize:vertical;background:#0a0d12;color:var(--text);border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;line-height:1.45}
+  .out{white-space:pre-wrap;word-break:break-word;max-height:360px;overflow:auto;background:#0a0d12;color:var(--text);border:1px solid var(--line);border-radius:14px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+  .btn{appearance:none;border:none;border-radius:999px;padding:12px 16px;font-weight:700;font-size:15px;cursor:pointer;background:var(--accent);color:#08111a}
+  .btn.secondary{background:#2d3748;color:var(--text)}
+  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  .btn.good{background:var(--good);color:#07140e}
+  .btn.warn{background:#ffdb9a;color:#231500}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .grid{display:grid;grid-template-columns:1fr;gap:14px}
+  @media (min-width:900px){.grid{grid-template-columns:1.05fr .95fr}}
+  .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  @media (min-width:760px){.stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .n{font-size:22px;font-weight:800}
+  .status{padding:10px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+  .ok{color:var(--good)} .err{color:var(--bad)} .muted{color:var(--muted)}
+  .checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  @media (min-width:760px){.checks{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  label.chk{display:flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  input[type="range"]{width:220px;max-width:100%}
+  input[type="number"]{width:120px;background:#0a0d12;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}
+  .letters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  @media (min-width:760px){.letters{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  .letter{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px}
+  .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-size:12px;color:var(--muted);background:#0a0d12}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>Chunk Engine Ultra Sorter</h1>
+    <p>Built for giant messy text on iPad. Process in batches, kill corrupted junk, keep memory light, save progress, and merge a clean master at the end.</p>
+    <p class="small">Best flow: paste or upload TXT, then run one chunk at a time. This avoids the 600,000-line browser crash problem.</p>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>Input</h2>
+        <div class="row">
+          <input id="fileInput" type="file" accept=".txt,text/plain" />
+          <button class="btn secondary" id="saveRawBtn">SAVE RAW</button>
+          <button class="btn ghost" id="restoreRawBtn">RESTORE RAW</button>
+          <button class="btn ghost" id="clearRawBtn">CLEAR RAW</button>
+        </div>
+        <textarea id="rawInput" placeholder="Paste raw text here. One line per phrase works best."></textarea>
+        <div class="row">
+          <label>LINES PER CHUNK <input id="chunkSize" type="number" min="1000" max="200000" step="1000" value="50000"></label>
+          <button class="btn" id="prepareBtn">PREPARE CHUNKS</button>
+          <button class="btn warn" id="nextChunkBtn" disabled>PROCESS NEXT CHUNK</button>
+          <button class="btn secondary" id="rebuildMasterBtn" disabled>REBUILD MASTER</button>
+        </div>
+        <div id="status" class="status small">Ready.</div>
+      </div>
+
+      <div class="card">
+        <h2>Filters</h2>
+        <div class="checks">
+          <label class="chk"><input type="checkbox" id="uppercase" checked> UPPERCASE</label>
+          <label class="chk"><input type="checkbox" id="dedupeChunk" checked> DEDUPE WITHIN CHUNK</label>
+          <label class="chk"><input type="checkbox" id="minTwoWords" checked> MINIMUM 2 WORDS</label>
+          <label class="chk"><input type="checkbox" id="killReplacement" checked> DELETE LINES WITH �</label>
+          <label class="chk"><input type="checkbox" id="dropCodeStrings" checked> DELETE CODE STRINGS</label>
+          <label class="chk"><input type="checkbox" id="lettersSpacesOnly" checked> KEEP LETTERS/SPACES ONLY</label>
+          <label class="chk"><input type="checkbox" id="filterGibberish" checked> FILTER GIBBERISH</label>
+          <label class="chk"><input type="checkbox" id="dropOneCharWords" checked> DROP LINES HEAVY WITH 1-CHAR TOKENS</label>
+          <label class="chk"><input type="checkbox" id="trimSpace" checked> NORMALIZE SPACES</label>
+        </div>
+
+        <div class="row">
+          <label>MIN LETTER RATIO <span id="letterRatioVal" class="pill">0.55</span><br><input id="letterRatio" type="range" min="0.20" max="0.95" step="0.01" value="0.55"></label>
+          <label>MAX SYMBOL RATIO <span id="symbolRatioVal" class="pill">0.20</span><br><input id="symbolRatio" type="range" min="0.00" max="0.80" step="0.01" value="0.20"></label>
+          <label>MAX NUMBER RATIO <span id="numberRatioVal" class="pill">0.25</span><br><input id="numberRatio" type="range" min="0.00" max="0.80" step="0.01" value="0.25"></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Downloads</h2>
+        <div class="row">
+          <button class="btn good" id="downloadCurrentChunkBtn" disabled>DOWNLOAD CURRENT CHUNK</button>
+          <button class="btn good" id="downloadMasterBtn" disabled>DOWNLOAD MASTER</button>
+          <button class="btn secondary" id="downloadAzZipBtn" disabled>DOWNLOAD A–Z ZIP</button>
+          <button class="btn ghost" id="exportSessionBtn">EXPORT SESSION JSON</button>
+        </div>
+        <p class="small">Session data is also saved in your browser so you can restore progress after a reload.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Chunk Progress</h2>
+        <div class="stats">
+          <div class="stat"><div class="small">TOTAL RAW LINES</div><div class="n" id="totalRawLines">0</div></div>
+          <div class="stat"><div class="small">CHUNKS TOTAL</div><div class="n" id="chunksTotal">0</div></div>
+          <div class="stat"><div class="small">CHUNKS DONE</div><div class="n" id="chunksDone">0</div></div>
+          <div class="stat"><div class="small">MASTER UNIQUE</div><div class="n" id="masterUnique">0</div></div>
+        </div>
+        <div class="stats" style="margin-top:10px">
+          <div class="stat"><div class="small">LAST CHUNK RAW</div><div class="n" id="lastChunkRaw">0</div></div>
+          <div class="stat"><div class="small">LAST CHUNK KEPT</div><div class="n" id="lastChunkKept">0</div></div>
+          <div class="stat"><div class="small">LAST CHUNK REMOVED</div><div class="n" id="lastChunkRemoved">0</div></div>
+          <div class="stat"><div class="small">LETTERS USED</div><div class="n" id="lettersUsed">0</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Current Chunk Preview</h2>
+        <div id="chunkPreview" class="out">Nothing processed yet.</div>
+      </div>
+
+      <div class="card">
+        <h2>Master Preview</h2>
+        <div id="masterPreview" class="out">No master built yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>A–Z Breakdown</h2>
+    <div id="letters" class="letters"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    fileInput: $('fileInput'), rawInput: $('rawInput'), chunkSize: $('chunkSize'), prepareBtn: $('prepareBtn'),
+    nextChunkBtn: $('nextChunkBtn'), rebuildMasterBtn: $('rebuildMasterBtn'), status: $('status'),
+    saveRawBtn: $('saveRawBtn'), restoreRawBtn: $('restoreRawBtn'), clearRawBtn: $('clearRawBtn'),
+    uppercase: $('uppercase'), dedupeChunk: $('dedupeChunk'), minTwoWords: $('minTwoWords'), killReplacement: $('killReplacement'),
+    dropCodeStrings: $('dropCodeStrings'), lettersSpacesOnly: $('lettersSpacesOnly'), filterGibberish: $('filterGibberish'),
+    dropOneCharWords: $('dropOneCharWords'), trimSpace: $('trimSpace'),
+    letterRatio: $('letterRatio'), symbolRatio: $('symbolRatio'), numberRatio: $('numberRatio'),
+    letterRatioVal: $('letterRatioVal'), symbolRatioVal: $('symbolRatioVal'), numberRatioVal: $('numberRatioVal'),
+    totalRawLines: $('totalRawLines'), chunksTotal: $('chunksTotal'), chunksDone: $('chunksDone'), masterUnique: $('masterUnique'),
+    lastChunkRaw: $('lastChunkRaw'), lastChunkKept: $('lastChunkKept'), lastChunkRemoved: $('lastChunkRemoved'), lettersUsed: $('lettersUsed'),
+    chunkPreview: $('chunkPreview'), masterPreview: $('masterPreview'), letters: $('letters'),
+    downloadCurrentChunkBtn: $('downloadCurrentChunkBtn'), downloadMasterBtn: $('downloadMasterBtn'), downloadAzZipBtn: $('downloadAzZipBtn'), exportSessionBtn: $('exportSessionBtn')
+  };
+
+  const STORAGE_KEY = 'chunk_engine_ultra_sorter_session_v1';
+  const RAW_KEY = 'chunk_engine_ultra_sorter_raw_v1';
+
+  let state = {
+    rawLines: [],
+    chunkSize: 50000,
+    nextChunkIndex: 0,
+    chunksTotal: 0,
+    chunkOutputs: [],
+    masterSet: {},
+    currentChunkText: '',
+    lastStats: {raw:0, kept:0, removed:0}
+  };
+
+  function setStatus(msg, kind='muted') {
+    els.status.innerHTML = msg;
+    els.status.className = 'status small ' + kind;
+  }
+
+  function syncSliderLabels() {
+    els.letterRatioVal.textContent = Number(els.letterRatio.value).toFixed(2);
+    els.symbolRatioVal.textContent = Number(els.symbolRatio.value).toFixed(2);
+    els.numberRatioVal.textContent = Number(els.numberRatio.value).toFixed(2);
+  }
+
+  function getOptions() {
+    return {
+      uppercase: els.uppercase.checked,
+      dedupeChunk: els.dedupeChunk.checked,
+      minTwoWords: els.minTwoWords.checked,
+      killReplacement: els.killReplacement.checked,
+      dropCodeStrings: els.dropCodeStrings.checked,
+      lettersSpacesOnly: els.lettersSpacesOnly.checked,
+      filterGibberish: els.filterGibberish.checked,
+      dropOneCharWords: els.dropOneCharWords.checked,
+      trimSpace: els.trimSpace.checked,
+      minLetterRatio: Number(els.letterRatio.value),
+      maxSymbolRatio: Number(els.symbolRatio.value),
+      maxNumberRatio: Number(els.numberRatio.value)
+    };
+  }
+
+  function saveSession() {
+    const payload = {
+      rawLines: state.rawLines,
+      chunkSize: state.chunkSize,
+      nextChunkIndex: state.nextChunkIndex,
+      chunksTotal: state.chunksTotal,
+      chunkOutputs: state.chunkOutputs,
+      masterLines: Object.keys(state.masterSet),
+      currentChunkText: state.currentChunkText,
+      lastStats: state.lastStats,
+      options: getOptions()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }
+
+  function restoreSession() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    try {
+      const payload = JSON.parse(raw);
+      state.rawLines = payload.rawLines || [];
+      state.chunkSize = payload.chunkSize || 50000;
+      state.nextChunkIndex = payload.nextChunkIndex || 0;
+      state.chunksTotal = payload.chunksTotal || 0;
+      state.chunkOutputs = payload.chunkOutputs || [];
+      state.masterSet = {};
+      for (const line of (payload.masterLines || [])) state.masterSet[line] = true;
+      state.currentChunkText = payload.currentChunkText || '';
+      state.lastStats = payload.lastStats || {raw:0, kept:0, removed:0};
+
+      if (payload.options) {
+        els.uppercase.checked = !!payload.options.uppercase;
+        els.dedupeChunk.checked = !!payload.options.dedupeChunk;
+        els.minTwoWords.checked = !!payload.options.minTwoWords;
+        els.killReplacement.checked = !!payload.options.killReplacement;
+        els.dropCodeStrings.checked = !!payload.options.dropCodeStrings;
+        els.lettersSpacesOnly.checked = !!payload.options.lettersSpacesOnly;
+        els.filterGibberish.checked = !!payload.options.filterGibberish;
+        els.dropOneCharWords.checked = !!payload.options.dropOneCharWords;
+        els.trimSpace.checked = !!payload.options.trimSpace;
+        els.letterRatio.value = payload.options.minLetterRatio ?? 0.55;
+        els.symbolRatio.value = payload.options.maxSymbolRatio ?? 0.20;
+        els.numberRatio.value = payload.options.maxNumberRatio ?? 0.25;
+      }
+
+      els.chunkSize.value = state.chunkSize;
+      els.rawInput.value = state.rawLines.join('\n');
+      syncSliderLabels();
+      renderAll();
+      setStatus('Session restored.', 'ok');
+      return true;
+    } catch (e) {
+      console.error(e);
+      setStatus('Stored session could not be restored.', 'err');
+      return false;
+    }
+  }
+
+  function saveRaw() {
+    localStorage.setItem(RAW_KEY, els.rawInput.value || '');
+    setStatus('Raw text saved in browser.', 'ok');
+  }
+
+  function restoreRaw() {
+    const raw = localStorage.getItem(RAW_KEY);
+    if (raw == null) {
+      setStatus('No saved raw text found.', 'err');
+      return;
+    }
+    els.rawInput.value = raw;
+    setStatus('Raw text restored.', 'ok');
+  }
+
+  function clearRaw() {
+    els.rawInput.value = '';
+    localStorage.removeItem(RAW_KEY);
+    setStatus('Raw text cleared.', 'ok');
+  }
+
+  function normalizeLines(text) {
+    return text.replace(/\r/g, '\n').split(/\n+/).map(s => s.trim()).filter(Boolean);
+  }
+
+  function downloadText(filename, text) {
+    const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1200);
+  }
+
+  function firstLetterKey(line) {
+    const m = line.match(/[A-Z]/i);
+    return m ? m[0].toUpperCase() : '#';
+  }
+
+  function ratios(line) {
+    const chars = [...line];
+    let letters = 0, nums = 0, spaces = 0, symbols = 0;
+    for (const ch of chars) {
+      if (/[A-Za-z]/.test(ch)) letters++;
+      else if (/[0-9]/.test(ch)) nums++;
+      else if (/\s/.test(ch)) spaces++;
+      else symbols++;
+    }
+    const total = Math.max(1, chars.length - spaces);
+    return {
+      letters, nums, spaces, symbols,
+      letterRatio: letters / total,
+      numberRatio: nums / total,
+      symbolRatio: symbols / total
+    };
+  }
+
+  function looksCodeLike(line) {
+    if (/[A-Z0-9_?=^%$#@&*{}\[\]\\/<>|~]{6,}/.test(line)) return true;
+    if (/(?:[A-Z0-9][^a-z\s]){5,}/.test(line)) return true;
+    if (/\b[A-Z0-9]{8,}\b/.test(line)) return true;
+    return false;
+  }
+
+  function gibberishCheck(line) {
+    const words = line.split(/\s+/).filter(Boolean);
+    if (!words.length) return true;
+    let weird = 0;
+    let oneChar = 0;
+    for (const w of words) {
+      if (w.length === 1) oneChar++;
+      if (/[BCDFGHJKLMNPQRSTVWXYZ]{6,}/i.test(w)) weird++;
+      if (/[A-Z]{1,3}[0-9]{2,}[A-Z0-9]*/i.test(w)) weird++;
+      if (/[^A-Za-z]/.test(w) && w.length > 4) weird++;
+      if (w.length > 28) weird++;
+    }
+    if (oneChar >= Math.ceil(words.length * 0.5) && words.length >= 4) return true;
+    if (weird >= Math.max(2, Math.ceil(words.length * 0.4))) return true;
+    return false;
+  }
+
+  function cleanLine(line, opt) {
+    let s = line;
+    if (!s || !s.trim()) return null;
+    if (opt.killReplacement && s.includes('�')) return null;
+    if (opt.uppercase) s = s.toUpperCase();
+    if (opt.trimSpace) s = s.replace(/\s+/g, ' ').trim();
+
+    const pre = ratios(s);
+    if (pre.letterRatio < opt.minLetterRatio) return null;
+    if (pre.symbolRatio > opt.maxSymbolRatio) return null;
+    if (pre.numberRatio > opt.maxNumberRatio) return null;
+    if (opt.dropCodeStrings && looksCodeLike(s)) return null;
+
+    if (opt.lettersSpacesOnly) {
+      s = s.replace(/[^A-Z\s]/g, ' ');
+      if (opt.trimSpace) s = s.replace(/\s+/g, ' ').trim();
+    }
+
+    if (!s) return null;
+    const words = s.split(/\s+/).filter(Boolean);
+    if (opt.minTwoWords && words.length < 2) return null;
+    if (opt.dropOneCharWords) {
+      const oneCharCount = words.filter(w => w.length === 1).length;
+      if (oneCharCount >= Math.ceil(words.length * 0.5) && words.length >= 4) return null;
+    }
+    if (opt.filterGibberish && gibberishCheck(s)) return null;
+    return s || null;
+  }
+
+  function prepareChunks() {
+    const raw = els.rawInput.value || '';
+    const lines = normalizeLines(raw);
+    if (!lines.length) {
+      setStatus('Nothing to prepare yet. Paste text or upload TXT.', 'err');
+      return;
+    }
+    const chunkSize = Math.max(1000, Number(els.chunkSize.value) || 50000);
+    state.rawLines = lines;
+    state.chunkSize = chunkSize;
+    state.nextChunkIndex = 0;
+    state.chunksTotal = Math.ceil(lines.length / chunkSize);
+    state.chunkOutputs = [];
+    state.masterSet = {};
+    state.currentChunkText = '';
+    state.lastStats = {raw:0, kept:0, removed:0};
+    saveSession();
+    renderAll();
+    setStatus(`Prepared ${state.chunksTotal} chunk(s). Tap PROCESS NEXT CHUNK.`, 'ok');
+  }
+
+  function processNextChunk() {
+    if (!state.rawLines.length) {
+      setStatus('Prepare chunks first.', 'err');
+      return;
+    }
+    if (state.nextChunkIndex >= state.chunksTotal) {
+      setStatus('All chunks already processed.', 'ok');
+      return;
+    }
+
+    const start = state.nextChunkIndex * state.chunkSize;
+    const end = Math.min(start + state.chunkSize, state.rawLines.length);
+    const slice = state.rawLines.slice(start, end);
+    const opt = getOptions();
+    let out = [];
+    for (const line of slice) {
+      const cleaned = cleanLine(line, opt);
+      if (cleaned) out.push(cleaned);
+    }
+    if (opt.dedupeChunk) out = [...new Set(out)];
+    out.sort((a,b) => a.localeCompare(b));
+    for (const line of out) state.masterSet[line] = true;
+
+    state.chunkOutputs[state.nextChunkIndex] = out;
+    state.currentChunkText = out.join('\n');
+    state.lastStats = {raw: slice.length, kept: out.length, removed: slice.length - out.length};
+    state.nextChunkIndex += 1;
+    saveSession();
+    renderAll();
+
+    if (state.nextChunkIndex >= state.chunksTotal) {
+      setStatus('Final chunk done. Master is ready.', 'ok');
+    } else {
+      setStatus(`Processed chunk ${state.nextChunkIndex} of ${state.chunksTotal}.`, 'ok');
+    }
+  }
+
+  function buildMasterLines() {
+    return Object.keys(state.masterSet).sort((a,b) => a.localeCompare(b));
+  }
+
+  function buildGrouped(lines) {
+    const grouped = {};
+    for (const line of lines) {
+      const k = firstLetterKey(line);
+      if (!grouped[k]) grouped[k] = [];
+      grouped[k].push(line);
+    }
+    return grouped;
+  }
+
+  function masterTextFromGrouped(grouped) {
+    const keys = Object.keys(grouped).sort();
+    return keys.map(k => `[${k}]\n` + grouped[k].join('\n')).join('\n\n');
+  }
+
+  function renderLetters(grouped) {
+    const keys = Object.keys(grouped).sort();
+    els.lettersUsed.textContent = String(keys.length);
+    if (!keys.length) {
+      els.letters.innerHTML = '<div class="small">No grouped output yet.</div>';
+      return;
+    }
+    els.letters.innerHTML = keys.map(k => {
+      const arr = grouped[k];
+      const sample = arr.slice(0,4).join('\n').replace(/</g,'&lt;');
+      return `<div class="letter"><strong>${k}</strong> <span class="pill">${arr.length}</span><div class="small mono" style="margin-top:8px">${sample}${arr.length>4?'\n…':''}</div></div>`;
+    }).join('');
+  }
+
+  function renderAll() {
+    const masterLines = buildMasterLines();
+    const grouped = buildGrouped(masterLines);
+    els.totalRawLines.textContent = String(state.rawLines.length);
+    els.chunksTotal.textContent = String(state.chunksTotal);
+    els.chunksDone.textContent = String(state.nextChunkIndex);
+    els.masterUnique.textContent = String(masterLines.length);
+    els.lastChunkRaw.textContent = String(state.lastStats.raw || 0);
+    els.lastChunkKept.textContent = String(state.lastStats.kept || 0);
+    els.lastChunkRemoved.textContent = String(state.lastStats.removed || 0);
+    els.chunkPreview.textContent = state.currentChunkText ? state.currentChunkText.slice(0, 40000) + (state.currentChunkText.length > 40000 ? '\n\n...[PREVIEW TRIMMED]' : '') : 'Nothing processed yet.';
+    const masterText = masterTextFromGrouped(grouped);
+    els.masterPreview.textContent = masterText ? masterText.slice(0, 40000) + (masterText.length > 40000 ? '\n\n...[PREVIEW TRIMMED]' : '') : 'No master built yet.';
+    renderLetters(grouped);
+
+    const hasPrepared = state.rawLines.length > 0 && state.chunksTotal > 0;
+    els.nextChunkBtn.disabled = !hasPrepared || state.nextChunkIndex >= state.chunksTotal;
+    els.rebuildMasterBtn.disabled = masterLines.length === 0;
+    els.downloadCurrentChunkBtn.disabled = !state.currentChunkText;
+    els.downloadMasterBtn.disabled = masterLines.length === 0;
+    els.downloadAzZipBtn.disabled = masterLines.length === 0;
+  }
+
+  function crc32(buf) {
+    let c, table = crc32.table;
+    if (!table) {
+      table = crc32.table = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) {
+        c = n;
+        for (let k = 0; k < 8; k++) c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+        table[n] = c >>> 0;
+      }
+    }
+    let crc = 0 ^ (-1);
+    for (let i = 0; i < buf.length; i++) crc = (crc >>> 8) ^ table[(crc ^ buf[i]) & 0xFF];
+    return (crc ^ (-1)) >>> 0;
+  }
+
+  function dosTimeDate(d = new Date()) {
+    const time = ((d.getHours() & 31) << 11) | ((d.getMinutes() & 63) << 5) | ((Math.floor(d.getSeconds()/2)) & 31);
+    const year = Math.max(1980, d.getFullYear());
+    const date = (((year - 1980) & 127) << 9) | (((d.getMonth()+1) & 15) << 5) | (d.getDate() & 31);
+    return { time, date };
+  }
+
+  function makeZip(files) {
+    const encoder = new TextEncoder();
+    let offset = 0;
+    const chunks = [];
+    const central = [];
+    const now = dosTimeDate();
+
+    for (const file of files) {
+      const nameBytes = encoder.encode(file.name);
+      const dataBytes = encoder.encode(file.content);
+      const crc = crc32(dataBytes);
+      const size = dataBytes.length;
+
+      const local = new Uint8Array(30 + nameBytes.length);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);
+      lv.setUint16(6, 0, true);
+      lv.setUint16(8, 0, true);
+      lv.setUint16(10, now.time, true);
+      lv.setUint16(12, now.date, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, size, true);
+      lv.setUint32(22, size, true);
+      lv.setUint16(26, nameBytes.length, true);
+      lv.setUint16(28, 0, true);
+      local.set(nameBytes, 30);
+      chunks.push(local, dataBytes);
+
+      const cen = new Uint8Array(46 + nameBytes.length);
+      const cv = new DataView(cen.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, now.time, true);
+      cv.setUint16(14, now.date, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, size, true);
+      cv.setUint32(24, size, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true);
+      cen.set(nameBytes, 46);
+      central.push(cen);
+      offset += local.length + dataBytes.length;
+    }
+
+    let centralSize = 0;
+    for (const c of central) centralSize += c.length;
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true); ev.setUint16(6, 0, true);
+    ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
+    ev.setUint32(12, centralSize, true); ev.setUint32(16, offset, true); ev.setUint16(20, 0, true);
+    return new Blob([...chunks, ...central, end], {type:'application/zip'});
+  }
+
+  els.letterRatio.addEventListener('input', syncSliderLabels);
+  els.symbolRatio.addEventListener('input', syncSliderLabels);
+  els.numberRatio.addEventListener('input', syncSliderLabels);
+
+  els.saveRawBtn.addEventListener('click', saveRaw);
+  els.restoreRawBtn.addEventListener('click', restoreRaw);
+  els.clearRawBtn.addEventListener('click', clearRaw);
+  els.prepareBtn.addEventListener('click', prepareChunks);
+  els.nextChunkBtn.addEventListener('click', processNextChunk);
+  els.rebuildMasterBtn.addEventListener('click', () => { renderAll(); setStatus('Master rebuilt from session data.', 'ok'); saveSession(); });
+
+  els.fileInput.addEventListener('change', async (e) => {
+    const file = (e.target.files || [])[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      els.rawInput.value = text;
+      saveRaw();
+      setStatus(`${file.name} loaded. Now tap PREPARE CHUNKS.`, 'ok');
+    } catch (err) {
+      console.error(err);
+      setStatus('Could not read that TXT file in this browser.', 'err');
+    }
+  });
+
+  els.downloadCurrentChunkBtn.addEventListener('click', () => {
+    if (!state.currentChunkText) return;
+    downloadText(`CHUNK_${String(state.nextChunkIndex).padStart(4,'0')}.txt`, state.currentChunkText);
+  });
+
+  els.downloadMasterBtn.addEventListener('click', () => {
+    const masterLines = buildMasterLines();
+    if (!masterLines.length) return;
+    const grouped = buildGrouped(masterLines);
+    downloadText('MASTER.txt', masterTextFromGrouped(grouped));
+  });
+
+  els.downloadAzZipBtn.addEventListener('click', () => {
+    const masterLines = buildMasterLines();
+    if (!masterLines.length) return;
+    const grouped = buildGrouped(masterLines);
+    const files = [{name:'MASTER.txt', content: masterTextFromGrouped(grouped)}];
+    for (const k of Object.keys(grouped).sort()) files.push({name:`${k}.txt`, content: grouped[k].join('\n')});
+    const blob = makeZip(files);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'A-Z_OUTPUT.zip'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1200);
+  });
+
+  els.exportSessionBtn.addEventListener('click', () => {
+    saveSession();
+    const raw = localStorage.getItem(STORAGE_KEY) || '{}';
+    downloadText('chunk_engine_session.json', raw);
+  });
+
+  syncSliderLabels();
+  renderAll();
+  if (!restoreSession()) setStatus('Ready. Paste text or upload TXT, then PREPARE CHUNKS.', 'muted');
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE ORCHESTRATOR — Drop · Sort · Grow · Search</title>
+
+<!-- ==========================================================
+     THE ORCHESTRATOR
+     One file. It is the finished design AND the working engine.
+
+     WHAT IT DOES (the loop you always wanted):
+       DROP your writing  ->  it SORTS A–Z by first letter
+       ->  it adds ONLY what is NEW (never a duplicate)
+       ->  everything gathers into ONE growing book
+       ->  you SEARCH it, A–Z and by sound
+       ->  it LOGS every drop
+       ->  nothing is ever deleted (duplicates go to a Review pile)
+
+     HOW YOUR WORDS SURVIVE:
+       - In Safari it quietly autosaves to this device.
+       - The "SAVE SEALED EDITION" button bakes your whole book
+         into a fresh copy of this file, so it opens finished on
+         ANY device with no setup and no internet.
+
+     OPEN IT IN SAFARI (or double-click the file), NOT inside the
+     Google Drive preview — the preview muzzles typing & buttons.
+     ========================================================== -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --black:#0b0b0d;
+    --lacquer:#141318;
+    --panel:#1b1a20;
+    --panel2:#221f28;
+    --gold:#d4af37;
+    --gold-soft:#e8cf82;
+    --gold-dim:#8a733a;
+    --teal:#4fd0c5;
+    --teal-dim:#2c7d77;
+    --ink:#efe9dc;
+    --ash:#9a948a;
+    --line:#3a3630;
+    --danger:#c98b6a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #1d1b22 0%, var(--black) 60%),
+      var(--black);
+    color:var(--ink);
+    font-family:"IBM Plex Mono", ui-monospace, monospace;
+    line-height:1.5;
+    min-height:100vh;
+    padding:22px 16px 80px;
+  }
+  .wrap{max-width:920px;margin:0 auto;}
+
+  /* ---------- HEADER ---------- */
+  header{text-align:center;padding:14px 0 22px;position:relative;}
+  .seal{
+    width:64px;height:64px;margin:0 auto 12px;border-radius:50%;
+    border:2px solid var(--gold);
+    background:
+      radial-gradient(circle at 50% 40%, rgba(212,175,55,.18), transparent 60%),
+      var(--lacquer);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold);font-family:"Marcellus",serif;font-size:26px;
+    box-shadow:0 0 24px rgba(212,175,55,.15), inset 0 0 12px rgba(212,175,55,.12);
+    transition:transform .3s;
+  }
+  .seal.spin{animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  h1{
+    font-family:"Marcellus", serif;
+    font-weight:400;font-size:30px;letter-spacing:5px;
+    color:var(--gold);margin:0;
+  }
+  .tagline{color:var(--ash);font-size:12px;letter-spacing:2px;margin-top:8px;}
+  .tagline b{color:var(--teal);font-weight:500;}
+
+  /* ---------- PANELS ---------- */
+  .panel{
+    background:linear-gradient(180deg,var(--panel),var(--lacquer));
+    border:1px solid var(--line);border-radius:14px;
+    padding:18px;margin:16px 0;
+    box-shadow:0 6px 22px rgba(0,0,0,.35);
+  }
+  .panel h2{
+    font-family:"Marcellus",serif;font-weight:400;color:var(--gold-soft);
+    font-size:15px;letter-spacing:2px;margin:0 0 12px;text-transform:uppercase;
+  }
+
+  /* ---------- DROP ZONE ---------- */
+  #drop{
+    border:2px dashed var(--gold-dim);border-radius:12px;
+    background:rgba(212,175,55,.04);
+    padding:14px;transition:border-color .2s, background .2s;
+  }
+  #drop.over{border-color:var(--gold);background:rgba(212,175,55,.10);}
+  textarea{
+    width:100%;min-height:150px;resize:vertical;
+    background:var(--black);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;
+    padding:12px;font-family:"IBM Plex Mono",monospace;font-size:14px;line-height:1.6;
+  }
+  textarea:focus{outline:none;border-color:var(--teal-dim);}
+  .drophint{color:var(--ash);font-size:12px;text-align:center;margin:10px 0 4px;letter-spacing:1px;}
+
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+  button, .btn{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:1px;
+    background:linear-gradient(180deg,#2a2620,#1c1913);
+    color:var(--gold-soft);border:1px solid var(--gold-dim);
+    border-radius:10px;padding:12px 16px;cursor:pointer;
+    transition:transform .08s, border-color .2s, color .2s;
+    flex:1 1 auto;min-height:46px;text-align:center;
+  }
+  button:hover,.btn:hover{border-color:var(--gold);color:var(--gold);}
+  button:active,.btn:active{transform:translateY(1px);}
+  button.primary{
+    background:linear-gradient(180deg,#3a3016,#2a2410);
+    color:var(--gold);border-color:var(--gold);
+    box-shadow:0 0 14px rgba(212,175,55,.18);
+  }
+  button.ghost{color:var(--ash);border-color:var(--line);background:transparent;}
+  input[type=file]{display:none;}
+
+  /* ---------- LIVE READOUT ---------- */
+  .readout{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  .stat{
+    flex:1 1 120px;background:var(--black);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;text-align:center;
+  }
+  .stat .n{font-size:22px;color:var(--teal);font-weight:500;}
+  .stat .l{font-size:10px;color:var(--ash);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+
+  /* ---------- SEARCH + SPINE ---------- */
+  #search{
+    width:100%;background:var(--black);color:var(--ink);
+    border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;font-family:"IBM Plex Mono",monospace;font-size:14px;letter-spacing:1px;
+  }
+  #search:focus{outline:none;border-color:var(--teal-dim);}
+  .spine{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 6px;}
+  .spine button{
+    flex:0 0 auto;min-width:34px;min-height:34px;padding:6px 0;
+    font-size:12px;border-radius:8px;
+  }
+  .spine button.active{background:var(--teal-dim);color:var(--black);border-color:var(--teal);}
+  .spine button.empty{opacity:.3;}
+
+  /* ---------- THE BOOK ---------- */
+  #book{margin-top:6px;}
+  .letter-block{margin:14px 0;}
+  .letter-head{
+    font-family:"Marcellus",serif;color:var(--gold);font-size:20px;letter-spacing:3px;
+    border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:8px;
+    display:flex;justify-content:space-between;align-items:baseline;
+  }
+  .letter-head .cnt{font-family:"IBM Plex Mono";font-size:11px;color:var(--teal);letter-spacing:1px;}
+  .entry{
+    padding:7px 10px;border-left:2px solid var(--gold-dim);
+    background:rgba(255,255,255,.015);border-radius:0 8px 8px 0;
+    margin:4px 0;font-size:14px;letter-spacing:.5px;word-break:break-word;
+  }
+  .entry.new{border-left-color:var(--teal);animation:flash 1.4s ease-out;}
+  @keyframes flash{0%{background:rgba(79,208,197,.18);}100%{background:rgba(255,255,255,.015);}}
+
+  .empty-note{color:var(--ash);text-align:center;padding:26px 10px;font-size:13px;letter-spacing:1px;}
+
+  /* ---------- COLLAPSIBLES (LOG / REVIEW) ---------- */
+  details{margin:14px 0;}
+  summary{
+    cursor:pointer;list-style:none;font-family:"Marcellus",serif;
+    color:var(--gold-soft);font-size:14px;letter-spacing:2px;
+    padding:12px 14px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;text-transform:uppercase;
+  }
+  summary::-webkit-details-marker{display:none;}
+  summary .tag{float:right;color:var(--teal);font-family:"IBM Plex Mono";font-size:11px;letter-spacing:1px;}
+  .log-body,.review-body{
+    background:var(--black);border:1px solid var(--line);border-top:none;
+    border-radius:0 0 10px 10px;padding:10px 14px;max-height:240px;overflow:auto;
+    font-size:12px;color:var(--ash);
+  }
+  .log-line{padding:4px 0;border-bottom:1px dashed #2a2822;}
+  .log-line b{color:var(--teal);}
+  .review-line{padding:5px 0;color:var(--danger);border-bottom:1px dashed #2a2822;font-size:13px;}
+
+  footer{text-align:center;color:var(--ash);font-size:11px;letter-spacing:1px;margin-top:30px;line-height:1.8;}
+  footer b{color:var(--gold-dim);}
+  .savenote{color:var(--teal-dim);}
+
+  select{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;
+    background:var(--black);color:var(--gold-soft);
+    border:1px solid var(--gold-dim);border-radius:8px;padding:10px 10px;min-height:44px;
+  }
+  #gatewayCatch{margin-top:12px;}
+  .catch-head{color:var(--teal);font-size:12px;letter-spacing:1px;margin-bottom:6px;}
+  .catch-line{font-size:13px;color:var(--gold-soft);padding:4px 0;border-bottom:1px dashed #2a2822;letter-spacing:.5px;word-break:break-word;}
+  .catch-empty{color:var(--ash);font-size:12px;text-align:center;padding:10px;}
+
+  /* toast */
+  #toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(40px);
+    background:var(--lacquer);border:1px solid var(--gold);color:var(--gold-soft);
+    padding:12px 18px;border-radius:10px;font-size:13px;letter-spacing:1px;
+    opacity:0;transition:opacity .25s, transform .25s;pointer-events:none;z-index:50;
+    box-shadow:0 6px 24px rgba(0,0,0,.5);max-width:90vw;text-align:center;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="seal" id="seal">❧</div>
+    <h1>THE ORCHESTRATOR</h1>
+    <div class="tagline">DROP · SORT · GROW · SEARCH &nbsp;—&nbsp; <b>only what is new, never a duplicate, nothing deleted</b></div>
+  </header>
+
+  <!-- DROP ZONE -->
+  <section class="panel">
+    <h2>Drop your writing</h2>
+    <div id="drop">
+      <textarea id="input" placeholder="Paste words or phrases here — one per line —
+or drag a .txt file onto this box.
+
+The Orchestrator sorts them A–Z, keeps only the new ones,
+and folds them into your growing book below."></textarea>
+      <div class="drophint">— or —</div>
+      <div class="row">
+        <button class="btn" onclick="document.getElementById('file').click()">📄 Choose a .txt file</button>
+        <input type="file" id="file" accept=".txt,text/plain" multiple>
+      </div>
+    </div>
+    <div class="row">
+      <button class="primary" onclick="runGateway()">🔎 FIND ALLITERATIONS</button>
+      <button class="btn" onclick="ingestFromInput()">⚙︎ SORT &amp; ADD (line-by-line)</button>
+    </div>
+    <div class="row" style="align-items:center;">
+      <span class="drophint" style="margin:0;flex:0 0 auto;">Gateway catches runs of</span>
+      <select id="minrun" style="flex:0 0 auto;">
+        <option value="2">2 alike</option>
+        <option value="3" selected>3 alike</option>
+        <option value="4">4 alike</option>
+        <option value="5">5+ alike</option>
+      </select>
+      <button class="ghost" onclick="clearBox()" style="flex:1 1 auto;">Clear the drop box</button>
+    </div>
+    <div id="gatewayCatch"></div>
+
+    <div class="readout">
+      <div class="stat"><div class="n" id="s-total">0</div><div class="l">In the book</div></div>
+      <div class="stat"><div class="n" id="s-added">0</div><div class="l">Added last drop</div></div>
+      <div class="stat"><div class="n" id="s-dupe">0</div><div class="l">Duplicates caught</div></div>
+      <div class="stat"><div class="n" id="s-letters">0</div><div class="l">Letters filled</div></div>
+    </div>
+  </section>
+
+  <!-- SEARCH + BOOK -->
+  <section class="panel">
+    <h2>The Book</h2>
+    <input id="search" placeholder="Search the whole book… (type a word, or tap a letter below)" oninput="render()">
+    <div class="spine" id="spine"></div>
+    <div id="book"></div>
+  </section>
+
+  <!-- LOG -->
+  <details>
+    <summary>The Log <span class="tag" id="log-count">0 drops</span></summary>
+    <div class="log-body" id="log"><div class="empty-note">Every drop you make gets recorded here.</div></div>
+  </details>
+
+  <!-- REVIEW / DUPES -->
+  <details>
+    <summary>Review · duplicates kept, never deleted <span class="tag" id="review-count">0 held</span></summary>
+    <div class="review-body" id="review"><div class="empty-note">Duplicates you drop are set aside here — safe, not destroyed.</div></div>
+  </details>
+
+  <!-- SAVE / EXPORT -->
+  <section class="panel">
+    <h2>Keep it forever</h2>
+    <div class="row">
+      <button class="primary" onclick="saveSealed()">💾 SAVE SEALED EDITION</button>
+      <button class="btn" onclick="exportTxt()">⬇︎ Export as .txt</button>
+    </div>
+    <div class="drophint savenote">Sealed edition = a fresh copy of this file with your whole book baked inside. It opens finished on any device, no setup, no internet.</div>
+  </section>
+
+  <footer>
+    <b>THE ORCHESTRATOR</b> · self-contained · runs free on your device forever<br>
+    Open in Safari or double-click the file — not inside the Google Drive preview.
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<!-- Baked book lives here. SAVE SEALED EDITION fills it. -->
+<script id="baked" type="text/plain"></script>
+
+<script>
+/* =========================================================
+   STATE
+   entries: Map of KEY -> DISPLAY  (KEY = normalized, DISPLAY = ALL CAPS)
+   dupes / logs: kept, never deleted
+   ========================================================= */
+var STORE_KEY = "ORCHESTRATOR_BOOK_V1";
+var entries = new Map();
+var dupes = [];
+var logs = [];
+var activeLetter = "ALL";
+var lastAdded = new Set(); // keys added in the most recent drop, for the flash highlight
+
+/* ---------- helpers ---------- */
+function normKey(s){ return s.replace(/\s+/g," ").trim().toUpperCase(); }
+function firstLetter(s){
+  var m = s.replace(/[^A-Za-z]/g,"").charAt(0).toUpperCase();
+  return (m >= "A" && m <= "Z") ? m : "#";
+}
+function toast(msg){
+  var t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove("show");},2200);
+}
+
+/* ---------- the engine: add only what is new (shared by both modes) ---------- */
+function addEntries(list, source){
+  var added=0, dup=0;
+  lastAdded = new Set();
+  var seal=document.getElementById("seal"); seal.classList.add("spin");
+
+  for(var i=0;i<list.length;i++){
+    var raw = list[i];
+    if(!raw || !raw.trim()) continue;
+    var key = normKey(raw);
+    if(!key) continue;
+    if(entries.has(key)){
+      dup++;
+      dupes.push({text:key, when:stamp()});
+    } else {
+      entries.set(key, key);   // records live in ALL CAPS
+      lastAdded.add(key);
+      added++;
+    }
+  }
+
+  logs.unshift({when:stamp(), added:added, dup:dup, source:source||"paste"});
+  save(); render(); updateStats(added, dup);
+  setTimeout(function(){ seal.classList.remove("spin"); },600);
+
+  if(added===0 && dup>0) toast(dup+" already in the book — nothing new.");
+  else if(added>0 && dup>0) toast("Added "+added+" new · caught "+dup+" duplicate"+(dup>1?"s":"")+".");
+  else if(added>0) toast("Added "+added+" new entr"+(added>1?"ies":"y")+".");
+  else toast("Nothing new to add.");
+}
+
+/* LINE MODE — each line is one entry (for clean word banks) */
+function ingest(text, source){ addEntries(text.split(/\r?\n/), source); }
+function ingestFromInput(){
+  var t=document.getElementById("input").value;
+  if(!t.trim()){ toast("The drop box is empty."); return; }
+  ingest(t, "paste (lines)");
+}
+function clearBox(){
+  document.getElementById("input").value="";
+  document.getElementById("gatewayCatch").innerHTML="";
+}
+
+/* =========================================================
+   THE ALLITERATION GATEWAY
+   Scans raw prose and pulls out runs of consecutive words that
+   chime on the same first letter. Small connectors (the, a, and,
+   of, to…) are allowed to sit inside a run without breaking it.
+   Matches by FIRST LETTER — which is exactly how your A–Z book
+   is organized. (So "Cat/Kite" and "Photo/Fish" won't pair; that
+   is by design, to keep the book letter-true.)
+   ========================================================= */
+var SKIP = {"THE":1,"A":1,"AN":1,"AND":1,"OF":1,"TO":1,"IN":1,"ON":1,"OR":1,
+            "FOR":1,"WITH":1,"AT":1,"BY":1,"AS":1,"IS":1,"IT":1,"THAT":1,
+            "THIS":1,"BUT":1,"SO":1,"IF":1,"THEN":1,"THAN":1,"ITS":1,"MY":1,
+            "HIS":1,"HER":1,"THEIR":1,"OUR":1,"YOUR":1,"WAS":1,"ARE":1,"BE":1};
+
+function soundKey(w){
+  var m = w.replace(/[^A-Za-z]/g,"").charAt(0).toUpperCase();
+  return (m>="A" && m<="Z") ? m : null;
+}
+
+function scanAlliterations(text, minRun){
+  minRun = minRun || 3;
+  var results = [];
+  var segments = text.split(/[\.\!\?;:\n\r]+/);   // scan within sentences/lines
+  for(var s=0;s<segments.length;s++){
+    var words = segments[s].trim().split(/\s+/).filter(Boolean);
+    if(words.length < 2) continue;
+    var i=0;
+    while(i < words.length){
+      var key = soundKey(words[i]);
+      if(!key){ i++; continue; }
+      var lastHit=i, count=1, k=i+1;
+      while(k < words.length){
+        var kkey = soundKey(words[k]);
+        var bare = words[k].replace(/[^A-Za-z]/g,"").toUpperCase();
+        if(kkey === key){ count++; lastHit=k; k++; }
+        else if(SKIP[bare]){ k++; }          // connector allowed inside the run
+        else { break; }
+      }
+      if(count >= minRun && lastHit > i){
+        var phrase = words.slice(i, lastHit+1).join(" ")
+                       .replace(/^[^A-Za-z]+/,"").replace(/[^A-Za-z]+$/,"").trim();
+        if(phrase) results.push(phrase);
+      }
+      i = (lastHit > i) ? lastHit+1 : i+1;
+    }
+  }
+  return results;
+}
+
+function runGateway(){
+  var t = document.getElementById("input").value;
+  if(!t.trim()){ toast("Drop or paste some writing first."); return; }
+  var min = parseInt(document.getElementById("minrun").value,10) || 3;
+  var runs = scanAlliterations(t, min);
+  var box = document.getElementById("gatewayCatch");
+  if(!runs.length){
+    box.innerHTML = '<div class="catch-empty">No runs of '+min+'+ alliterating words found here. Lower the strictness and try again.</div>';
+    toast("No alliterations found at "+min+" alike.");
+    return;
+  }
+  var html = '<div class="catch-head">Gateway caught '+runs.length+' alliteration'+(runs.length>1?'s':'')+' — filing them now:</div>';
+  for(var i=0;i<runs.length && i<150;i++){
+    html += '<div class="catch-line">✦ '+escapeHtml(runs[i].toUpperCase())+'</div>';
+  }
+  box.innerHTML = html;
+  addEntries(runs, "gateway");
+}
+
+function escapeHtml(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function stamp(){
+  var d=new Date();
+  function p(n){return (n<10?"0":"")+n;}
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes());
+}
+
+/* ---------- stats ---------- */
+function updateStats(added, dup){
+  document.getElementById("s-total").textContent = entries.size;
+  document.getElementById("s-added").textContent = (added===undefined?"0":added);
+  document.getElementById("s-dupe").textContent  = (dup===undefined?"0":dup);
+  var letters={}; entries.forEach(function(v){letters[firstLetter(v)]=1;});
+  document.getElementById("s-letters").textContent = Object.keys(letters).length;
+}
+
+/* ---------- render the book, spine, log, review ---------- */
+function groupByLetter(){
+  var g={};
+  entries.forEach(function(v,k){
+    var L=firstLetter(v);
+    (g[L]=g[L]||[]).push(v);
+  });
+  Object.keys(g).forEach(function(L){ g[L].sort(); });
+  return g;
+}
+
+function render(){
+  var q = (document.getElementById("search").value||"").trim().toUpperCase();
+  var g = groupByLetter();
+  var order = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".split("");
+
+  /* spine */
+  var spine=document.getElementById("spine");
+  spine.innerHTML="";
+  var allBtn=mkSpine("ALL", true, activeLetter==="ALL");
+  spine.appendChild(allBtn);
+  order.forEach(function(L){
+    var has = g[L] && g[L].length;
+    spine.appendChild(mkSpine(L, has, activeLetter===L));
+  });
+
+  /* book */
+  var book=document.getElementById("book");
+  book.innerHTML="";
+  var shown=0;
+  order.forEach(function(L){
+    if(activeLetter!=="ALL" && activeLetter!==L) return;
+    var list=g[L]; if(!list||!list.length) return;
+    var filtered = q ? list.filter(function(x){return x.indexOf(q)>-1;}) : list;
+    if(!filtered.length) return;
+    shown+=filtered.length;
+
+    var block=document.createElement("div"); block.className="letter-block";
+    var head=document.createElement("div"); head.className="letter-head";
+    head.innerHTML='<span>'+ (L==="#"?"# symbols / numbers":L) +'</span><span class="cnt">'+filtered.length+'</span>';
+    block.appendChild(head);
+    filtered.forEach(function(x){
+      var e=document.createElement("div");
+      e.className="entry"+(lastAdded.has(x)?" new":"");
+      e.textContent=x;
+      block.appendChild(e);
+    });
+    book.appendChild(block);
+  });
+  if(shown===0){
+    book.innerHTML='<div class="empty-note">'+(entries.size===0
+      ? "Your book is empty. Drop some writing above to begin."
+      : "No entries match your search.")+'</div>';
+  }
+  lastAdded=new Set(); // flash only once
+
+  updateStats();
+  renderLog();
+  renderReview();
+}
+
+function mkSpine(label, enabled, active){
+  var b=document.createElement("button");
+  b.textContent=label;
+  if(!enabled && label!=="ALL") b.className="empty";
+  if(active) b.className=(b.className+" active").trim();
+  b.onclick=function(){ activeLetter=label; render(); };
+  return b;
+}
+
+function renderLog(){
+  var el=document.getElementById("log");
+  document.getElementById("log-count").textContent = logs.length+" drop"+(logs.length!==1?"s":"");
+  if(!logs.length){ el.innerHTML='<div class="empty-note">Every drop you make gets recorded here.</div>'; return; }
+  el.innerHTML="";
+  logs.slice(0,200).forEach(function(l){
+    var d=document.createElement("div"); d.className="log-line";
+    d.innerHTML=l.when+" · <b>+"+l.added+"</b> new"+(l.dup?(" · "+l.dup+" dup"):"")+" · "+l.source;
+    el.appendChild(d);
+  });
+}
+
+function renderReview(){
+  var el=document.getElementById("review");
+  document.getElementById("review-count").textContent = dupes.length+" held";
+  if(!dupes.length){ el.innerHTML='<div class="empty-note">Duplicates you drop are set aside here — safe, not destroyed.</div>'; return; }
+  el.innerHTML="";
+  dupes.slice(0,300).forEach(function(d){
+    var r=document.createElement("div"); r.className="review-line";
+    r.textContent="⟳ "+d.text+"   ("+d.when+")";
+    el.appendChild(r);
+  });
+}
+
+/* ---------- persistence ---------- */
+function serialize(){
+  var arr=[]; entries.forEach(function(v){arr.push(v);});
+  return JSON.stringify({entries:arr, dupes:dupes, logs:logs});
+}
+function save(){
+  try{ localStorage.setItem(STORE_KEY, serialize()); }catch(e){ /* Drive preview blocks this — SAVE SEALED is the real backup */ }
+}
+function loadFrom(json){
+  try{
+    var data=JSON.parse(json);
+    if(data.entries){ data.entries.forEach(function(v){ var k=normKey(v); if(!entries.has(k)) entries.set(k, k); }); }
+    if(data.dupes) dupes = data.dupes.concat(dupes);
+    if(data.logs)  logs  = data.logs.concat(logs);
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ---------- export .txt ---------- */
+function exportTxt(){
+  if(entries.size===0){ toast("Nothing to export yet."); return; }
+  var g=groupByLetter();
+  var order="ABCDEFGHIJKLMNOPQRSTUVWXYZ#".split("");
+  var out=["THE ALLITERATION BOOK — "+entries.size+" entries — "+stamp(),""];
+  order.forEach(function(L){
+    if(g[L]&&g[L].length){
+      out.push("=== "+(L==="#"?"# SYMBOLS / NUMBERS":L)+" ("+g[L].length+") ===");
+      out=out.concat(g[L]);
+      out.push("");
+    }
+  });
+  download(new Blob([out.join("\n")],{type:"text/plain"}), "ALLITERATION_BOOK_"+dateSlug()+".txt");
+  toast("Exported "+entries.size+" entries.");
+}
+
+/* ---------- SAVE SEALED EDITION: bake the book into a fresh HTML copy ---------- */
+function saveSealed(){
+  var payload = serialize().replace(/<\/script/gi,"<\\/script"); // protect the closing tag
+  var baked=document.getElementById("baked");
+  var prev=baked.textContent;
+  baked.textContent=payload;
+  var html="<!DOCTYPE html>\n"+document.documentElement.outerHTML;
+  baked.textContent=prev; // leave the live page as it was
+  download(new Blob([html],{type:"text/html"}), "00_THE_ORCHESTRATOR_"+dateSlug()+".html");
+  toast("Sealed edition saved — "+entries.size+" entries baked in.");
+}
+
+function download(blob, name){
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=url; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 800);
+}
+function dateSlug(){
+  var d=new Date();function p(n){return(n<10?"0":"")+n;}
+  return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());
+}
+
+/* ---------- file drop ---------- */
+var drop=document.getElementById("drop");
+["dragenter","dragover"].forEach(function(ev){
+  drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add("over");});
+});
+["dragleave","drop"].forEach(function(ev){
+  drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove("over");});
+});
+drop.addEventListener("drop",function(e){
+  var files=e.dataTransfer.files;
+  if(files&&files.length) readFiles(files);
+});
+document.getElementById("file").addEventListener("change",function(e){
+  if(e.target.files.length) readFiles(e.target.files);
+  e.target.value="";
+});
+function readFiles(files){
+  var pending=files.length, buf=[];
+  for(var i=0;i<files.length;i++){
+    (function(f){
+      var r=new FileReader();
+      r.onload=function(){ buf.push(r.result); if(--pending===0) fileLoaded(buf.join("\n\n")); };
+      r.onerror=function(){ if(--pending===0 && buf.length) fileLoaded(buf.join("\n\n")); };
+      r.readAsText(f);
+    })(files[i]);
+  }
+}
+function fileLoaded(text){
+  document.getElementById("input").value = text;
+  toast("File loaded — now tap FIND ALLITERATIONS (raw writing) or SORT & ADD (clean lists).");
+}
+
+/* ---------- boot: load baked first, then device autosave, merge & dedupe ---------- */
+(function boot(){
+  var baked=document.getElementById("baked").textContent.trim();
+  if(baked) loadFrom(baked);
+  try{ var ls=localStorage.getItem(STORE_KEY); if(ls) loadFrom(ls); }catch(e){}
+  render();
+})();
+</script>
+</body>
+</html>

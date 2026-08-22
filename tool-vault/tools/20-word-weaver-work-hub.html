@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WORD WEAVER — Work Hub Edition</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --void: #080810;
+    --deep: #0d0d1a;
+    --panel: #12121f;
+    --border: #1e1e3a;
+    --gold: #c9a84c;
+    --gold-dim: #7a6230;
+    --cyan: #00e5ff;
+    --violet: #7c3aed;
+    --violet-soft: #4c1d95;
+    --text: #e8e8f0;
+    --muted: #6b7280;
+    --success: #10b981;
+    --warning: #f59e0b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #080810 0%, #1a0a2e 50%, #080810 100%);
+    border-bottom: 1px solid var(--gold-dim);
+    padding: 20px 24px 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at center, rgba(124,58,237,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(18px, 4vw, 28px);
+    color: var(--gold);
+    letter-spacing: 4px;
+    text-shadow: 0 0 30px rgba(201,168,76,0.4);
+    line-height: 1.2;
+  }
+  .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .stat-pill {
+    background: rgba(201,168,76,0.08);
+    border: 1px solid var(--gold-dim);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 11px;
+    color: var(--gold);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* LAYOUT */
+  .workspace {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* INPUT PANEL */
+  .input-panel {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  textarea {
+    width: 100%;
+    height: 180px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    padding: 14px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: var(--violet); }
+  textarea::placeholder { color: var(--muted); }
+  .file-drop { margin-top:10px; padding:14px; border:1px dashed var(--violet); border-radius:12px; color:var(--muted); text-align:center; cursor:pointer; transition:.2s; }
+  .file-drop.drag { border-color:var(--gold); color:var(--gold); background:rgba(201,168,76,.08); }
+
+  /* CONTROLS */
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--violet), #5b21b6);
+    color: white;
+    box-shadow: 0 4px 15px rgba(124,58,237,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.4); }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), #a07830);
+    color: var(--void);
+  }
+  .btn-gold:hover { transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-outline:hover { border-color: var(--violet); color: var(--text); }
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+  .btn-success {
+    background: linear-gradient(135deg, #059669, #047857);
+    color: white;
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    padding: 14px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-label { font-size: 11px; color: var(--muted); margin-right: 4px; }
+  .filter-chip {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    transition: all 0.15s;
+  }
+  .filter-chip.active {
+    border-color: var(--violet);
+    background: rgba(124,58,237,0.15);
+    color: var(--text);
+  }
+  .filter-chip:hover { border-color: var(--violet); color: var(--text); }
+
+  /* RESULTS GRID */
+  .results-panel {
+    padding: 20px;
+  }
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+  }
+
+  /* RESULT CARD */
+  .result-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .result-card:hover { border-color: var(--violet); }
+  .card-header {
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-type {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .card-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .card-body {
+    padding: 12px 14px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .card-body::-webkit-scrollbar { width: 4px; }
+  .card-body::-webkit-scrollbar-track { background: transparent; }
+  .card-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .match-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .match-item:last-child { border-bottom: none; }
+  .match-words {
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+  .match-context {
+    color: var(--muted);
+    font-size: 11px;
+    flex: 1;
+    word-break: break-word;
+  }
+  .match-context em {
+    color: var(--gold);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  /* TYPE COLORS */
+  .type-alliteration .card-type { color: #c084fc; }
+  .type-alliteration .card-header { border-left: 3px solid #c084fc; }
+  .type-perfect .card-type { color: var(--gold); }
+  .type-perfect .card-header { border-left: 3px solid var(--gold); }
+  .type-assonance .card-type { color: var(--cyan); }
+  .type-assonance .card-header { border-left: 3px solid var(--cyan); }
+  .type-consonance .card-type { color: #34d399; }
+  .type-consonance .card-header { border-left: 3px solid #34d399; }
+  .type-rhyme .card-type { color: #fb923c; }
+  .type-rhyme .card-header { border-left: 3px solid #fb923c; }
+  .type-phonetic .card-type { color: #f472b6; }
+  .type-phonetic .card-header { border-left: 3px solid #f472b6; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-text { font-size: 14px; line-height: 1.6; }
+
+  /* SUPABASE PANEL */
+  .supabase-panel {
+    margin: 0 20px 20px;
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .sb-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .sb-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--success);
+    font-weight: 600;
+  }
+  .sb-config {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .sb-input {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+    width: 100%;
+  }
+  .sb-input:focus { border-color: var(--success); }
+  .sb-status {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .sb-status.ok { color: var(--success); }
+  .sb-status.err { color: #ef4444; }
+
+  /* EXPORT BAR */
+  .export-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--deep);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .export-summary {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .export-summary span { color: var(--gold); }
+
+  /* LOADING */
+  .analyzing {
+    text-align: center;
+    padding: 40px;
+    color: var(--violet);
+    font-size: 13px;
+    letter-spacing: 2px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--panel);
+    border: 1px solid var(--success);
+    color: var(--success);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 1000;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--void); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* SUMMARY TABLE */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+  .summary-table th {
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .summary-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .badge-high { background: rgba(201,168,76,0.2); color: var(--gold); }
+  .badge-med  { background: rgba(124,58,237,0.2); color: #a78bfa; }
+  .badge-low  { background: rgba(107,114,128,0.2); color: var(--muted); }
+
+  /* ========================================================
+     FIVE LIGHTS THEME — OBSIDIAN · CELESTIAL TEAL · SOLAR GOLD
+     ======================================================== */
+  :root {
+    --void:#010607;
+    --deep:#031012;
+    --panel:#061719;
+    --border:#604610;
+    --gold:#ffc857;
+    --gold-dim:#8d6315;
+    --cyan:#22f4ee;
+    --violet:#09c9c2;
+    --violet-soft:#075f61;
+    --text:#fff4d2;
+    --muted:#8fc6c3;
+    --success:#35efb2;
+    --warning:#ffb629;
+  }
+  body {
+    background:
+      radial-gradient(circle at 50% -8%,rgba(0,230,220,.18),transparent 35%),
+      radial-gradient(circle at 12% 45%,rgba(0,120,130,.10),transparent 28%),
+      linear-gradient(rgba(255,200,87,.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,200,87,.025) 1px,transparent 1px),
+      var(--void);
+    background-size:auto,auto,42px 42px,42px 42px,auto;
+  }
+  header {
+    background:
+      radial-gradient(circle at 50% 115%,rgba(34,244,238,.22),transparent 38%),
+      linear-gradient(135deg,#010607,#062426 50%,#010607);
+    border-bottom:1px solid var(--gold);
+    box-shadow:0 10px 45px rgba(0,0,0,.75),0 0 32px rgba(34,244,238,.09);
+    padding:28px 24px 22px;
+  }
+  header::before {
+    top:auto;left:50%;bottom:-155px;width:310px;height:310px;
+    transform:translateX(-50%);
+    border:1px solid rgba(255,200,87,.34);
+    border-radius:50%;
+    background:radial-gradient(circle,rgba(34,244,238,.15),transparent 64%);
+    box-shadow:0 0 55px rgba(34,244,238,.13),inset 0 0 35px rgba(255,200,87,.08);
+  }
+  header::after {
+    content:'✦';position:absolute;left:50%;top:4px;transform:translateX(-50%);
+    color:var(--cyan);font-size:14px;text-shadow:0 0 16px var(--cyan);
+  }
+  .title {
+    font-size:clamp(24px,5vw,42px);
+    color:#ffd978;
+    text-shadow:0 0 8px rgba(255,200,87,.42),0 0 28px rgba(255,200,87,.22);
+  }
+  .subtitle {color:var(--cyan);text-shadow:0 0 12px rgba(34,244,238,.32)}
+  .stat-pill {
+    background:linear-gradient(180deg,rgba(6,30,31,.9),rgba(1,8,9,.95));
+    border-color:var(--gold-dim);color:var(--cyan);
+    box-shadow:inset 0 0 16px rgba(34,244,238,.05),0 0 12px rgba(255,200,87,.06);
+  }
+  .input-panel,.results-panel {position:relative}
+  .input-panel {
+    margin:18px 20px 4px;padding:20px;border:1px solid var(--gold-dim);border-radius:14px;
+    background:linear-gradient(145deg,rgba(6,28,30,.96),rgba(1,9,10,.98));
+    box-shadow:inset 0 0 38px rgba(34,244,238,.025),0 0 24px rgba(0,0,0,.55);
+  }
+  .input-panel::before,.supabase-panel::before {
+    content:'◆';position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+    color:var(--gold);font-size:13px;background:var(--void);padding:0 8px;
+  }
+  .panel-label {font-family:'Cinzel Decorative',serif;color:var(--gold);font-size:11px}
+  .panel-label::after {background:linear-gradient(90deg,var(--gold-dim),transparent)}
+  textarea,.sb-input {
+    background:rgba(0,8,9,.94);border-color:#315c59;color:#eafffd;
+    box-shadow:inset 0 0 22px rgba(34,244,238,.035);
+  }
+  textarea:focus,.sb-input:focus {border-color:var(--cyan);box-shadow:0 0 0 1px rgba(34,244,238,.2),inset 0 0 24px rgba(34,244,238,.04)}
+  .file-drop {border-color:var(--gold-dim);color:var(--cyan);background:rgba(34,244,238,.025)}
+  .file-drop:hover,.file-drop.drag {border-color:var(--cyan);box-shadow:0 0 22px rgba(34,244,238,.1)}
+  .btn {border-radius:3px;text-transform:uppercase;font-family:'Cinzel Decorative',serif;font-size:10px;letter-spacing:1.4px}
+  .btn-primary {
+    color:#001012;background:linear-gradient(135deg,#8ffff8,#13d8cf 52%,#078a89);
+    border:1px solid #a8fffb;box-shadow:0 0 18px rgba(34,244,238,.24),inset 0 0 12px rgba(255,255,255,.22);
+  }
+  .btn-primary:hover {box-shadow:0 0 28px rgba(34,244,238,.36)}
+  .btn-gold {background:linear-gradient(135deg,#fff0a6,#ffc857 50%,#9b6814);border:1px solid #ffe495}
+  .btn-outline {border-color:var(--gold-dim);color:#dfc47d;background:rgba(255,200,87,.025)}
+  .btn-outline:hover {border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 14px rgba(34,244,238,.10)}
+  .btn-success {background:linear-gradient(135deg,#66f7c7,#11aa82);color:#00130d;border:1px solid #8dffda}
+  .filter-bar {
+    margin:14px 20px 0;border:1px solid var(--gold-dim);border-radius:12px;
+    background:linear-gradient(180deg,rgba(7,28,30,.96),rgba(2,12,13,.96));
+  }
+  .filter-chip {border-color:#365b58;color:#93c9c6}
+  .filter-chip.active,.filter-chip:hover {border-color:var(--gold);background:rgba(255,200,87,.10);color:var(--gold);box-shadow:0 0 14px rgba(255,200,87,.09)}
+  .results-grid {gap:18px}
+  .result-card {
+    position:relative;border-color:var(--gold-dim);border-radius:12px;
+    background:linear-gradient(145deg,rgba(6,25,27,.97),rgba(1,9,10,.98));
+    box-shadow:inset 0 0 28px rgba(34,244,238,.02),0 8px 28px rgba(0,0,0,.42);
+  }
+  .result-card::after {content:'✦';position:absolute;right:9px;top:7px;color:rgba(255,200,87,.45);font-size:9px}
+  .result-card:hover {border-color:var(--gold);box-shadow:0 0 22px rgba(255,200,87,.10),inset 0 0 26px rgba(34,244,238,.03)}
+  .card-header {background:linear-gradient(90deg,rgba(255,200,87,.06),transparent);border-bottom-color:#4f3b10}
+  .match-words {color:var(--cyan);text-shadow:0 0 8px rgba(34,244,238,.16)}
+  .match-context {color:#a9cecb}
+  .type-alliteration .card-type,.type-assonance .card-type,.type-phonetic .card-type {color:var(--cyan)!important}
+  .type-alliteration .card-header,.type-assonance .card-header,.type-phonetic .card-header {border-left-color:var(--cyan)!important}
+  .type-perfect .card-type,.type-rhyme .card-type {color:var(--gold)!important}
+  .type-perfect .card-header,.type-rhyme .card-header {border-left-color:var(--gold)!important}
+  .type-consonance .card-type {color:#62ffd0!important}.type-consonance .card-header {border-left-color:#62ffd0!important}
+  .supabase-panel {
+    position:relative;background:linear-gradient(145deg,rgba(4,31,28,.88),rgba(1,12,12,.94));
+    border-color:#327b61;box-shadow:inset 0 0 30px rgba(53,239,178,.025);
+  }
+  .sb-title {color:var(--cyan)}
+  .export-bar {background:rgba(1,10,11,.97);border-top-color:var(--gold);box-shadow:0 -8px 30px rgba(0,0,0,.7)}
+  .analyzing {color:var(--cyan);text-shadow:0 0 14px var(--cyan)}
+  .toast {background:#021011;border-color:var(--gold);color:var(--cyan);box-shadow:0 0 24px rgba(34,244,238,.18)}
+  ::-webkit-scrollbar-thumb {background:linear-gradient(var(--gold),#8b631b)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">WORD WEAVER</div>
+  <div class="subtitle">Linguistic Analysis Engine · 30 Named Rhyme Modes + Internal Rhyme · Browser Heuristic Edition</div>
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-pill">0 Patterns Found</div>
+    <div class="stat-pill">0 Words Analyzed</div>
+    <div class="stat-pill">Ready</div>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- INPUT -->
+  <div class="input-panel">
+    <div class="panel-label">Your Writing</div>
+    <textarea id="inputText" placeholder="Paste your writing here — poetry, lyrics, prose, scripture, alliterations... anything. The engine will detect every linguistic pattern automatically."></textarea>
+    <input id="sourceFile" type="file" accept=".txt,.md,.csv,.html,.htm,.rtf,text/*" hidden>
+    <div class="file-drop" id="fileDrop" onclick="document.getElementById('sourceFile').click()">Drop a text or HTML file here, or click to choose one</div>
+    <div class="controls">
+      <button class="btn btn-primary" onclick="analyze()">⚡ Analyze Now</button>
+      <button class="btn btn-outline" onclick="loadSample()">Load Sample</button>
+      <button class="btn btn-outline" onclick="clearAll()">Clear</button>
+    </div>
+  </div>
+
+  <!-- SUPABASE CONFIG -->
+  <div class="supabase-panel">
+    <div class="sb-header">
+      <div class="sb-title">⚡ Supabase Bridge</div>
+      <button class="btn btn-sm btn-success" onclick="pushToSupabase()">Push All to DB</button>
+    </div>
+    <div class="sb-config">
+      <input class="sb-input" id="sbUrl" placeholder="Supabase URL" value="https://ahjvqfpxynhaqlrgldgp.supabase.co">
+      <input class="sb-input" id="sbKey" placeholder="Supabase anon key" type="password">
+    </div>
+    <div class="sb-status" id="sbStatus">Enter your Supabase anon key (not service key) to enable push</div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <span class="filter-label">Show:</span>
+    <button class="filter-chip active" onclick="setFilter('all', this)">All</button>
+    <button class="filter-chip" onclick="setFilter('alliteration', this)">Alliteration</button>
+    <button class="filter-chip" onclick="setFilter('perfect', this)">Perfect Rhyme</button>
+    <button class="filter-chip" onclick="setFilter('assonance', this)">Assonance</button>
+    <button class="filter-chip" onclick="setFilter('consonance', this)">Consonance</button>
+    <button class="filter-chip" onclick="setFilter('rhyme', this)">All Rhymes</button>
+    <button class="filter-chip" onclick="setFilter('phonetic', this)">Phonetic</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-panel" id="resultsPanel">
+    <div class="empty-state">
+      <div class="empty-icon">✦</div>
+      <div class="empty-text">Paste your writing above and press Analyze.<br>Every alliteration, rhyme, and phonetic pattern will be revealed.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- EXPORT BAR -->
+<div class="export-bar" id="exportBar" style="display:none">
+  <div class="export-summary">Found <span id="totalCount">0</span> patterns across <span id="typeCount">0</span> categories</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-sm btn-outline" onclick="exportTXT()">↓ Export TXT (Conveyor Belt)</button>
+    <button class="btn btn-sm btn-outline" onclick="exportCSV()">↓ Export CSV</button>
+    <button class="btn btn-sm btn-gold" onclick="exportAll()">↓ Export All Patterns</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// PHONETIC ENGINE
+// ============================================================
+
+function soundex(word) {
+  const map = {B:1,F:1,P:1,V:1,C:2,G:2,J:2,K:2,Q:2,S:2,X:2,Z:2,D:3,T:3,L:4,M:5,N:5,R:6};
+  word = word.toUpperCase().replace(/[^A-Z]/g,'');
+  if (!word) return '';
+  let code = word[0];
+  let prev = map[word[0]] || 0;
+  for (let i=1; i<word.length && code.length<4; i++) {
+    const curr = map[word[i]] || 0;
+    if (curr && curr !== prev) { code += curr; }
+    prev = curr || prev;
+  }
+  return code.padEnd(4,'0');
+}
+
+function metaphone(word) {
+  word = word.toUpperCase().replace(/[^A-Z]/g,'');
+  let result = '';
+  const drop = /^(AE|GN|KN|PN|WR)/;
+  if (drop.test(word)) word = word.slice(1);
+  for (let i=0; i<word.length; i++) {
+    const c = word[i], n = word[i+1]||'', p = word[i-1]||'';
+    if ('AEIOU'.includes(c) && i===0) { result += c; continue; }
+    if ('AEIOU'.includes(c)) continue;
+    if (c==='B') { if (p!=='M') result += 'B'; continue; }
+    if (c==='C') { result += ('EIY'.includes(n)) ? 'S' : 'K'; continue; }
+    if (c==='D') { result += (n==='G' && 'EIY'.includes(word[i+2])) ? 'J' : 'T'; continue; }
+    if (c==='G') { if ('EIY'.includes(n)) result += 'J'; else if (n) result += 'K'; continue; }
+    if (c==='H') { if ('AEIOU'.includes(n) && !'AEIOU'.includes(p)) result += 'H'; continue; }
+    if (c==='K') { if (p!=='C') result += 'K'; continue; }
+    if (c==='P') { result += n==='H' ? 'F' : 'P'; continue; }
+    if (c==='Q') { result += 'K'; continue; }
+    if (c==='S') { result += (n==='H'||((n==='I')&&'AO'.includes(word[i+2]))) ? 'X' : 'S'; continue; }
+    if (c==='T') { result += (n==='H') ? '0' : (n==='I'&&'AO'.includes(word[i+2])) ? 'X' : 'T'; continue; }
+    if (c==='W'||c==='Y') { if ('AEIOU'.includes(n)) result += c; continue; }
+    if (c==='X') { result += 'KS'; continue; }
+    if (c==='Z') { result += 'S'; continue; }
+    if (!'HW'.includes(c)) result += c;
+  }
+  return result;
+}
+
+function getVowelPattern(word) {
+  return word.toLowerCase().replace(/[^aeiou]/g,'');
+}
+
+function getConsonantPattern(word) {
+  return word.toLowerCase().replace(/[aeiou]/g,'');
+}
+
+function getRhymeEnding(word, n=3) {
+  const v = word.toLowerCase();
+  const vowelIdx = v.search(/[aeiou]/);
+  if (vowelIdx === -1) return v.slice(-n);
+  return v.slice(vowelIdx);
+}
+
+function getStress(word) {
+  // Simplified stress: last stressed vowel group
+  const match = word.toLowerCase().match(/[aeiou]+(?=[^aeiou]*$)/);
+  return match ? match[0] : '';
+}
+
+function syllableChunks(word) {
+  return word.toLowerCase().match(/[^aeiouy]*[aeiouy]+[^aeiouy]*/g) || [word.toLowerCase()];
+}
+
+function runFinalSyllableRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const groups = new Map();
+  unique.forEach(word => {
+    const chunks = syllableChunks(word);
+    const ending = chunks[chunks.length - 1];
+    if (ending.length < 2) return;
+    if (!groups.has(ending)) groups.set(ending, []);
+    groups.get(ending).push(word);
+  });
+  const results = [];
+  groups.forEach((matches, ending) => {
+    if (matches.length > 1) results.push({words: matches.join(' / '), context: `Final syllable spelling match: ${ending}`});
+  });
+  addResult('Final Syllable Rhyme', 'rhyme', results.slice(0, 80));
+}
+
+function runFemininePararhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i + 1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const ac = syllableChunks(a), bc = syllableChunks(b);
+      if (ac.length < 2 || bc.length < 2) continue;
+      const at = ac.slice(-2).join(''), bt = bc.slice(-2).join('');
+      const consonantsA = getConsonantPattern(at), consonantsB = getConsonantPattern(bt);
+      const vowelsA = getVowelPattern(at), vowelsB = getVowelPattern(bt);
+      if (consonantsA.length >= 2 && consonantsA === consonantsB && vowelsA !== vowelsB) {
+        results.push({words: `${a} / ${b}`, context: 'Two-syllable consonant frame; vowels differ'});
+      }
+    }
+  }
+  addResult('Feminine Pararhyme', 'rhyme', results.slice(0, 60));
+}
+
+function elidedForms(word) {
+  const forms = new Set();
+  const lower = word.toLowerCase();
+  if (lower.endsWith('e') && lower.length > 3) forms.add(lower.slice(0, -1));
+  for (let i = 1; i < lower.length - 1; i++) {
+    if ('aeiou'.includes(lower[i])) forms.add(lower.slice(0, i) + lower.slice(i + 1));
+  }
+  return [...forms];
+}
+
+function runElidedRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i + 1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j], key = `${a}|${b}`;
+      if (used.has(key)) continue;
+      const formsA = elidedForms(a), formsB = elidedForms(b);
+      const match = formsA.some(form => metaphone(form) === metaphone(b)) || formsB.some(form => metaphone(form) === metaphone(a));
+      if (match) {
+        used.add(key);
+        results.push({words: `${a} / ${b}`, context: 'Elided-vowel phonetic candidate'});
+      }
+    }
+  }
+  addResult('Elided Rhyme', 'phonetic', results.slice(0, 60));
+}
+
+// ============================================================
+// MAIN ANALYZER
+// ============================================================
+
+let allResults = {};
+let currentFilter = 'all';
+
+function analyze() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) { showToast('Please paste some text first'); return; }
+
+  document.getElementById('resultsPanel').innerHTML = '<div class="analyzing">⚡ ANALYZING LINGUISTIC PATTERNS...</div>';
+
+  setTimeout(() => {
+    const words = tokenize(text);
+    const sentences = text.match(/[^.!?\n]+[.!?\n]*/g) || [text];
+
+    allResults = {};
+
+    // Run all 30+ detectors
+    runAlliteration(words, sentences);
+    runPerfectRhyme(words);
+    runFamilyRhyme(words);
+    runAssonance(words);
+    runFullAssonance(words);
+    runDoubleAssonance(words);
+    runConsonance(words);
+    runFullConsonance(words);
+    runDoubleConsonance(words);
+    runPararhyme(words);
+    runFemininePararhyme(words);
+    runRichRhyme(words);
+    runLightRhyme(words);
+    runWeakenedRhyme(words);
+    runBrokenRhyme(words, sentences);
+    runAdditiveRhyme(words);
+    runDiminishedRhyme(words);
+    runReverseRhyme(words);
+    runRelatedRhyme(words);
+    runTrailingRhyme(words);
+    runHalfDoubleRhyme(words);
+    runAmphibaenic(words);
+    runApocopated(words);
+    runFirstSyllable(words);
+    runFinalSyllableRhyme(words);
+    runElidedRhyme(words);
+    runInternalRhyme(sentences);
+    runIntelligentRhyme(words);
+    runHomophones(words);
+    runSoundex(words);
+    runMetaphone(words);
+
+    renderResults();
+    updateStats(words.length);
+  }, 50);
+}
+
+function tokenize(text) {
+  return text.match(/\b[a-zA-Z]{2,}\b/g) || [];
+}
+
+// ============================================================
+// DETECTORS
+// ============================================================
+
+function addResult(type, category, items) {
+  if (items.length === 0) return;
+  if (!allResults[type]) allResults[type] = { category, items: [] };
+  allResults[type].items.push(...items);
+}
+
+function runAlliteration(words, sentences) {
+  const results = [];
+  sentences.forEach(sentence => {
+    const sw = (sentence.match(/\b[a-zA-Z]{2,}\b/g) || []).map(w => w.toUpperCase());
+    if (sw.length < 2) return;
+    const groups = {};
+    sw.forEach(w => {
+      const l = w[0];
+      if (!groups[l]) groups[l] = [];
+      groups[l].push(w);
+    });
+    Object.entries(groups).forEach(([letter, ws]) => {
+      if (ws.length >= 2) {
+        results.push({
+          words: [...new Set(ws)].join(' · '),
+          context: sentence.trim().slice(0, 80) + (sentence.length > 80 ? '…' : '')
+        });
+      }
+    });
+  });
+  addResult('Alliteration', 'alliteration', results);
+}
+
+function runPerfectRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      if (a === b) continue;
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const endA = getRhymeEnding(a, 3), endB = getRhymeEnding(b, 3);
+      if (endA === endB && endA.length >= 2 && a[0].toLowerCase() !== b[0].toLowerCase()) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Ending: -${endA}` });
+      }
+    }
+  }
+  addResult('Perfect Rhyme', 'perfect', results.slice(0, 80));
+}
+
+function runFamilyRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const endA = a.slice(-2), endB = b.slice(-2);
+      if (endA === endB && endA.length === 2 && getRhymeEnding(a) !== getRhymeEnding(b)) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Family ending: -${endA}` });
+      }
+    }
+  }
+  addResult('Family Rhyme', 'rhyme', results.slice(0, 60));
+}
+
+function runAssonance(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const va = getVowelPattern(a), vb = getVowelPattern(b);
+      if (va === vb && va.length >= 2 && a !== b) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Vowels: ${va}` });
+      }
+    }
+  }
+  addResult('Assonance', 'assonance', results.slice(0, 80));
+}
+
+function runFullAssonance(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const va = getVowelPattern(a), vb = getVowelPattern(b);
+      if (va === vb && va.length >= 3 && a !== b) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Full vowel match: ${va}` });
+      }
+    }
+  }
+  addResult('Full Assonance', 'assonance', results.slice(0, 60));
+}
+
+function runDoubleAssonance(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const va = getVowelPattern(a), vb = getVowelPattern(b);
+      if (va.length >= 2 && vb.length >= 2) {
+        let shared = 0;
+        for (let k=0; k<Math.min(va.length, vb.length); k++) {
+          if (va[k] === vb[k]) shared++;
+        }
+        if (shared >= 2 && va !== vb) {
+          used.add(key);
+          results.push({ words: `${a} / ${b}`, context: `Double vowel echo` });
+        }
+      }
+    }
+  }
+  addResult('Double Assonance', 'assonance', results.slice(0, 60));
+}
+
+function runConsonance(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const ca = getConsonantPattern(a), cb = getConsonantPattern(b);
+      if (ca === cb && ca.length >= 2 && a !== b) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Consonants: ${ca}` });
+      }
+    }
+  }
+  addResult('Consonance', 'consonance', results.slice(0, 80));
+}
+
+function runFullConsonance(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const ca = getConsonantPattern(a), cb = getConsonantPattern(b);
+      if (ca === cb && ca.length >= 3 && a !== b) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Full consonant match: ${ca}` });
+      }
+    }
+  }
+  addResult('Full Consonance', 'consonance', results.slice(0, 60));
+}
+
+function runDoubleConsonance(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      if (a === b) continue;
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      // Check for doubled consonants in either word
+      const hasDouble = /([^aeiou])\1/i;
+      if (hasDouble.test(a) && hasDouble.test(b)) {
+        const matchA = a.match(hasDouble), matchB = b.match(hasDouble);
+        if (matchA && matchB && matchA[1] === matchB[1]) {
+          used.add(key);
+          results.push({ words: `${a} / ${b}`, context: `Double consonant: ${matchA[1]}${matchA[1]}` });
+        }
+      }
+    }
+  }
+  addResult('Double Consonance', 'consonance', results.slice(0, 50));
+}
+
+function runPararhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const ca = getConsonantPattern(a), cb = getConsonantPattern(b);
+      // Same consonants, different vowels (pararhyme/half rhyme)
+      if (ca === cb && ca.length >= 2 && getVowelPattern(a) !== getVowelPattern(b)) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Same consonants, different vowels` });
+      }
+    }
+  }
+  addResult('Pararhyme', 'rhyme', results.slice(0, 60));
+}
+
+function runRichRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      if (a === b) continue;
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      // Rich rhyme: sounds identical but different spelling/meaning
+      if (a !== b && metaphone(a) === metaphone(b) && a !== b) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Rich phonetic match` });
+      }
+    }
+  }
+  addResult('Rich Rhyme', 'phonetic', results.slice(0, 60));
+}
+
+function runLightRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      if (a.length < 4 || b.length < 4) continue;
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      // Light rhyme: stressed + unstressed syllable rhymes with single
+      const endA = a.slice(-3), endB = b.slice(-3);
+      if (endA === endB && a[0] !== b[0]) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Light ending: -${endA}` });
+      }
+    }
+  }
+  addResult('Light Rhyme', 'rhyme', results.slice(0, 60));
+}
+
+function runWeakenedRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      if (Math.abs(a.length - b.length) > 3) continue;
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const endA = a.slice(-2), endB = b.slice(-2);
+      const startA = a.slice(0, -2), startB = b.slice(0, -2);
+      // Weakened: same end, similar beginning (one letter different)
+      if (endA === endB && levenshtein(startA, startB) === 1) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Weakened variation` });
+      }
+    }
+  }
+  addResult('Weakened Rhyme', 'rhyme', results.slice(0, 50));
+}
+
+function runBrokenRhyme(words, sentences) {
+  const results = [];
+  sentences.forEach(sentence => {
+    const sw = (sentence.match(/\b[a-zA-Z]{2,}\b/g) || []).map(w => w.toLowerCase());
+    for (let i = 0; i < sw.length - 1; i++) {
+      const combined = sw[i] + sw[i+1];
+      for (let j = i+2; j < sw.length; j++) {
+        if (getRhymeEnding(combined) === getRhymeEnding(sw[j]) && combined.length > sw[j].length) {
+          results.push({
+            words: `${sw[i]}+${sw[i+1]} / ${sw[j]}`,
+            context: `Broken across word boundary`
+          });
+          if (results.length >= 30) return;
+        }
+      }
+    }
+  });
+  addResult('Broken Rhyme', 'rhyme', results.slice(0, 30));
+}
+
+function runAdditiveRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      // Additive: shorter is contained in start/end of longer
+      const [shorter, longer] = a.length < b.length ? [a,b] : [b,a];
+      if (longer.endsWith(shorter) && longer.length - shorter.length <= 2) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Additive: +${longer.slice(0, longer.length - shorter.length)}` });
+      }
+    }
+  }
+  addResult('Additive Rhyme', 'rhyme', results.slice(0, 50));
+}
+
+function runDiminishedRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const [shorter, longer] = a.length < b.length ? [a,b] : [b,a];
+      if (longer.startsWith(shorter) && longer.length - shorter.length <= 2) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Diminished: ${shorter} → ${longer}` });
+      }
+    }
+  }
+  addResult('Diminished Rhyme', 'rhyme', results.slice(0, 50));
+}
+
+function runReverseRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      // Reverse: start rhymes (instead of end)
+      const startA = a.slice(0,3), startB = b.slice(0,3);
+      const endA = getRhymeEnding(a), endB = getRhymeEnding(b);
+      if (startA === startB && endA !== endB && a !== b) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Reverse (front) rhyme: ${startA}-` });
+      }
+    }
+  }
+  addResult('Reverse Rhyme', 'rhyme', results.slice(0, 60));
+}
+
+function runRelatedRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      if (levenshtein(a, b) === 1 && a.length > 3) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `One letter apart` });
+      }
+    }
+  }
+  addResult('Related Rhyme', 'rhyme', results.slice(0, 60));
+}
+
+function runTrailingRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      if (a.length < 5 || b.length < 5) continue;
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      // Trailing: last 4+ chars match
+      if (a.slice(-4) === b.slice(-4) && a !== b) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Trailing: -${a.slice(-4)}` });
+      }
+    }
+  }
+  addResult('Trailing Rhyme', 'rhyme', results.slice(0, 60));
+}
+
+function runHalfDoubleRhyme(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const endA = a.slice(-3), endB = b.slice(-3);
+      if (endA !== endB) {
+        const shared = [...endA].filter((c,k) => endB[k] === c).length;
+        if (shared >= 2) {
+          used.add(key);
+          results.push({ words: `${a} / ${b}`, context: `Half-double ending similarity` });
+        }
+      }
+    }
+  }
+  addResult('Half Double Rhyme', 'rhyme', results.slice(0, 50));
+}
+
+function runAmphibaenic(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      // Amphisbaenic: word reversed rhymes
+      const aRev = a.split('').reverse().join('');
+      if (getRhymeEnding(aRev) === getRhymeEnding(b) && a !== b) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `${a} reversed → ${aRev} rhymes with ${b}` });
+      }
+    }
+  }
+  addResult('Amphisbaenic Rhyme', 'phonetic', results.slice(0, 40));
+}
+
+function runApocopated(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      // Apocopated: rhyme achieved by cutting end of one word
+      const shorter = a.length < b.length ? a : b;
+      const longer = a.length < b.length ? b : a;
+      if (longer.startsWith(shorter) && getRhymeEnding(shorter) !== getRhymeEnding(longer)) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Apocopated (truncated)` });
+      }
+    }
+  }
+  addResult('Apocopated Rhyme', 'rhyme', results.slice(0, 40));
+}
+
+function runFirstSyllable(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      if (a.length < 3 || b.length < 3) continue;
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      // First syllable rhyme: first vowel group + following consonant
+      const firstSylA = a.match(/^[^aeiou]*[aeiou]+[^aeiou]*/i)?.[0] || a.slice(0,3);
+      const firstSylB = b.match(/^[^aeiou]*[aeiou]+[^aeiou]*/i)?.[0] || b.slice(0,3);
+      if (firstSylA === firstSylB && a !== b && firstSylA.length >= 2) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `First syllable: ${firstSylA}` });
+      }
+    }
+  }
+  addResult('First Syllable Rhyme', 'rhyme', results.slice(0, 60));
+}
+
+function runInternalRhyme(sentences) {
+  const results = [];
+  sentences.forEach(sentence => {
+    const sw = (sentence.match(/\b[a-zA-Z]{3,}\b/g) || []).map(w => w.toLowerCase());
+    for (let i = 0; i < sw.length; i++) {
+      for (let j = i+1; j < sw.length; j++) {
+        if (getRhymeEnding(sw[i]) === getRhymeEnding(sw[j]) && sw[i] !== sw[j]) {
+          results.push({
+            words: `${sw[i]} / ${sw[j]}`,
+            context: `Internal: "${sentence.trim().slice(0, 60)}…"`
+          });
+          if (results.length >= 50) return;
+        }
+      }
+    }
+  });
+  addResult('Internal Rhyme', 'rhyme', results.slice(0, 50));
+}
+
+function runIntelligentRhyme(words) {
+  // Intelligent rhyme: near-perfect with phonetic similarity > 80%
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  for (let i = 0; i < unique.length; i++) {
+    for (let j = i+1; j < unique.length; j++) {
+      const a = unique[i], b = unique[j];
+      const key = [a,b].sort().join('|');
+      if (used.has(key)) continue;
+      const sim = similarity(a, b);
+      if (sim >= 0.7 && sim < 1.0 && a[0] !== b[0]) {
+        used.add(key);
+        results.push({ words: `${a} / ${b}`, context: `Similarity: ${Math.round(sim*100)}%` });
+      }
+    }
+  }
+  addResult('Intelligent Rhyme', 'phonetic', results.slice(0, 60));
+}
+
+function runHomophones(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const homophones = {
+    'to':['two','too'], 'two':['to','too'], 'too':['to','two'],
+    'their':['there','theyre'], 'there':['their'], 'theyre':['their','there'],
+    'hear':['here'], 'here':['hear'], 'sea':['see'], 'see':['sea'],
+    'be':['bee'], 'bee':['be'], 'eye':['i'], 'i':['eye'],
+    'know':['no'], 'no':['know'], 'new':['knew'], 'knew':['new'],
+    'write':['right','rite'], 'right':['write','rite'], 'rite':['write','right'],
+    'sun':['son'], 'son':['sun'], 'made':['maid'], 'maid':['made'],
+    'way':['weigh'], 'weigh':['way'], 'buy':['by','bye'], 'by':['buy','bye'],
+    'flower':['flour'], 'flour':['flower'], 'meet':['meat'], 'meat':['meet'],
+    'wear':['where','ware'], 'where':['wear'], 'whole':['hole'], 'hole':['whole'],
+    'brake':['break'], 'break':['brake'], 'plain':['plane'], 'plane':['plain'],
+    'rain':['reign','rein'], 'reign':['rain'], 'road':['rode'], 'rode':['road'],
+    'soul':['sole'], 'sole':['soul'], 'tale':['tail'], 'tail':['tale'],
+    'time':['thyme'], 'thyme':['time'], 'waist':['waste'], 'waste':['waist'],
+    'week':['weak'], 'weak':['week'], 'won':['one'], 'one':['won'],
+    'your':['youre'], 'youre':['your'], 'peace':['piece'], 'piece':['peace'],
+    'pray':['prey'], 'prey':['pray'], 'pour':['pore','poor'], 'poor':['pour'],
+    'morning':['mourning'], 'mourning':['morning'], 'made':['maid'], 'maid':['made'],
+    'male':['mail'], 'mail':['male'], 'missed':['mist'], 'mist':['missed'],
+    'muscle':['mussel'], 'night':['knight'], 'knight':['night'],
+    'not':['knot'], 'knot':['not'], 'nun':['none'], 'none':['nun'],
+    'pail':['pale'], 'pale':['pail'], 'passed':['past'], 'past':['passed'],
+    'peace':['piece'], 'peak':['peek','pique'], 'peek':['peak'],
+    'root':['route'], 'route':['root'], 'sale':['sail'], 'sail':['sale'],
+    'soar':['sore'], 'sore':['soar'], 'steel':['steal'], 'steal':['steel'],
+    'suite':['sweet'], 'sweet':['suite'], 'teens':['tins'], 'tied':['tide'],
+    'tide':['tied'], 'vain':['vein','vane'], 'vein':['vain'], 'vale':['veil'],
+    'veil':['vale'], 'wail':['whale'], 'whale':['wail'], 'war':['wore'],
+    'wore':['war'], 'wood':['would'], 'would':['wood'], 'yoke':['yolk'],
+    'yolk':['yoke'], 'you':['ewe','yew'], 'ewe':['you'], 'yew':['you'],
+  };
+  const results = [];
+  unique.forEach(w => {
+    if (homophones[w]) {
+      homophones[w].forEach(h => {
+        if (unique.includes(h)) {
+          results.push({ words: `${w} / ${h}`, context: `Homophones (same sound)` });
+        }
+      });
+    }
+  });
+  addResult('Homophones', 'phonetic', results.slice(0, 40));
+}
+
+function runSoundex(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  const sdxMap = {};
+  unique.forEach(w => {
+    const code = soundex(w);
+    if (!sdxMap[code]) sdxMap[code] = [];
+    sdxMap[code].push(w);
+  });
+  Object.entries(sdxMap).forEach(([code, ws]) => {
+    if (ws.length >= 2) {
+      for (let i=0; i<ws.length; i++) {
+        for (let j=i+1; j<ws.length; j++) {
+          const key = [ws[i],ws[j]].sort().join('|');
+          if (!used.has(key) && ws[i] !== ws[j]) {
+            used.add(key);
+            results.push({ words: `${ws[i]} / ${ws[j]}`, context: `Soundex: ${code}` });
+          }
+        }
+      }
+    }
+  });
+  addResult('Soundex', 'phonetic', results.slice(0, 60));
+}
+
+function runMetaphone(words) {
+  const unique = [...new Set(words.map(w => w.toLowerCase()))];
+  const results = [];
+  const used = new Set();
+  const metaMap = {};
+  unique.forEach(w => {
+    const code = metaphone(w);
+    if (!metaMap[code]) metaMap[code] = [];
+    metaMap[code].push(w);
+  });
+  Object.entries(metaMap).forEach(([code, ws]) => {
+    if (ws.length >= 2) {
+      for (let i=0; i<ws.length; i++) {
+        for (let j=i+1; j<ws.length; j++) {
+          const key = [ws[i],ws[j]].sort().join('|');
+          if (!used.has(key) && ws[i] !== ws[j]) {
+            used.add(key);
+            results.push({ words: `${ws[i]} / ${ws[j]}`, context: `Metaphone: ${code}` });
+          }
+        }
+      }
+    }
+  });
+  addResult('Metaphone', 'phonetic', results.slice(0, 60));
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function levenshtein(a, b) {
+  const dp = Array.from({length: a.length+1}, (_,i) =>
+    Array.from({length: b.length+1}, (_,j) => i || j)
+  );
+  for (let i=1; i<=a.length; i++)
+    for (let j=1; j<=b.length; j++)
+      dp[i][j] = a[i-1]===b[j-1] ? dp[i-1][j-1] :
+        1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[a.length][b.length];
+}
+
+function similarity(a, b) {
+  const dist = levenshtein(a, b);
+  return 1 - dist / Math.max(a.length, b.length);
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+
+const CATEGORY_COLORS = {
+  alliteration: '#c084fc',
+  perfect: '#c9a84c',
+  assonance: '#00e5ff',
+  consonance: '#34d399',
+  rhyme: '#fb923c',
+  phonetic: '#f472b6',
+};
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[ch]);
+}
+
+function setFilter(filter, el) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderResults();
+}
+
+function renderResults() {
+  const panel = document.getElementById('resultsPanel');
+  const entries = Object.entries(allResults);
+
+  if (entries.length === 0) {
+    panel.innerHTML = '<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-text">No patterns found. Try pasting more text.</div></div>';
+    return;
+  }
+
+  const filtered = currentFilter === 'all'
+    ? entries
+    : entries.filter(([_, v]) => v.category === currentFilter);
+
+  let total = 0;
+  filtered.forEach(([_, v]) => total += v.items.length);
+
+  document.getElementById('totalCount').textContent = total.toLocaleString();
+  document.getElementById('typeCount').textContent = filtered.length;
+  document.getElementById('exportBar').style.display = 'flex';
+
+  const color = cat => CATEGORY_COLORS[cat] || '#6b7280';
+
+  panel.innerHTML = `<div class="results-grid">${
+    filtered.map(([type, data]) => `
+      <div class="result-card type-${data.category}">
+        <div class="card-header">
+          <span class="card-type" style="color:${color(data.category)}">${type}</span>
+          <span class="card-count">${data.items.length} found</span>
+        </div>
+        <div class="card-body">
+          ${data.items.slice(0,30).map(item => `
+            <div class="match-item">
+              <span class="match-words">${escapeHtml(item.words)}</span>
+              <span class="match-context">${escapeHtml(item.context)}</span>
+            </div>
+          `).join('')}
+          ${data.items.length > 30 ? `<div style="color:var(--muted);font-size:11px;padding-top:6px">+${data.items.length-30} more</div>` : ''}
+        </div>
+      </div>
+    `).join('')
+  }</div>`;
+}
+
+function updateStats(wordCount) {
+  const total = Object.values(allResults).reduce((s, v) => s + v.items.length, 0);
+  const types = Object.keys(allResults).length;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-pill">${total.toLocaleString()} Patterns</div>
+    <div class="stat-pill">${types} Types Detected</div>
+    <div class="stat-pill">${wordCount.toLocaleString()} Words</div>
+  `;
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+
+function exportTXT() {
+  // Format exactly like the conveyor belt expects
+  const alliterations = allResults['Alliteration'];
+  if (!alliterations) { showToast('No alliterations found to export'); return; }
+  const lines = alliterations.items.map(i => i.words.replace(/ · /g, ' ').toUpperCase());
+  downloadFile(lines.join('\n'), 'alliterations_raw.txt', 'text/plain');
+  showToast('✅ TXT exported — place it in AZ_WORK_HUB\\01_INBOX_RAW');
+}
+
+function exportCSV() {
+  const rows = ['Type,Category,Words,Context'];
+  Object.entries(allResults).forEach(([type, data]) => {
+    data.items.forEach(item => {
+      rows.push(`"${type}","${data.category}","${item.words.replace(/"/g,'""')}","${item.context.replace(/"/g,'""')}"`);
+    });
+  });
+  downloadFile(rows.join('\n'), 'linguistic_analysis.csv', 'text/csv');
+  showToast('✅ CSV exported!');
+}
+
+function exportAll() {
+  let text = 'WORD WEAVER — FULL LINGUISTIC ANALYSIS\n';
+  text += '='.repeat(50) + '\n\n';
+  Object.entries(allResults).forEach(([type, data]) => {
+    text += `\n== ${type.toUpperCase()} (${data.items.length}) ==\n`;
+    data.items.forEach(item => {
+      text += `${item.words} | ${item.context}\n`;
+    });
+  });
+  downloadFile(text, 'full_analysis.txt', 'text/plain');
+  showToast('✅ Full analysis exported!');
+}
+
+function downloadFile(content, filename, type) {
+  const blob = new Blob([content], {type});
+  const a = document.createElement('a');
+  const objectUrl = URL.createObjectURL(blob);
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
+// ============================================================
+// SUPABASE PUSH
+// ============================================================
+
+async function pushToSupabase() {
+  const url = document.getElementById('sbUrl').value.trim();
+  const key = document.getElementById('sbKey').value.trim();
+  const statusEl = document.getElementById('sbStatus');
+
+  if (!key) { statusEl.textContent = '⚠ Enter your Supabase anon key first'; statusEl.className = 'sb-status err'; return; }
+  if (!allResults['Alliteration']) { statusEl.textContent = '⚠ Analyze text first'; statusEl.className = 'sb-status err'; return; }
+
+  statusEl.textContent = '⏳ Pushing to Supabase...';
+  statusEl.className = 'sb-status';
+
+  const alliterations = allResults['Alliteration']?.items || [];
+  const uniquePhrases = [...new Set(alliterations.map(item => item.words.replace(/ · /g, ' ').toUpperCase()))];
+  const payload = uniquePhrases.map(phrase => {
+    return {
+      clean_text: phrase,
+      original_text: phrase,
+      letter: phrase[0],
+      status: 'REVIEW_REQUIRED',
+      source_file: 'word_weaver_' + new Date().toISOString().slice(0,10),
+      word_count: phrase.split(/\s+/).length,
+    };
+  });
+
+  if (!confirm(`Send ${payload.length} unique phrases to Supabase as REVIEW_REQUIRED? Nothing will be marked approved.`)) {
+    statusEl.textContent = 'Push cancelled — nothing sent';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${url}/rest/v1/entries`, {
+      method: 'POST',
+      headers: {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=ignore-duplicates,return=minimal',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok || res.status === 201) {
+      statusEl.textContent = `✅ Pushed ${payload.length} alliterations to Supabase!`;
+      statusEl.className = 'sb-status ok';
+      showToast(`✅ ${payload.length} phrases pushed to database!`);
+    } else {
+      const err = await res.text();
+      statusEl.textContent = `❌ Error: ${err.slice(0,100)}`;
+      statusEl.className = 'sb-status err';
+    }
+  } catch(e) {
+    statusEl.textContent = `❌ ${e.message}`;
+    statusEl.className = 'sb-status err';
+  }
+}
+
+// ============================================================
+// SAMPLE + CLEAR
+// ============================================================
+
+async function loadSourceFile(file) {
+  if (!file) return;
+  try {
+    let text = await file.text();
+    if (/\.html?$/i.test(file.name)) {
+      const doc = new DOMParser().parseFromString(text, 'text/html');
+      text = doc.body?.innerText || doc.body?.textContent || '';
+    } else if (/\.rtf$/i.test(file.name)) {
+      text = text.replace(/\\'[0-9a-fA-F]{2}/g, ' ')
+                 .replace(/\\[a-zA-Z]+-?\d* ?/g, ' ')
+                 .replace(/[{}]/g, ' ');
+    }
+    document.getElementById('inputText').value = text;
+    document.getElementById('fileDrop').textContent = `Loaded: ${file.name} · ${text.length.toLocaleString()} characters`;
+    showToast(`✅ Loaded ${file.name}`);
+  } catch (error) {
+    showToast(`❌ Could not read file: ${error.message}`);
+  }
+}
+
+const sourceFile = document.getElementById('sourceFile');
+const fileDrop = document.getElementById('fileDrop');
+sourceFile.addEventListener('change', event => loadSourceFile(event.target.files[0]));
+['dragenter','dragover'].forEach(type => fileDrop.addEventListener(type, event => {
+  event.preventDefault();
+  fileDrop.classList.add('drag');
+}));
+['dragleave','drop'].forEach(type => fileDrop.addEventListener(type, event => {
+  event.preventDefault();
+  fileDrop.classList.remove('drag');
+}));
+fileDrop.addEventListener('drop', event => loadSourceFile(event.dataTransfer.files[0]));
+
+function loadSample() {
+  document.getElementById('inputText').value = `Majestic mountains and monumental moons move majestically across the midnight sky.
+Willing warriors walk with wisdom, watching winds whisper wonderful words.
+Amazing angels arrive and announce abundant answers above all adversity.
+The rain in Spain stays mainly in the plain, but brave waves pave the way.
+Morning mourning, sun and son, made and maid — these words find their mates.
+Bright light might right the sight of night, igniting delight in flight.
+Moral motion, morbid devotion, massive ocean — modern notion of promotion.
+Sounds surround the sacred ground where souls are found and truly bound.`;
+  showToast('Sample loaded!');
+}
+
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('resultsPanel').innerHTML = '<div class="empty-state"><div class="empty-icon">✦</div><div class="empty-text">Paste your writing above and press Analyze.<br>Every alliteration, rhyme, and phonetic pattern will be revealed.</div></div>';
+  document.getElementById('exportBar').style.display = 'none';
+  document.getElementById('sourceFile').value = '';
+  document.getElementById('fileDrop').textContent = 'Drop a text or HTML file here, or click to choose one';
+  document.getElementById('statsBar').innerHTML = '<div class="stat-pill">0 Patterns</div><div class="stat-pill">Ready</div>';
+  allResults = {};
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

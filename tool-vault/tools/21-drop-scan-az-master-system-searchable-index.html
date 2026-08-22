@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DROP SCAN A-Z MASTER SYSTEM SEARCHABLE INDEX</title>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  :root{--bg:#09090b;--card:#18181b;--card2:#111114;--text:#f4f4f5;--muted:#a1a1aa;--border:#3f3f46;--go:#22c55e;--warn:#f59e0b;--bad:#ef4444;--blue:#6366f1;}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px}.hero{border:1px solid var(--border);border-radius:22px;background:linear-gradient(180deg,#17172a,#101014);padding:20px;margin-bottom:14px}
+  h1{margin:0 0 8px;font-size:28px;line-height:1.1}.muted{color:var(--muted);font-size:14px;line-height:1.4}.grid{display:grid;grid-template-columns:1fr;gap:14px}@media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:14px}.card h2{margin:0 0 10px;font-size:18px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+  input[type=file]{width:100%;border:1px dashed var(--border);border-radius:14px;background:#0f0f12;color:var(--text);padding:14px}.drop{border:2px dashed var(--border);border-radius:18px;padding:20px;background:#0f0f12;text-align:center;color:var(--muted)}
+  input[type=text], select{border:1px solid var(--border);border-radius:14px;background:#0f0f12;color:var(--text);padding:12px;font-size:15px} textarea{width:100%;min-height:160px;border:1px solid var(--border);border-radius:14px;background:#0f0f12;color:var(--text);padding:14px;font-size:15px}button{border:0;border-radius:999px;background:var(--blue);color:white;font-weight:800;padding:12px 16px;cursor:pointer}button.good{background:var(--go);color:#031007}button.warn{background:var(--warn);color:#1b1000}button.bad{background:var(--bad)}button.secondary{background:#27272a}button:disabled{opacity:.45;cursor:not-allowed}.statgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}@media(min-width:700px){.statgrid{grid-template-columns:repeat(5,1fr)}}.stat{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:12px}.stat .n{font-size:24px;font-weight:900}.out{white-space:pre-wrap;word-break:break-word;max-height:360px;overflow:auto;background:#0f0f12;border:1px solid var(--border);border-radius:14px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}.pill{display:inline-block;border:1px solid var(--border);background:#0f0f12;border-radius:999px;padding:4px 8px;margin:3px;color:var(--muted);font-size:12px}.ok{color:#86efac}.warnText{color:#fcd34d}.badText{color:#fca5a5}.letters{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}@media(min-width:800px){.letters{grid-template-columns:repeat(4,1fr)}}.letter{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px}.letter b{font-size:16px}</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>DROP SCAN A-Z MASTER SYSTEM + SEARCHABLE INDEX</h1>
+    <div class="muted">Purpose: load your old A-Z archive, add new raw files, remove duplicates, keep originals, rebuild A-Z files, create a SEARCHABLE MASTER INDEX, and export one clean ZIP.</div>
+  </div>
+
+  <div class="card">
+    <h2>1. Load Existing A-Z Master ZIP or A-Z TXT Files</h2>
+    <input id="existingFiles" type="file" multiple accept=".zip,.txt,.csv,text/plain,text/csv" />
+    <div class="muted">Use your old 26-letter archive ZIP, or select A.txt through Z.txt files. This becomes the duplicate-check base.</div>
+  </div>
+
+  <div class="card">
+    <h2>2. Add New Raw Files To Scan</h2>
+    <input id="newFiles" type="file" multiple accept=".zip,.txt,.csv,text/plain,text/csv" />
+    <div class="muted">Drop new writings, chunks, exports, or ZIPs here. Originals are saved inside the output ZIP.</div>
+    <textarea id="pasteBox" placeholder="Optional: paste new lines here too. One phrase per line is best."></textarea>
+  </div>
+
+  <div class="card">
+    <h2>3. Rules</h2>
+    <div class="row">
+      <label><input id="uppercase" type="checkbox" checked /> UPPERCASE</label>
+      <label><input id="removeOneWord" type="checkbox" checked /> REMOVE ONE-WORD LINES</label>
+      <label><input id="trimEdge" type="checkbox" checked /> TRIM EDGE PUNCTUATION</label>
+      <label><input id="sortLines" type="checkbox" checked /> SORT A-Z</label>
+    </div>
+    <div class="row">
+      <button class="good" id="runBtn">SCAN + ADD NEW ONLY</button>
+      <button class="secondary" id="clearBtn">CLEAR</button>
+      <button class="warn" id="downloadBtn" disabled>DOWNLOAD UPDATED A-Z ZIP</button>
+    </div>
+    <div id="status" class="muted">Ready.</div>
+  </div>
+
+  <div class="statgrid">
+    <div class="stat"><div class="muted">Existing Lines</div><div class="n" id="existingCount">0</div></div>
+    <div class="stat"><div class="muted">New Raw Lines</div><div class="n" id="rawNewCount">0</div></div>
+    <div class="stat"><div class="muted">Added Lines</div><div class="n" id="addedCount">0</div></div>
+    <div class="stat"><div class="muted">Duplicates Caught</div><div class="n" id="dupCount">0</div></div>
+    <div class="stat"><div class="muted">Letters Used</div><div class="n" id="lettersUsed">0</div></div>
+  </div>
+
+
+  <div class="card">
+    <h2>Searchable Index</h2>
+    <div class="muted">After scanning, search the master index here. Search by word, phrase, letter, status, or source.</div>
+    <div class="row">
+      <input id="searchBox" type="text" placeholder="Search word or phrase... example: COSMIC CURRENT" style="flex:1;min-width:240px" />
+      <select id="searchLetter">
+        <option value="ALL">ALL LETTERS</option>
+        <option value="NEW_ONLY">NEW ONLY</option>
+        <option value="DUPLICATES">DUPLICATES</option>
+      </select>
+      <button class="good" id="searchBtn" disabled>SEARCH INDEX</button>
+      <button class="secondary" id="showAllBtn" disabled>SHOW FIRST 500</button>
+    </div>
+    <div class="out" id="searchResults">Run scan first. Then the searchable index appears here.</div>
+  </div>
+
+  <div class="grid" style="margin-top:14px">
+    <div class="card">
+      <h2>Process Log</h2>
+      <div class="out" id="log">Nothing scanned yet.</div>
+    </div>
+    <div class="card">
+      <h2>A-Z Counts</h2>
+      <div class="letters" id="letters"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Master Preview</h2>
+    <div class="out" id="preview">No output yet.</div>
+  </div>
+</div>
+
+<script>
+const A2Z = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+let resultState = null;
+window.addEventListener('DOMContentLoaded',()=>{ const sel=document.getElementById('searchLetter'); if(sel){ for(const l of A2Z){ const o=document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o); } } });
+function $(id){return document.getElementById(id)}
+function status(msg, cls=''){ $('status').innerHTML = cls ? `<span class="${cls}">${escapeHtml(msg)}</span>` : escapeHtml(msg); }
+function escapeHtml(s){return String(s).replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));}
+function cleanLine(s){
+  s = String(s || '').replace(/\r/g,' ').replace(/\s+/g,' ').trim();
+  if($('trimEdge').checked) s = s.replace(/^[\s"'`~!@#$%^&*()_+\-=\[\]{};:,.<>/?\\|]+/,'').replace(/[\s"'`~!@#$%^&*()_+\-=\[\]{};:,.<>/?\\|]+$/,'');
+  s = s.replace(/\s+/g,' ').trim();
+  if($('uppercase').checked) s = s.toUpperCase();
+  if($('removeOneWord').checked && s.split(/\s+/).filter(Boolean).length < 2) return '';
+  return s;
+}
+function firstLetter(line){ const m = String(line).match(/[A-Z]/i); return m ? m[0].toUpperCase() : 'NON_AZ'; }
+function csvToLines(text){ return text.split(/\r?\n/).map(r => r.split(',').map(c=>c.trim()).filter(Boolean).join(' ')).join('\n'); }
+async function readFileEntry(file, sourceType){
+  const name = file.name || 'unnamed';
+  const lower = name.toLowerCase();
+  const original = {name, sourceType, content:''};
+  let entries = [];
+  if(lower.endsWith('.zip')){
+    const zip = await JSZip.loadAsync(file);
+    const promises = [];
+    zip.forEach((path, entry) => {
+      if(entry.dir) return;
+      const p = path.toLowerCase();
+      if(p.endsWith('.txt') || p.endsWith('.csv')){
+        promises.push(entry.async('string').then(text => {
+          entries.push({path, text: p.endsWith('.csv') ? csvToLines(text) : text, fromZip:name});
+        }));
+      }
+    });
+    await Promise.all(promises);
+    original.content = `[ZIP FILE LOADED: ${name}]\nText files inside: ${entries.length}`;
+  } else if(lower.endsWith('.txt') || lower.endsWith('.csv')){
+    let text = await file.text();
+    if(lower.endsWith('.csv')) text = csvToLines(text);
+    entries.push({path:name, text, fromZip:null});
+    original.content = text;
+  } else {
+    original.content = `[UNSUPPORTED FILE SKIPPED: ${name}]`;
+  }
+  return {entries, original};
+}
+async function readInputFiles(inputEl, sourceType){
+  const files = [...(inputEl.files || [])];
+  const entries = [], originals = [];
+  for(const f of files){
+    const got = await readFileEntry(f, sourceType);
+    entries.push(...got.entries); originals.push(got.original);
+  }
+  return {entries, originals};
+}
+function collectLines(entries){
+  const lines = [];
+  for(const e of entries){
+    const rawLines = String(e.text || '').replace(/\r/g,'\n').split(/\n+/);
+    for(const raw of rawLines){ const c = cleanLine(raw); if(c) lines.push({line:c, source:e.path}); }
+  }
+  return lines;
+}
+function groupLines(lines){
+  const grouped = {}; for(const l of A2Z) grouped[l]=[]; grouped.NON_AZ=[];
+  for(const line of lines){ const k = firstLetter(line); if(!grouped[k]) grouped[k]=[]; grouped[k].push(line); }
+  if($('sortLines').checked){ for(const k of Object.keys(grouped)) grouped[k].sort((a,b)=>a.localeCompare(b)); }
+  return grouped;
+}
+function renderLetters(grouped, addedByLetter){
+  $('letters').innerHTML = A2Z.map(l => `<div class="letter"><b>${l}</b><br><span class="muted">Total: ${grouped[l]?.length||0}</span><br><span class="ok">Added: ${addedByLetter[l]?.length||0}</span></div>`).join('') + `<div class="letter"><b>NON_AZ</b><br><span class="muted">Total: ${grouped.NON_AZ?.length||0}</span><br><span class="ok">Added: ${addedByLetter.NON_AZ?.length||0}</span></div>`;
+}
+function masterText(grouped){
+  const blocks = [];
+  for(const k of [...A2Z,'NON_AZ']){ if(grouped[k] && grouped[k].length) blocks.push(`[${k}]\n${grouped[k].join('\n')}`); }
+  return blocks.join('\n\n');
+}
+
+function buildIndexRows(grouped, addedByLetter, duplicates){
+  const rows = [];
+  const addedSet = new Set();
+  for(const k of Object.keys(addedByLetter || {})){ for(const line of (addedByLetter[k] || [])) addedSet.add(line); }
+  const dupLines = (duplicates || []).map(x => String(x).split('\tSOURCE=')[0]);
+  const dupSet = new Set(dupLines);
+  let id = 1;
+  for(const k of [...A2Z,'NON_AZ']){
+    for(const line of (grouped[k] || [])){
+      rows.push({id:id++, letter:k, status: addedSet.has(line) ? 'NEW_ADDED' : 'EXISTING', line, source:'MASTER'});
+    }
+  }
+  for(const line of dupLines){
+    if(line) rows.push({id:id++, letter:firstLetter(line), status:'DUPLICATE_CAUGHT', line, source:'DUPLICATES_REVIEW'});
+  }
+  return rows;
+}
+function indexText(rows){
+  return ['ID\tLETTER\tSTATUS\tSOURCE\tTEXT', ...rows.map(r => `${r.id}\t${r.letter}\t${r.status}\t${r.source}\t${r.line}`)].join('\n');
+}
+function searchRows(){
+  if(!resultState || !resultState.indexRows){ $('searchResults').textContent = 'Run scan first.'; return; }
+  const q = $('searchBox').value.trim().toUpperCase();
+  const mode = $('searchLetter').value;
+  let rows = resultState.indexRows;
+  if(mode === 'NEW_ONLY') rows = rows.filter(r => r.status === 'NEW_ADDED');
+  else if(mode === 'DUPLICATES') rows = rows.filter(r => r.status === 'DUPLICATE_CAUGHT');
+  else if(mode !== 'ALL') rows = rows.filter(r => r.letter === mode);
+  if(q) rows = rows.filter(r => r.line.toUpperCase().includes(q) || r.status.includes(q) || r.source.toUpperCase().includes(q));
+  const shown = rows.slice(0,500);
+  $('searchResults').textContent = `RESULTS: ${rows.length}\nSHOWING: ${shown.length}\n\n` + shown.map(r => `${r.id}. [${r.letter}] [${r.status}] ${r.line}`).join('\n');
+}
+
+$('runBtn').addEventListener('click', async () => {
+  try{
+    status('Scanning files...', 'warnText');
+    const existing = await readInputFiles($('existingFiles'), 'EXISTING_ARCHIVE');
+    const newer = await readInputFiles($('newFiles'), 'NEW_INPUT');
+    const pasted = $('pasteBox').value.trim();
+    if(pasted) newer.entries.push({path:'PASTED_TEXT_INPUT.txt', text:pasted, fromZip:null});
+
+    const existingLines = collectLines(existing.entries).map(x => x.line);
+    const existingSet = new Set(existingLines);
+    const newLineObjs = collectLines(newer.entries);
+
+    const added = [], duplicates = [];
+    const seenNew = new Set();
+    for(const obj of newLineObjs){
+      if(existingSet.has(obj.line) || seenNew.has(obj.line)) duplicates.push(obj);
+      else { added.push(obj); seenNew.add(obj.line); existingSet.add(obj.line); }
+    }
+    const allLines = [...new Set([...existingLines, ...added.map(x=>x.line)])];
+    if($('sortLines').checked) allLines.sort((a,b)=>a.localeCompare(b));
+    const grouped = groupLines(allLines);
+    const addedByLetter = groupLines(added.map(x=>x.line));
+    const dupLines = duplicates.map(x => `${x.line}\tSOURCE=${x.source}`);
+    const log = [
+      'DROP SCAN A-Z MASTER SYSTEM PROCESS LOG',
+      `DATE: ${new Date().toLocaleString()}`,
+      `EXISTING FILES SELECTED: ${($('existingFiles').files || []).length}`,
+      `NEW FILES SELECTED: ${($('newFiles').files || []).length}`,
+      `EXISTING CLEAN LINES: ${existingLines.length}`,
+      `NEW RAW CLEAN LINES: ${newLineObjs.length}`,
+      `ADDED NEW UNIQUE LINES: ${added.length}`,
+      `DUPLICATES CAUGHT: ${duplicates.length}`,
+      '',
+      'OUTPUT ZIP CONTAINS:',
+      '01_ORIGINALS/',
+      '02_A_Z_MASTER/A.txt ... Z.txt',
+      '03_NEW_ADDED_BY_LETTER/A_NEW.txt ... Z_NEW.txt',
+      '04_INDEX/MASTER_INDEX.txt',
+      '05_DUPLICATES_REVIEW/DUPLICATES_CAUGHT.txt',
+      '06_PROCESS_LOG/PROCESS_LOG.txt'
+    ].join('\n');
+    const mtext = masterText(grouped);
+    const indexRows = buildIndexRows(grouped, addedByLetter, dupLines);
+    const searchableIndex = indexText(indexRows);
+    resultState = {existing, newer, grouped, addedByLetter, duplicates: dupLines, log, master:mtext, indexRows, searchableIndex};
+    $('existingCount').textContent = existingLines.length;
+    $('rawNewCount').textContent = newLineObjs.length;
+    $('addedCount').textContent = added.length;
+    $('dupCount').textContent = duplicates.length;
+    $('lettersUsed').textContent = Object.values(grouped).filter(a=>a.length).length;
+    $('log').textContent = log;
+    $('preview').textContent = mtext.slice(0, 20000) || 'No master lines yet.';
+    renderLetters(grouped, addedByLetter);
+    $('downloadBtn').disabled = false;
+    $('searchBtn').disabled = false;
+    $('showAllBtn').disabled = false;
+    $('searchResults').textContent = 'SEARCHABLE INDEX READY. Use the search box above, or tap SHOW FIRST 500.';
+    status('Scan complete. Searchable index ready. Download the updated ZIP.', 'ok');
+  }catch(err){ console.error(err); status('Scan failed. If this was a very large ZIP, try smaller chunks or TXT files.', 'badText'); }
+});
+$('searchBtn').addEventListener('click', searchRows);
+$('showAllBtn').addEventListener('click', ()=>{ $('searchBox').value=''; $('searchLetter').value='ALL'; searchRows(); });
+$('searchBox').addEventListener('keydown', (e)=>{ if(e.key==='Enter') searchRows(); });
+$('downloadBtn').addEventListener('click', async () => {
+  if(!resultState) return;
+  const zip = new JSZip();
+  const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+  const originals = zip.folder('01_ORIGINALS');
+  for(const o of [...resultState.existing.originals, ...resultState.newer.originals]){
+    const safe = o.name.replace(/[\\/:*?"<>|]/g,'_'); originals.file(`${o.sourceType}_${safe}.txt`, o.content || '');
+  }
+  const masterFolder = zip.folder('02_A_Z_MASTER');
+  for(const k of A2Z) masterFolder.file(`${k}.txt`, (resultState.grouped[k]||[]).join('\n'));
+  masterFolder.file('NON_AZ.txt', (resultState.grouped.NON_AZ||[]).join('\n'));
+  const newFolder = zip.folder('03_NEW_ADDED_BY_LETTER');
+  for(const k of A2Z) newFolder.file(`${k}_NEW.txt`, (resultState.addedByLetter[k]||[]).join('\n'));
+  newFolder.file('NON_AZ_NEW.txt', (resultState.addedByLetter.NON_AZ||[]).join('\n'));
+  zip.folder('04_INDEX').file('MASTER_INDEX.txt', resultState.master);
+  zip.folder('04_INDEX').file('SEARCHABLE_MASTER_INDEX.tsv', resultState.searchableIndex || '');
+  zip.folder('04_INDEX').file('SEARCHABLE_MASTER_INDEX_READ_ME.txt', 'Open SEARCHABLE_MASTER_INDEX.tsv in Numbers, Excel, Google Sheets, or any text editor. Columns: ID, LETTER, STATUS, SOURCE, TEXT. Inside the HTML tool, use the Searchable Index box after scanning.');
+  zip.folder('05_DUPLICATES_REVIEW').file('DUPLICATES_CAUGHT.txt', resultState.duplicates.join('\n'));
+  zip.folder('06_PROCESS_LOG').file('PROCESS_LOG.txt', resultState.log);
+  zip.file('READ_ME_FIRST.txt', 'Open 04_INDEX/MASTER_INDEX.txt for the full plain index. Open 04_INDEX/SEARCHABLE_MASTER_INDEX.tsv for spreadsheet-searchable index with ID, LETTER, STATUS, SOURCE, TEXT. Open 02_A_Z_MASTER for A through Z. Originals are preserved in 01_ORIGINALS. Duplicates caught are in 05_DUPLICATES_REVIEW.');
+  const blob = await zip.generateAsync({type:'blob'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=`UPDATED_A_Z_MASTER_${stamp}.zip`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+$('clearBtn').addEventListener('click', ()=>{ location.reload(); });
+renderLetters(groupLines([]), groupLines([]));
+</script>
+</body>
+</html>

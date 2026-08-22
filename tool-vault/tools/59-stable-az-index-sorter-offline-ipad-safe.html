@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stable A-Z Index Sorter - Offline iPad Safe</title>
+<style>
+  :root { --bg:#0f1115; --panel:#171b22; --text:#f3f6fb; --muted:#aab4c0; --border:#303744; --accent:#8bd3ff; --good:#8dffb0; --warn:#ffd28b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:18px 16px; border-bottom:1px solid var(--border); background:#12161d; position:sticky; top:0; z-index:2; }
+  h1 { margin:0 0 6px; font-size:22px; }
+  .sub { color:var(--muted); font-size:14px; line-height:1.4; }
+  main { padding:16px; max-width:1000px; margin:0 auto; }
+  section { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px; margin:0 0 14px; }
+  h2 { margin:0 0 10px; font-size:17px; }
+  label { display:block; margin:10px 0 6px; color:var(--muted); font-size:13px; }
+  input[type="file"] { display:block; width:100%; padding:18px; border:2px dashed var(--accent); border-radius:12px; color:var(--text); background:#0c1016; font-size:16px; }
+  textarea { width:100%; min-height:190px; resize:vertical; background:#0c1016; color:var(--text); border:1px solid var(--border); border-radius:12px; padding:12px; font-size:15px; line-height:1.35; }
+  .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
+  .card { background:#10151c; border:1px solid var(--border); border-radius:12px; padding:10px; }
+  input[type="number"] { width:100%; background:#0c1016; color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px; font-size:16px; }
+  .check { display:flex; gap:8px; align-items:center; color:var(--text); margin:8px 0; }
+  .check input { transform:scale(1.15); }
+  button { border:1px solid var(--border); background:#222a35; color:var(--text); padding:12px 14px; border-radius:12px; font-weight:700; font-size:15px; }
+  button.primary { background:#135b7d; border-color:#237ca9; }
+  button.good { background:#176331; border-color:#27934d; }
+  button.warn { background:#6b4a13; border-color:#9b6d20; }
+  button.danger { background:#651f1f; border-color:#9b3030; }
+  button:active { transform:translateY(1px); }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
+  .stat { background:#0c1016; border:1px solid var(--border); border-radius:12px; padding:10px; }
+  .stat b { display:block; font-size:21px; color:var(--good); }
+  pre { white-space:pre-wrap; word-break:break-word; max-height:260px; overflow:auto; background:#0c1016; border:1px solid var(--border); border-radius:12px; padding:12px; color:#dbe7f4; }
+  .small { color:var(--muted); font-size:13px; line-height:1.45; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Stable A-Z Index Sorter</h1>
+  <div class="sub">Offline iPad-safe version. No hidden upload button. No external libraries. Best for TXT and CSV files.</div>
+</header>
+
+<main>
+  <section>
+    <h2>1. Load files or paste text</h2>
+    <label>Choose TXT / CSV files</label>
+    <input id="files" type="file" multiple accept=".txt,.csv,text/plain,text/csv">
+    <div class="small">On iPad: tap the file box → Browse → choose files from Downloads, iCloud Drive, or On My iPad.</div>
+    <label>Or paste text here</label>
+    <textarea id="paste" placeholder="Paste your alliteration/lyric/phrase bank here..."></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" onclick="loadEverything()">LOAD INTO SORTER</button>
+      <button class="warn" onclick="loadSaved()">RESTORE LAST SESSION</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Best cleaning settings</h2>
+    <div class="grid">
+      <div class="card"><label>Min letter ratio</label><input id="minLetters" type="number" min="0" max="1" step="0.01" value="0.55"></div>
+      <div class="card"><label>Max symbol ratio</label><input id="maxSymbols" type="number" min="0" max="1" step="0.01" value="0.20"></div>
+      <div class="card"><label>Max number ratio</label><input id="maxNumbers" type="number" min="0" max="1" step="0.01" value="0.25"></div>
+    </div>
+    <div class="grid" style="margin-top:10px">
+      <div class="card">
+        <label class="check"><input id="uppercase" type="checkbox" checked> UPPERCASE</label>
+        <label class="check"><input id="dedupe" type="checkbox" checked> DEDUPE</label>
+        <label class="check"><input id="min2" type="checkbox" checked> MIN 2 WORDS</label>
+      </div>
+      <div class="card">
+        <label class="check"><input id="lettersSpaces" type="checkbox" checked> KEEP LETTERS/SPACES ONLY</label>
+        <label class="check"><input id="deleteBad" type="checkbox" checked> DELETE BAD CODE-LIKE JUNK</label>
+        <label class="check"><input id="trimSmall" type="checkbox" checked> TRIM EXTRA SPACES</label>
+      </div>
+    </div>
+    <div class="small">Recommended: 0.55 letters / 0.20 symbols / 0.25 numbers.</div>
+  </section>
+
+  <section>
+    <h2>3. Build index</h2>
+    <div class="row">
+      <button class="good" onclick="processText()">SORT & BUILD INDEX</button>
+      <button onclick="downloadMaster()">DOWNLOAD MASTER.txt</button>
+      <button onclick="downloadAZZip()">DOWNLOAD A-Z ZIP</button>
+      <button class="danger" onclick="clearAll()">CLEAR</button>
+    </div>
+    <div class="stats" style="margin-top:12px">
+      <div class="stat"><span>Raw lines</span><b id="rawCount">0</b></div>
+      <div class="stat"><span>Kept</span><b id="keptCount">0</b></div>
+      <div class="stat"><span>Rejected</span><b id="rejectCount">0</b></div>
+      <div class="stat"><span>A-Z files</span><b id="azCount">0</b></div>
+    </div>
+  </section>
+
+  <section><h2>Status</h2><pre id="status">Ready.</pre></section>
+  <section><h2>Preview</h2><pre id="preview">Nothing built yet.</pre></section>
+</main>
+
+<script>
+let rawText = "";
+let master = [];
+let az = {};
+
+function log(msg) {
+  const box = document.getElementById("status");
+  box.textContent = "[" + new Date().toLocaleTimeString() + "] " + msg + "\n" + box.textContent;
+}
+function setStat(id, val) { document.getElementById(id).textContent = String(val); }
+
+async function loadEverything() {
+  rawText = "";
+  const files = Array.from(document.getElementById("files").files || []);
+  const pasted = document.getElementById("paste").value || "";
+  let loaded = 0;
+
+  for (const file of files) {
+    try {
+      const txt = await file.text();
+      rawText += "\n" + txt;
+      loaded++;
+      log("Loaded file: " + file.name + " (" + txt.length + " characters)");
+    } catch (e) {
+      log("Could not read file: " + file.name + " — " + e.message);
+    }
+  }
+
+  if (pasted.trim()) {
+    rawText += "\n" + pasted;
+    log("Loaded pasted text (" + pasted.length + " characters)");
+  }
+
+  if (!rawText.trim()) {
+    log("Nothing loaded. Choose TXT/CSV files or paste text first.");
+    return;
+  }
+
+  try {
+    localStorage.setItem("stable_az_raw_text", rawText);
+    log("Saved raw text to browser storage for restore.");
+  } catch(e) {
+    log("Could not save session. Browser storage may be full/private.");
+  }
+
+  setStat("rawCount", rawText.split(/\r?\n/).length);
+  log("Ready to sort. Press SORT & BUILD INDEX.");
+}
+
+function loadSaved() {
+  const saved = localStorage.getItem("stable_az_raw_text") || "";
+  if (!saved.trim()) {
+    log("No saved session found in this browser.");
+    return;
+  }
+  rawText = saved;
+  document.getElementById("paste").value = saved.slice(0, 200000);
+  setStat("rawCount", rawText.split(/\r?\n/).length);
+  log("Restored last raw session. Press SORT & BUILD INDEX.");
+}
+
+function ratios(s) {
+  const total = Math.max(s.length, 1);
+  const letters = (s.match(/[A-Za-z]/g) || []).length / total;
+  const nums = (s.match(/[0-9]/g) || []).length / total;
+  const symbols = (s.match(/[^A-Za-z0-9\s]/g) || []).length / total;
+  return {letters, nums, symbols};
+}
+
+function cleanLine(line) {
+  let s = line || "";
+  s = s.replace(/\uFFFD/g, " ");
+  if (document.getElementById("deleteBad").checked) {
+    if (/[{}<>[\]=\\|`~^]/.test(s) && s.length > 25) return "";
+    if (/function\s*\(|const\s+|var\s+|let\s+|<\/|<script|DOCTYPE|html|css|json/i.test(s)) return "";
+  }
+  if (document.getElementById("lettersSpaces").checked) s = s.replace(/[^A-Za-z\s]/g, " ");
+  if (document.getElementById("trimSmall").checked) s = s.replace(/\s+/g, " ").trim();
+  if (document.getElementById("uppercase").checked) s = s.toUpperCase();
+  return s.trim();
+}
+
+function processText() {
+  if (!rawText.trim()) {
+    const pasted = document.getElementById("paste").value || "";
+    if (pasted.trim()) rawText = pasted;
+  }
+  if (!rawText.trim()) {
+    log("Nothing to process. Load files or paste text first.");
+    return;
+  }
+
+  const minLetters = parseFloat(document.getElementById("minLetters").value);
+  const maxSymbols = parseFloat(document.getElementById("maxSymbols").value);
+  const maxNumbers = parseFloat(document.getElementById("maxNumbers").value);
+  const lines = rawText.split(/\r?\n/);
+  const out = [];
+  let rejected = 0;
+
+  for (let line of lines) {
+    const original = line;
+    line = cleanLine(line);
+    if (!line) { rejected++; continue; }
+    if (document.getElementById("min2").checked && line.split(/\s+/).filter(Boolean).length < 2) { rejected++; continue; }
+    const r = ratios(original);
+    if (r.letters < minLetters || r.symbols > maxSymbols || r.nums > maxNumbers) { rejected++; continue; }
+    out.push(line);
+  }
+
+  master = document.getElementById("dedupe").checked ? Array.from(new Set(out)) : out.slice();
+  master.sort((a,b) => a.localeCompare(b));
+
+  az = {};
+  for (const line of master) {
+    const match = line.match(/[A-Z]/);
+    const first = match ? match[0].toUpperCase() : "#";
+    if (!az[first]) az[first] = [];
+    az[first].push(line);
+  }
+
+  setStat("rawCount", lines.length);
+  setStat("keptCount", master.length);
+  setStat("rejectCount", rejected);
+  setStat("azCount", Object.keys(az).filter(k => /^[A-Z]$/.test(k)).length);
+
+  document.getElementById("preview").textContent = master.slice(0, 200).join("\n") || "No entries kept.";
+  try { localStorage.setItem("stable_az_master", master.join("\n")); } catch(e) {}
+  log("Built index: " + master.length + " kept entries.");
+}
+
+function blobDownload(filename, content, type) {
+  const blob = content instanceof Blob ? content : new Blob([content], {type:type || "text/plain"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+function stamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2,"0");
+  return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes());
+}
+
+function downloadMaster() {
+  if (!master.length) processText();
+  if (!master.length) { log("No master entries to download."); return; }
+  blobDownload("MASTER_" + stamp() + ".txt", master.join("\n"), "text/plain");
+  log("Downloading MASTER file.");
+}
+
+const crcTable = (() => {
+  let c, table = [];
+  for (let n=0; n<256; n++) {
+    c = n;
+    for (let k=0; k<8; k++) c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+function crc32(str) {
+  const data = new TextEncoder().encode(str);
+  let crc = 0 ^ (-1);
+  for (let i=0; i<data.length; i++) crc = (crc >>> 8) ^ crcTable[(crc ^ data[i]) & 0xFF];
+  return (crc ^ (-1)) >>> 0;
+}
+function u16(n){ return [n & 255, (n>>>8)&255]; }
+function u32(n){ return [n & 255, (n>>>8)&255, (n>>>16)&255, (n>>>24)&255]; }
+function dosTimeDate(date) {
+  const time = (date.getHours()<<11) | (date.getMinutes()<<5) | Math.floor(date.getSeconds()/2);
+  const d = ((date.getFullYear()-1980)<<9) | ((date.getMonth()+1)<<5) | date.getDate();
+  return {time, date:d};
+}
+function makeZip(files) {
+  const encoder = new TextEncoder();
+  let chunks = [], central = [], offset = 0;
+  const now = dosTimeDate(new Date());
+
+  for (const f of files) {
+    const nameBytes = encoder.encode(f.name);
+    const dataBytes = encoder.encode(f.content);
+    const crc = crc32(f.content);
+    const local = [
+      ...u32(0x04034b50), ...u16(20), ...u16(0), ...u16(0),
+      ...u16(now.time), ...u16(now.date), ...u32(crc),
+      ...u32(dataBytes.length), ...u32(dataBytes.length),
+      ...u16(nameBytes.length), ...u16(0)
+    ];
+    chunks.push(new Uint8Array(local), nameBytes, dataBytes);
+
+    const cen = [
+      ...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0), ...u16(0),
+      ...u16(now.time), ...u16(now.date), ...u32(crc),
+      ...u32(dataBytes.length), ...u32(dataBytes.length),
+      ...u16(nameBytes.length), ...u16(0), ...u16(0),
+      ...u16(0), ...u16(0), ...u32(0), ...u32(offset)
+    ];
+    central.push(new Uint8Array(cen), nameBytes);
+    offset += local.length + nameBytes.length + dataBytes.length;
+  }
+
+  const centralSize = central.reduce((s,c)=>s+c.length,0);
+  const end = [
+    ...u32(0x06054b50), ...u16(0), ...u16(0),
+    ...u16(files.length), ...u16(files.length),
+    ...u32(centralSize), ...u32(offset), ...u16(0)
+  ];
+  return new Blob([...chunks, ...central, new Uint8Array(end)], {type:"application/zip"});
+}
+
+function downloadAZZip() {
+  if (!master.length) processText();
+  if (!master.length) { log("No A-Z entries to download."); return; }
+
+  const files = [];
+  for (let i=65; i<=90; i++) {
+    const letter = String.fromCharCode(i);
+    files.push({name: letter + ".txt", content: (az[letter] || []).join("\n")});
+  }
+  if (az["#"] && az["#"].length) files.push({name:"#.txt", content:az["#"].join("\n")});
+
+  const zip = makeZip(files);
+  blobDownload("A-Z_INDEX_" + stamp() + ".zip", zip, "application/zip");
+  log("Downloading A-Z ZIP with A.txt through Z.txt.");
+}
+
+function clearAll() {
+  if (!confirm("Clear page data and saved session?")) return;
+  rawText = ""; master = []; az = {};
+  document.getElementById("files").value = "";
+  document.getElementById("paste").value = "";
+  document.getElementById("preview").textContent = "Nothing built yet.";
+  setStat("rawCount",0); setStat("keptCount",0); setStat("rejectCount",0); setStat("azCount",0);
+  localStorage.removeItem("stable_az_raw_text");
+  localStorage.removeItem("stable_az_master");
+  log("Cleared.");
+}
+</script>
+</body>
+</html>

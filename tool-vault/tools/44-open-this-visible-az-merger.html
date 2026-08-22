@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VISIBLE A-Z TEXT MERGER</title>
+<style>
+  :root{--bg:#111;--panel:#1d1d1d;--ink:#e9e1d5;--muted:#b9afa4;--line:#7a6d62;--accent:#4730b8;--accent2:#6551dd;}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif;padding:22px;line-height:1.35}
+  h1{font-size:34px;margin:0 0 8px;letter-spacing:.02em}.sub{color:var(--muted);font-size:16px;margin-bottom:24px}
+  .box{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:18px;margin:0 0 18px}
+  h2{margin:0 0 14px;font-size:24px} button,.btn{background:var(--accent);color:#fff;border:0;border-radius:12px;padding:14px 18px;font-weight:700;font-size:17px;margin:8px 8px 8px 0;display:inline-block;text-decoration:none;cursor:pointer}
+  button:active,.btn:active{background:var(--accent2)} input[type=file]{font-size:16px;max-width:100%;margin:8px 0 10px}
+  textarea{width:100%;min-height:220px;border:1px solid var(--line);border-radius:14px;background:#111;color:var(--ink);padding:14px;font-size:15px;white-space:pre;overflow:auto}
+  #out{min-height:320px}.status{background:#111;border:1px solid var(--line);border-radius:14px;padding:12px;white-space:pre-wrap;color:var(--muted);min-height:52px;margin-top:10px}
+  .good{color:#a6f3b0}.warn{color:#ffd58a}.bad{color:#ff9a9a}.small{font-size:14px;color:var(--muted)}
+</style>
+</head>
+<body>
+<h1>VISIBLE A-Z TEXT MERGER</h1>
+<div class="sub">No Python. No JSON. No CSV. This version shows the merged TXT on screen first, so no hidden download or pop-up problem.</div>
+
+<div class="box">
+  <h2>1. Pick text files</h2>
+  <p class="small">Best first test: pick ONE small TXT file. Then try 3. For hundreds, do batches.</p>
+  <input id="files" type="file" multiple accept=".txt,.md,.text,.csv,.json,.jsonl,.html,.htm,.rtf" />
+  <br />
+  <button id="build">Build Visible Master TXT</button>
+  <button id="clear">Clear</button>
+  <div id="status" class="status">Waiting. Choose files, then tap Build Visible Master TXT.</div>
+</div>
+
+<div class="box">
+  <h2>2. Or paste text here</h2>
+  <textarea id="paste" placeholder="Paste words, phrases, lyric lines, titles, or A-Z text here..."></textarea>
+  <button id="buildPaste">Build From Paste</button>
+</div>
+
+<div class="box">
+  <h2>3. Your merged text appears here</h2>
+  <button id="copy">Copy Merged Text</button>
+  <a id="download" class="btn" href="#" download="AZ_MASTER_INDEX.txt" style="display:none">Download AZ_MASTER_INDEX.txt</a>
+  <a id="reportDownload" class="btn" href="#" download="AZ_MERGE_REPORT.txt" style="display:none">Download Report</a>
+  <textarea id="out" placeholder="After building, your merged master TXT will appear here. You can copy it even if downloads are blocked."></textarea>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const status = $('status');
+let lastMaster = '', lastReport = '';
+function log(msg, cls='') { status.innerHTML = cls ? `<span class="${cls}">${msg}</span>` : msg; }
+function normalizeLine(line){
+  return line.replace(/\uFEFF/g,'').replace(/[\t]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function cleanFilename(s){return (s||'pasted_text').replace(/[\r\n\t]/g,' ').slice(0,120)}
+function setDownloads(master, report){
+  lastMaster = master; lastReport = report;
+  $('out').value = master;
+  try{
+    const mBlob = new Blob([master], {type:'text/plain;charset=utf-8'});
+    const rBlob = new Blob([report], {type:'text/plain;charset=utf-8'});
+    $('download').href = URL.createObjectURL(mBlob);
+    $('reportDownload').href = URL.createObjectURL(rBlob);
+    $('download').style.display='inline-block';
+    $('reportDownload').style.display='inline-block';
+  }catch(e){
+    log('Built text on screen, but download links failed. Copy from the big box below.\nError: '+e.message,'warn');
+  }
+}
+function buildFromTexts(items){
+  const seen = new Map();
+  const sources = [];
+  let totalLines = 0, blankLines = 0, dupes = 0, added = 0;
+  for(const item of items){
+    let localAdded = 0, localDupes = 0, localLines = 0;
+    const lines = String(item.text||'').split(/\r?\n/);
+    for(let raw of lines){
+      localLines++; totalLines++;
+      let line = normalizeLine(raw);
+      if(!line){blankLines++; continue;}
+      const key = line.toLocaleLowerCase();
+      if(seen.has(key)){dupes++; localDupes++; continue;}
+      seen.set(key, line); added++; localAdded++;
+    }
+    sources.push(`${item.name}: ${localLines} lines scanned, ${localAdded} added, ${localDupes} duplicates skipped`);
+  }
+  const arr = Array.from(seen.values()).sort((a,b)=>a.localeCompare(b, undefined, {sensitivity:'base', numeric:true}));
+  const buckets = new Map();
+  for(const line of arr){
+    let ch = line[0] ? line[0].toUpperCase() : '#';
+    if(!/[A-Z]/.test(ch)) ch = '#';
+    if(!buckets.has(ch)) buckets.set(ch, []);
+    buckets.get(ch).push(line);
+  }
+  let master = 'A-Z MASTER INDEX\n';
+  master += 'Generated in browser. Plain TXT. Deduplicated exact normalized lines.\n';
+  master += 'Total unique entries: '+arr.length+'\n\n';
+  const letters = ['#','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+  for(const l of letters){
+    const lines = buckets.get(l)||[];
+    if(!lines.length) continue;
+    master += '\n===== '+l+' =====\n';
+    master += lines.join('\n')+'\n';
+  }
+  let report = 'A-Z MERGE REPORT\n\n';
+  report += 'Files/paste sources: '+items.length+'\n';
+  report += 'Total lines scanned: '+totalLines+'\n';
+  report += 'Blank lines skipped: '+blankLines+'\n';
+  report += 'Duplicates skipped: '+dupes+'\n';
+  report += 'Final unique entries: '+arr.length+'\n\n';
+  report += 'SOURCE BREAKDOWN\n'+sources.join('\n')+'\n';
+  setDownloads(master, report);
+  log(`DONE. Built ${arr.length} unique entries. ${dupes} duplicates removed.\nThe merged TXT is visible below. Copy it or tap Download.`, 'good');
+}
+$('build').onclick = async () => {
+  try{
+    const files = Array.from($('files').files||[]);
+    if(!files.length){log('No files selected. Pick files first, or paste text and use Build From Paste.','warn');return;}
+    log(`Reading ${files.length} file(s)... On iPad, huge files can take a while. Start with small batches.`);
+    const items = [];
+    for(let i=0;i<files.length;i++){
+      const f=files[i];
+      log(`Reading file ${i+1} of ${files.length}: ${cleanFilename(f.name)}\nSize: ${f.size.toLocaleString()} bytes`);
+      const text = await f.text();
+      items.push({name:f.name, text});
+    }
+    log('Building and deduplicating...');
+    setTimeout(()=>buildFromTexts(items), 30);
+  }catch(e){
+    log('ERROR while reading/building. Try one smaller TXT file first.\n\nError: '+(e && e.message ? e.message : e),'bad');
+  }
+};
+$('buildPaste').onclick = () => {
+  const text = $('paste').value || '';
+  if(!text.trim()){log('Paste box is empty. Paste text first.','warn');return;}
+  log('Building from pasted text...');
+  setTimeout(()=>buildFromTexts([{name:'Pasted Text', text}]), 30);
+};
+$('copy').onclick = async () => {
+  try{
+    const text = $('out').value || lastMaster;
+    if(!text.trim()){log('Nothing to copy yet. Build first.','warn');return;}
+    await navigator.clipboard.writeText(text);
+    log('Copied merged text to clipboard. Paste it into Notes, Pages, Google Docs, or a TXT file.','good');
+  }catch(e){
+    $('out').focus(); $('out').select();
+    log('Clipboard permission blocked. The text box is selected now — use Copy from the iPad menu.','warn');
+  }
+};
+$('clear').onclick = () => { $('files').value=''; $('paste').value=''; $('out').value=''; $('download').style.display='none'; $('reportDownload').style.display='none'; log('Cleared.'); };
+window.onerror = function(msg, src, line, col, err){ log('Page error: '+msg+'\nTry Safari or a smaller batch first.','bad'); };
+</script>
+</body>
+</html>

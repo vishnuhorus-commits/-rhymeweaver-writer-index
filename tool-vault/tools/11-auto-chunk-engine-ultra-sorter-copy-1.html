@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Auto Chunk Engine Ultra Sorter</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e2430; --text:#eef2f7; --muted:#a6b0bf;
+    --accent:#77c3ff; --accent2:#9af7c1; --border:#2a3242; --danger:#ff8f8f; --warn:#ffd39a;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(180deg,#0c0f14,#10141b 35%,#0f1115);
+    color:var(--text);
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:16px}
+  .hero,.card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:14px;
+    box-shadow:0 6px 24px rgba(0,0,0,.25);
+  }
+  .hero{margin-bottom:14px;background:linear-gradient(180deg,rgba(119,195,255,.12),rgba(154,247,193,.06))}
+  h1,h2,h3{margin:0 0 10px}
+  p{margin:8px 0;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr;gap:14px}
+  @media (min-width:980px){ .grid{grid-template-columns:1.05fr .95fr} }
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+  .row > *{min-width:0}
+  textarea{
+    width:100%; min-height:260px; resize:vertical; border-radius:14px; border:1px solid var(--border);
+    background:#0d1016; color:var(--text); padding:14px; font-size:15px; line-height:1.45;
+  }
+  input[type="file"], input[type="number"], input[type="range"]{
+    border:1px solid var(--border); border-radius:12px; background:#0d1016; color:var(--text);
+    padding:10px 12px;
+  }
+  input[type="file"]{width:100%}
+  input[type="number"]{width:130px}
+  button,.btn{
+    appearance:none; border:none; border-radius:999px; padding:12px 16px; font-weight:700; font-size:15px;
+    background:var(--accent); color:#07111a; cursor:pointer; text-decoration:none; display:inline-block;
+  }
+  button.secondary,.btn.secondary{background:#2d3748;color:var(--text)}
+  button.ghost,.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+  button.good,.btn.good{background:var(--accent2);color:#07140e}
+  button.warn,.btn.warn{background:var(--warn);color:#201200}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  label.chk, .mini{
+    display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);
+    padding:10px 12px;border-radius:12px
+  }
+  .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+  @media (min-width:760px){ .stats{grid-template-columns:repeat(4,minmax(0,1fr))} }
+  .stat{background:var(--panel2); border:1px solid var(--border); border-radius:14px; padding:12px}
+  .stat .n{font-size:24px; font-weight:800}
+  .small{font-size:13px;color:var(--muted)}
+  .out{
+    max-height:360px; overflow:auto; white-space:pre-wrap; word-break:break-word;
+    background:#0d1016; border:1px solid var(--border); border-radius:14px; padding:14px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  .letters{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  @media (min-width:700px){ .letters{grid-template-columns:repeat(4,1fr)} }
+  .letter{background:var(--panel2); border:1px solid var(--border); border-radius:14px; padding:10px}
+  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#0d1016;border:1px solid var(--border);font-size:12px;color:var(--muted)}
+  .ok{color:#baf8cf}.err{color:var(--danger)}.warntext{color:var(--warn)}
+  .progressWrap{
+    width:100%; height:18px; border-radius:999px; background:#0d1016; border:1px solid var(--border); overflow:hidden;
+  }
+  .progressBar{
+    height:100%; width:0%; transition:width .2s ease;
+    background:linear-gradient(90deg, rgba(119,195,255,.9), rgba(154,247,193,.9));
+  }
+  .kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  @media (max-width:760px){ .kpi{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>Auto Chunk Engine Ultra Sorter</h1>
+    <p>Made for iPad reality: upload or paste large raw text, prepare once, then let <strong>AUTO RUN</strong> chew through chunk after chunk with aggressive junk filtering and light previews.</p>
+    <p class="small">Best for TXT and pasted text. For giant jobs, keep chunks around 25,000–75,000 lines.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Input</h2>
+      <div class="row">
+        <input id="fileInput" type="file" multiple accept=".txt,text/plain" />
+      </div>
+      <textarea id="inputText" placeholder="Paste raw text here or upload TXT files."></textarea>
+
+      <div class="row">
+        <div class="mini">Lines per chunk <input id="chunkSize" type="number" min="1000" step="1000" value="50000"></div>
+        <div class="mini">Auto delay ms <input id="autoDelay" type="number" min="0" step="50" value="60"></div>
+      </div>
+
+      <div class="row">
+        <label class="chk"><input type="checkbox" id="uppercase" checked> UPPERCASE</label>
+        <label class="chk"><input type="checkbox" id="dedupe" checked> DEDUPE MASTER</label>
+        <label class="chk"><input type="checkbox" id="minTwoWords" checked> MIN 2 WORDS</label>
+        <label class="chk"><input type="checkbox" id="deleteReplacement" checked> DELETE �</label>
+        <label class="chk"><input type="checkbox" id="deleteCodes" checked> DELETE CODE STRINGS</label>
+        <label class="chk"><input type="checkbox" id="lettersSpacesOnly" checked> KEEP LETTERS/SPACES ONLY</label>
+        <label class="chk"><input type="checkbox" id="filterGibberish" checked> FILTER GIBBERISH</label>
+      </div>
+
+      <div class="row">
+        <div class="mini">Min letter ratio <span id="letterRatioLabel" class="pill">0.55</span></div>
+        <input id="letterRatio" type="range" min="0.20" max="0.95" step="0.05" value="0.55">
+      </div>
+      <div class="row">
+        <div class="mini">Max symbol ratio <span id="symbolRatioLabel" class="pill">0.20</span></div>
+        <input id="symbolRatio" type="range" min="0.00" max="0.80" step="0.05" value="0.20">
+      </div>
+      <div class="row">
+        <div class="mini">Max number ratio <span id="numberRatioLabel" class="pill">0.25</span></div>
+        <input id="numberRatio" type="range" min="0.00" max="0.80" step="0.05" value="0.25">
+      </div>
+
+      <div class="row">
+        <button id="prepareBtn">PREPARE CHUNKS</button>
+        <button id="nextBtn" class="secondary" disabled>PROCESS NEXT CHUNK</button>
+        <button id="autoBtn" class="warn" disabled>AUTO RUN</button>
+        <button id="stopBtn" class="ghost" disabled>STOP</button>
+        <button id="saveSessionBtn" class="ghost">SAVE SESSION</button>
+        <button id="restoreSessionBtn" class="ghost">RESTORE SESSION</button>
+        <button id="clearBtn" class="ghost">CLEAR</button>
+      </div>
+
+      <div id="status" class="small">Ready.</div>
+
+      <div class="row">
+        <div class="progressWrap"><div id="progressBar" class="progressBar"></div></div>
+      </div>
+      <div id="progressText" class="small">0 / 0 chunks processed</div>
+
+      <div class="stats">
+        <div class="stat"><div class="small">RAW LINES</div><div id="rawCount" class="n">0</div></div>
+        <div class="stat"><div class="small">PROCESSED CHUNKS</div><div id="doneChunks" class="n">0</div></div>
+        <div class="stat"><div class="small">REMOVED</div><div id="removedCount" class="n">0</div></div>
+        <div class="stat"><div class="small">MASTER UNIQUE</div><div id="masterCount" class="n">0</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Output</h2>
+      <div class="row">
+        <button id="downloadMaster" class="good" disabled>DOWNLOAD MASTER.txt</button>
+        <button id="downloadZip" class="secondary" disabled>DOWNLOAD A–Z ZIP</button>
+      </div>
+      <div class="kpi">
+        <div class="stat"><div class="small">LAST CHUNK RAW</div><div id="lastChunkRaw" class="n">0</div></div>
+        <div class="stat"><div class="small">LAST CHUNK KEPT</div><div id="lastChunkKept" class="n">0</div></div>
+        <div class="stat"><div class="small">LAST CHUNK REMOVED</div><div id="lastChunkRemoved" class="n">0</div></div>
+      </div>
+      <p class="small">Preview is trimmed on purpose so the browser stays lighter.</p>
+      <div id="preview" class="out">Nothing built yet.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2>A–Z Breakdown</h2>
+    <div id="letters" class="letters"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    fileInput: $('fileInput'), inputText: $('inputText'), chunkSize: $('chunkSize'), autoDelay: $('autoDelay'),
+    uppercase: $('uppercase'), dedupe: $('dedupe'), minTwoWords: $('minTwoWords'), deleteReplacement: $('deleteReplacement'),
+    deleteCodes: $('deleteCodes'), lettersSpacesOnly: $('lettersSpacesOnly'), filterGibberish: $('filterGibberish'),
+    letterRatio: $('letterRatio'), symbolRatio: $('symbolRatio'), numberRatio: $('numberRatio'),
+    letterRatioLabel: $('letterRatioLabel'), symbolRatioLabel: $('symbolRatioLabel'), numberRatioLabel: $('numberRatioLabel'),
+    prepareBtn: $('prepareBtn'), nextBtn: $('nextBtn'), autoBtn: $('autoBtn'), stopBtn: $('stopBtn'),
+    saveSessionBtn: $('saveSessionBtn'), restoreSessionBtn: $('restoreSessionBtn'), clearBtn: $('clearBtn'),
+    status: $('status'), progressBar: $('progressBar'), progressText: $('progressText'), rawCount: $('rawCount'),
+    doneChunks: $('doneChunks'), removedCount: $('removedCount'), masterCount: $('masterCount'),
+    lastChunkRaw: $('lastChunkRaw'), lastChunkKept: $('lastChunkKept'), lastChunkRemoved: $('lastChunkRemoved'),
+    preview: $('preview'), letters: $('letters'), downloadMaster: $('downloadMaster'), downloadZip: $('downloadZip')
+  };
+
+  let state = { prepared:false, chunks:[], chunkIndex:0, removedTotal:0, rawCount:0, masterSet:new Set(), autoRunning:false };
+
+  function setStatus(msg, cls='') { els.status.className = 'small ' + cls; els.status.textContent = msg; }
+  function updateLabels() {
+    els.letterRatioLabel.textContent = Number(els.letterRatio.value).toFixed(2);
+    els.symbolRatioLabel.textContent = Number(els.symbolRatio.value).toFixed(2);
+    els.numberRatioLabel.textContent = Number(els.numberRatio.value).toFixed(2);
+  }
+  function normalizeText(text) { return text.replace(/\r/g, '\n'); }
+  function rawLinesFromInput(text) { return normalizeText(text).split(/\n+/).map(s => s.trim()).filter(Boolean); }
+  function lettersOnlySpaces(s) { return s.replace(/[^A-Z\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function countMatches(s, rx) { const m = s.match(rx); return m ? m.length : 0; }
+  function looksCodeLike(s) {
+    if (/[A-Z0-9_?&%$#@^*~+=|\\/<>{}\[\]-]{8,}/.test(s)) return true;
+    if (/[A-Z]{2,}\d[A-Z0-9?&%$#@^*~+=|\\/<>{}\[\]-]{4,}/.test(s)) return true;
+    return false;
+  }
+  function gibberishScore(s) {
+    const words = s.split(/\s+/).filter(Boolean); if (!words.length) return 1;
+    let bad = 0;
+    for (const w of words) {
+      if (w.length >= 18) bad += 1;
+      if (/[BCDFGHJKLMNPQRSTVWXYZ]{6,}/.test(w)) bad += 1;
+      if (!/[AEIOUY]/.test(w) && w.length >= 7) bad += 1;
+    }
+    return bad / words.length;
+  }
+  function firstLetterKey(line) { const m = line.match(/[A-Z]/); return m ? m[0] : '#'; }
+  function getOptions() {
+    return {
+      uppercase: els.uppercase.checked, dedupe: els.dedupe.checked, minTwoWords: els.minTwoWords.checked,
+      deleteReplacement: els.deleteReplacement.checked, deleteCodes: els.deleteCodes.checked,
+      lettersSpacesOnly: els.lettersSpacesOnly.checked, filterGibberish: els.filterGibberish.checked,
+      minLetterRatio: Number(els.letterRatio.value), maxSymbolRatio: Number(els.symbolRatio.value), maxNumberRatio: Number(els.numberRatio.value)
+    };
+  }
+  function shouldDrop(original, options) {
+    const src = options.uppercase ? original.toUpperCase() : original;
+    if (!src.trim()) return true;
+    if (options.deleteReplacement && src.includes('�')) return true;
+    const totalChars = src.length || 1;
+    const letters = countMatches(src, /[A-Z]/g);
+    const numbers = countMatches(src, /\d/g);
+    const symbols = countMatches(src, /[^A-Z0-9\s]/g);
+    if ((letters / totalChars) < options.minLetterRatio) return true;
+    if ((numbers / totalChars) > options.maxNumberRatio) return true;
+    if ((symbols / totalChars) > options.maxSymbolRatio) return true;
+    if (options.deleteCodes && looksCodeLike(src)) return true;
+    let cleaned = src;
+    if (options.lettersSpacesOnly) cleaned = lettersOnlySpaces(cleaned);
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    if (!cleaned) return true;
+    if (options.minTwoWords && cleaned.split(/\s+/).length < 2) return true;
+    if (options.filterGibberish && gibberishScore(cleaned) > 0.34) return true;
+    return false;
+  }
+  function cleanLine(original, options) {
+    let s = options.uppercase ? original.toUpperCase() : original;
+    if (options.lettersSpacesOnly) s = lettersOnlySpaces(s);
+    return s.replace(/\s+/g, ' ').trim();
+  }
+  function prepareChunks() {
+    const rawLines = rawLinesFromInput(els.inputText.value || '');
+    const chunkSize = Math.max(1000, parseInt(els.chunkSize.value || '50000', 10));
+    if (!rawLines.length) { setStatus('Nothing to prepare yet. Paste text or upload TXT.', 'err'); return; }
+    state = { prepared:true, chunks:[], chunkIndex:0, removedTotal:0, rawCount:rawLines.length, masterSet:new Set(), autoRunning:false };
+    for (let i = 0; i < rawLines.length; i += chunkSize) state.chunks.push(rawLines.slice(i, i + chunkSize));
+    els.nextBtn.disabled = false; els.autoBtn.disabled = false; els.stopBtn.disabled = true;
+    els.downloadMaster.disabled = true; els.downloadZip.disabled = true;
+    updateProgress(); renderOutput(); saveSession();
+    setStatus(`Prepared ${state.chunks.length} chunk(s). Now process next chunk or use AUTO RUN.`, 'ok');
+  }
+  function processOneChunk() {
+    if (!state.prepared || state.chunkIndex >= state.chunks.length) { setStatus('No more chunks to process.', 'warntext'); stopAuto(); return false; }
+    const options = getOptions();
+    const chunk = state.chunks[state.chunkIndex];
+    let kept = 0, removed = 0;
+    for (const line of chunk) {
+      if (shouldDrop(line, options)) { removed += 1; continue; }
+      const cleaned = cleanLine(line, options);
+      if (!cleaned) { removed += 1; continue; }
+      state.masterSet.add(options.dedupe ? cleaned : cleaned + ' ::' + state.chunkIndex + '::' + kept);
+      kept += 1;
+    }
+    state.removedTotal += removed;
+    state.chunkIndex += 1;
+    els.lastChunkRaw.textContent = String(chunk.length);
+    els.lastChunkKept.textContent = String(kept);
+    els.lastChunkRemoved.textContent = String(removed);
+    updateProgress(); renderOutput(); saveSession();
+    if (state.chunkIndex >= state.chunks.length) {
+      setStatus('Finished all chunks.', 'ok');
+      stopAuto();
+      els.downloadMaster.disabled = state.masterSet.size === 0;
+      els.downloadZip.disabled = state.masterSet.size === 0;
+      return false;
+    }
+    setStatus(`Processed chunk ${state.chunkIndex} of ${state.chunks.length}.`, 'ok');
+    return true;
+  }
+  function masterLines() {
+    const raw = Array.from(state.masterSet).map(s => s.replace(/\s+::\d+::\d+$/, ''));
+    return [...new Set(raw)].sort((a,b) => a.localeCompare(b));
+  }
+  function groupedLines() {
+    const lines = masterLines(), grouped = {};
+    for (const line of lines) { const key = firstLetterKey(line); (grouped[key] ||= []).push(line); }
+    return grouped;
+  }
+  function renderOutput() {
+    const lines = masterLines(); const grouped = groupedLines();
+    els.rawCount.textContent = String(state.rawCount);
+    els.doneChunks.textContent = String(state.chunkIndex);
+    els.removedCount.textContent = String(state.removedTotal);
+    els.masterCount.textContent = String(lines.length);
+    const previewLines = lines.slice(0, 400);
+    els.preview.textContent = previewLines.length ? previewLines.join('\n') + (lines.length > previewLines.length ? '\n\n… PREVIEW TRIMMED …' : '') : 'Nothing built yet.';
+    const keys = Object.keys(grouped).sort();
+    if (!keys.length) { els.letters.innerHTML = '<div class="small">No grouped output yet.</div>'; return; }
+    els.letters.innerHTML = keys.map(k => {
+      const count = grouped[k].length;
+      const sample = grouped[k].slice(0, 4).join('\n').replace(/</g,'&lt;');
+      return `<div class="letter"><h3>${k} <span class="pill">${count}</span></h3><div class="small">${sample}${count > 4 ? '\n…' : ''}</div></div>`;
+    }).join('');
+  }
+  function updateProgress() {
+    const total = state.chunks.length, done = state.chunkIndex, pct = total ? Math.round((done / total) * 100) : 0;
+    els.progressBar.style.width = pct + '%';
+    els.progressText.textContent = `${done} / ${total} chunks processed (${pct}%)`;
+  }
+  function downloadText(filename, text) {
+    const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function crc32(buf) {
+    let c, table = crc32.table;
+    if (!table) {
+      table = crc32.table = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)); table[n] = c >>> 0; }
+    }
+    let crc = 0 ^ (-1);
+    for (let i = 0; i < buf.length; i++) crc = (crc >>> 8) ^ table[(crc ^ buf[i]) & 0xFF];
+    return (crc ^ (-1)) >>> 0;
+  }
+  function dosTimeDate(d = new Date()) {
+    const time = ((d.getHours() & 31) << 11) | ((d.getMinutes() & 63) << 5) | ((Math.floor(d.getSeconds()/2)) & 31);
+    const year = Math.max(1980, d.getFullYear());
+    const date = (((year - 1980) & 127) << 9) | (((d.getMonth()+1) & 15) << 5) | (d.getDate() & 31);
+    return { time, date };
+  }
+  function makeZip(files) {
+    const encoder = new TextEncoder(); let offset = 0; const chunks = []; const central = []; const now = dosTimeDate();
+    for (const file of files) {
+      const nameBytes = encoder.encode(file.name), dataBytes = encoder.encode(file.content), crc = crc32(dataBytes), size = dataBytes.length;
+      const local = new Uint8Array(30 + nameBytes.length), lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true); lv.setUint16(6, 0, true); lv.setUint16(8, 0, true);
+      lv.setUint16(10, now.time, true); lv.setUint16(12, now.date, true); lv.setUint32(14, crc, true); lv.setUint32(18, size, true); lv.setUint32(22, size, true);
+      lv.setUint16(26, nameBytes.length, true); lv.setUint16(28, 0, true); local.set(nameBytes, 30); chunks.push(local, dataBytes);
+      const cen = new Uint8Array(46 + nameBytes.length), cv = new DataView(cen.buffer);
+      cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0, true); cv.setUint16(10, 0, true);
+      cv.setUint16(12, now.time, true); cv.setUint16(14, now.date, true); cv.setUint32(16, crc, true); cv.setUint32(20, size, true); cv.setUint32(24, size, true);
+      cv.setUint16(28, nameBytes.length, true); cv.setUint16(30, 0, true); cv.setUint16(32, 0, true); cv.setUint16(34, 0, true); cv.setUint16(36, 0, true); cv.setUint32(38, 0, true); cv.setUint32(42, offset, true);
+      cen.set(nameBytes, 46); central.push(cen); offset += local.length + dataBytes.length;
+    }
+    let centralSize = 0; for (const c of central) centralSize += c.length;
+    const end = new Uint8Array(22), ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true); ev.setUint16(4, 0, true); ev.setUint16(6, 0, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
+    ev.setUint32(12, centralSize, true); ev.setUint32(16, offset, true); ev.setUint16(20, 0, true);
+    return new Blob([...chunks, ...central, end], {type:'application/zip'});
+  }
+  function saveSession() {
+    try {
+      localStorage.setItem('auto_chunk_engine_session_v1', JSON.stringify({
+        inputText: els.inputText.value, chunkSize: els.chunkSize.value, autoDelay: els.autoDelay.value,
+        uppercase: els.uppercase.checked, dedupe: els.dedupe.checked, minTwoWords: els.minTwoWords.checked,
+        deleteReplacement: els.deleteReplacement.checked, deleteCodes: els.deleteCodes.checked,
+        lettersSpacesOnly: els.lettersSpacesOnly.checked, filterGibberish: els.filterGibberish.checked,
+        letterRatio: els.letterRatio.value, symbolRatio: els.symbolRatio.value, numberRatio: els.numberRatio.value,
+        state: { prepared: state.prepared, chunks: state.chunks, chunkIndex: state.chunkIndex, removedTotal: state.removedTotal, rawCount: state.rawCount, master: Array.from(state.masterSet) }
+      }));
+      setStatus('Session saved.', 'ok');
+    } catch (err) { setStatus('Could not save session. Browser storage may be full.', 'err'); }
+  }
+  function restoreSession() {
+    try {
+      const raw = localStorage.getItem('auto_chunk_engine_session_v1'); if (!raw) { setStatus('No saved session found.', 'warntext'); return; }
+      const session = JSON.parse(raw);
+      els.inputText.value = session.inputText || ''; els.chunkSize.value = session.chunkSize || '50000'; els.autoDelay.value = session.autoDelay || '60';
+      els.uppercase.checked = !!session.uppercase; els.dedupe.checked = !!session.dedupe; els.minTwoWords.checked = !!session.minTwoWords;
+      els.deleteReplacement.checked = !!session.deleteReplacement; els.deleteCodes.checked = !!session.deleteCodes; els.lettersSpacesOnly.checked = !!session.lettersSpacesOnly;
+      els.filterGibberish.checked = !!session.filterGibberish; els.letterRatio.value = session.letterRatio || '0.55'; els.symbolRatio.value = session.symbolRatio || '0.20'; els.numberRatio.value = session.numberRatio || '0.25';
+      updateLabels();
+      if (session.state) {
+        state.prepared = !!session.state.prepared; state.chunks = session.state.chunks || []; state.chunkIndex = session.state.chunkIndex || 0;
+        state.removedTotal = session.state.removedTotal || 0; state.rawCount = session.state.rawCount || 0; state.masterSet = new Set(session.state.master || []);
+      }
+      els.nextBtn.disabled = !state.prepared; els.autoBtn.disabled = !state.prepared || state.chunkIndex >= state.chunks.length; els.stopBtn.disabled = true;
+      const hasOutput = state.masterSet.size > 0; els.downloadMaster.disabled = !hasOutput; els.downloadZip.disabled = !hasOutput;
+      updateProgress(); renderOutput(); setStatus('Session restored.', 'ok');
+    } catch (err) { setStatus('Restore failed.', 'err'); }
+  }
+  function clearAll() {
+    stopAuto(); els.inputText.value = ''; els.fileInput.value = ''; state = { prepared:false, chunks:[], chunkIndex:0, removedTotal:0, rawCount:0, masterSet:new Set(), autoRunning:false };
+    els.lastChunkRaw.textContent = '0'; els.lastChunkKept.textContent = '0'; els.lastChunkRemoved.textContent = '0';
+    els.nextBtn.disabled = true; els.autoBtn.disabled = true; els.stopBtn.disabled = true; els.downloadMaster.disabled = true; els.downloadZip.disabled = true;
+    updateProgress(); renderOutput(); setStatus('Cleared.', '');
+  }
+  function stopAuto() { state.autoRunning = false; els.stopBtn.disabled = true; els.autoBtn.disabled = !state.prepared || state.chunkIndex >= state.chunks.length; }
+  function autoRun() {
+    if (!state.prepared || state.chunkIndex >= state.chunks.length) { setStatus('Prepare chunks first.', 'warntext'); return; }
+    state.autoRunning = true; els.stopBtn.disabled = false; els.autoBtn.disabled = true;
+    const delay = Math.max(0, parseInt(els.autoDelay.value || '60', 10));
+    function tick() {
+      if (!state.autoRunning) return;
+      const hasMore = processOneChunk();
+      if (hasMore && state.autoRunning) setTimeout(tick, delay); else stopAuto();
+    }
+    tick();
+  }
+  async function readUploadedFiles(files) {
+    const out = [];
+    for (const file of files) {
+      const name = (file.name || '').toLowerCase();
+      if (!name.endsWith('.txt')) { out.push(`\n[SKIPPED ${file.name}] Only TXT is supported here.`); continue; }
+      out.push(await file.text());
+    }
+    return out.join('\n');
+  }
+  els.fileInput.addEventListener('change', async (e) => {
+    const files = [...(e.target.files || [])]; if (!files.length) return;
+    try {
+      setStatus(`Reading ${files.length} file(s)...`, 'warntext');
+      const text = await readUploadedFiles(files);
+      els.inputText.value = els.inputText.value.trim() ? (els.inputText.value + '\n' + text) : text;
+      setStatus(`Loaded ${files.length} TXT file(s). Now press PREPARE CHUNKS.`, 'ok');
+      saveSession();
+    } catch (err) { setStatus('Upload failed. Try one TXT at a time.', 'err'); }
+  });
+  els.prepareBtn.addEventListener('click', prepareChunks);
+  els.nextBtn.addEventListener('click', () => { processOneChunk(); if (state.chunkIndex >= state.chunks.length) { els.downloadMaster.disabled = state.masterSet.size === 0; els.downloadZip.disabled = state.masterSet.size === 0; } });
+  els.autoBtn.addEventListener('click', autoRun);
+  els.stopBtn.addEventListener('click', () => { stopAuto(); setStatus('Auto run stopped.', 'warntext'); });
+  els.saveSessionBtn.addEventListener('click', saveSession);
+  els.restoreSessionBtn.addEventListener('click', restoreSession);
+  els.clearBtn.addEventListener('click', clearAll);
+  els.downloadMaster.addEventListener('click', () => { const text = masterLines().join('\n'); if (text) downloadText('MASTER.txt', text); });
+  els.downloadZip.addEventListener('click', () => {
+    const grouped = groupedLines(); const keys = Object.keys(grouped).sort(); if (!keys.length) return;
+    const files = [{name:'MASTER.txt', content:masterLines().join('\n')}]; for (const k of keys) files.push({name:`${k}.txt`, content:grouped[k].join('\n')});
+    const blob = makeZip(files); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'A-Z_OUTPUT.zip'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  ['input', 'change'].forEach(evt => { els.letterRatio.addEventListener(evt, updateLabels); els.symbolRatio.addEventListener(evt, updateLabels); els.numberRatio.addEventListener(evt, updateLabels); });
+  updateLabels(); updateProgress(); renderOutput();
+})();
+</script>
+</body>
+</html>

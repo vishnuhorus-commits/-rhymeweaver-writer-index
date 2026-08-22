@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>A-Z COSMO LETTERS v2</title>
+  <script src="https://unpkg.com/fflate@0.7.4/umd/index.js"></script>
+  <style>
+    :root{--bg:#111;--panel:#1b1b1b;--ink:#f5f5f5;--muted:#b9b9b9;--line:#333;--ok:#6ee7a8;--warn:#ffd166;--bad:#ff6b6b}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    header{padding:24px;border-bottom:1px solid var(--line);background:#151515}
+    h1{margin:0 0 6px;font-size:28px}
+    .sub{color:var(--muted)}
+    main{max-width:1180px;margin:0 auto;padding:22px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+    label{display:block;margin:10px 0 6px;color:var(--muted)}
+    input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-radius:10px;background:#101010;color:var(--ink)}
+    button{border:1px solid var(--line);background:#242424;color:var(--ink);padding:10px 12px;border-radius:10px;cursor:pointer;margin:4px 4px 4px 0}
+    button:hover{background:#303030}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .danger{border-color:#5b2222;background:#2a1515}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px}
+    .stat{background:#101010;border:1px solid var(--line);border-radius:10px;padding:10px}
+    .stat b{display:block;font-size:22px}
+    .letters{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin-top:12px}
+    .letter{background:#101010;border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center}
+    .letter b{display:block;font-size:18px}
+    pre{white-space:pre-wrap;background:#101010;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:260px;overflow:auto}
+    .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>A-Z COSMO LETTERS v2</h1>
+  <div class="sub">Client-side A-Z text + image merger with ZIP import, STOP merge, Unicode normalization, and content-hash image dedupe.</div>
+</header>
+
+<main>
+  <section class="grid">
+    <div class="card">
+      <h2>1. Load Master</h2>
+      <label>Master files / folder</label>
+      <input id="masterInput" type="file" multiple webkitdirectory accept=".txt,.zip,image/*" />
+      <label>Or pick individual master files</label>
+      <input id="masterFilesInput" type="file" multiple accept=".txt,.zip,image/*" />
+      <div class="stats">
+        <div class="stat"><span>Master lines</span><b id="masterLines">0</b></div>
+        <div class="stat"><span>Master images</span><b id="masterImages">0</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. Load Batch</h2>
+      <label>Batch files / folder</label>
+      <input id="batchInput" type="file" multiple webkitdirectory accept=".txt,.zip,image/*" />
+      <label>Or pick individual batch files</label>
+      <input id="batchFilesInput" type="file" multiple accept=".txt,.zip,image/*" />
+      <div class="stats">
+        <div class="stat"><span>Batch lines</span><b id="batchLines">0</b></div>
+        <div class="stat"><span>Batch images</span><b id="batchImages">0</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. Merge + Export</h2>
+      <div class="row">
+        <button id="mergeBtn">Merge Batch Into Master</button>
+        <button id="stopBtn" class="danger" disabled>STOP</button>
+      </div>
+      <div class="row">
+        <button id="exportTxtBtn">Export MASTER.txt</button>
+        <button id="exportZipBtn">Export Full ZIP</button>
+      </div>
+      <div class="row">
+        <button id="saveBtn">Save Text Index</button>
+        <button id="restoreBtn">Restore Text Index</button>
+        <button id="clearBtn" class="danger">Clear All</button>
+      </div>
+      <p id="status" class="sub">Ready.</p>
+      <div class="stats">
+        <div class="stat"><span>Added</span><b id="added">0</b></div>
+        <div class="stat"><span>Duplicates</span><b id="dups">0</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:14px">
+    <h2>Letters</h2>
+    <div id="letters" class="letters"></div>
+  </section>
+
+  <section class="card" style="margin-top:14px">
+    <h2>Log</h2>
+    <pre id="log"></pre>
+  </section>
+</main>
+
+<script>
+const LETTERS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"];
+let masterTexts = new Map(LETTERS.map(l => [l, new Set()]));
+let batchTexts = new Map(LETTERS.map(l => [l, new Set()]));
+let masterImages = new Map(LETTERS.map(l => [l, new Map()])); // hash -> {file,name,hash}
+let batchImages = new Map(LETTERS.map(l => [l, new Map()]));
+let isMerging = false;
+let mergeAbort = { aborted:false };
+
+const $ = id => document.getElementById(id);
+const els = {
+  masterInput:$("masterInput"), masterFilesInput:$("masterFilesInput"),
+  batchInput:$("batchInput"), batchFilesInput:$("batchFilesInput"),
+  mergeBtn:$("mergeBtn"), stopBtn:$("stopBtn"),
+  exportTxtBtn:$("exportTxtBtn"), exportZipBtn:$("exportZipBtn"),
+  saveBtn:$("saveBtn"), restoreBtn:$("restoreBtn"), clearBtn:$("clearBtn"),
+  status:$("status"), log:$("log"), letters:$("letters"),
+  masterLines:$("masterLines"), masterImages:$("masterImages"),
+  batchLines:$("batchLines"), batchImages:$("batchImages"),
+  added:$("added"), dups:$("dups")
+};
+
+function log(msg){ els.log.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n` + els.log.textContent; }
+function setStatus(msg, cls="sub"){ els.status.className = cls; els.status.textContent = msg; }
+
+function getPath(file){ return file.webkitRelativePath || file.relativePath || file.name || ""; }
+
+function getLetterFromPath(path) {
+  if (!path) return '#';
+  const p = path.replace(/\\/g, '/');
+  const parts = p.split('/').filter(Boolean);
+  const top = parts[0] || "";
+  const single = top.match(/^([A-Z#])$/i);
+  if (single) return single[1].toUpperCase();
+  const filename = parts[parts.length - 1] || '';
+  const m = filename.normalize('NFC').match(/^([A-Z])/i);
+  return m ? m[1].toUpperCase() : '#';
+}
+
+function normalizeLine(line){
+  return line.normalize("NFC").replace(/\s+/g, " ").trim().toUpperCase();
+}
+
+function isText(file){ return /\.txt$/i.test(file.name) || file.type === "text/plain"; }
+function isZip(file){ return /\.zip$/i.test(file.name); }
+function isImage(file){ return /^image\//i.test(file.type) || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name); }
+
+async function hashFile(file) {
+  const ab = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-1', ab);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function expandZip(file){
+  if (!window.fflate) throw new Error("fflate is not loaded. Connect to internet once or bundle fflate locally.");
+  const ab = await file.arrayBuffer();
+  const entries = fflate.unzipSync(new Uint8Array(ab));
+  const out = [];
+  for (const name of Object.keys(entries)) {
+    if (name.endsWith("/")) continue;
+    const blob = new Blob([entries[name]]);
+    const f = new File([blob], name.split('/').pop(), {type: guessMime(name)});
+    Object.defineProperty(f, "webkitRelativePath", { value: name });
+    out.push(f);
+  }
+  return out;
+}
+
+function guessMime(name){
+  if (/\.txt$/i.test(name)) return "text/plain";
+  if (/\.png$/i.test(name)) return "image/png";
+  if (/\.jpe?g$/i.test(name)) return "image/jpeg";
+  if (/\.gif$/i.test(name)) return "image/gif";
+  if (/\.webp$/i.test(name)) return "image/webp";
+  if (/\.svg$/i.test(name)) return "image/svg+xml";
+  return "application/octet-stream";
+}
+
+async function processFiles(fileList, target){
+  const mapTexts = target === "master" ? masterTexts : batchTexts;
+  const mapImages = target === "master" ? masterImages : batchImages;
+  const files = Array.from(fileList);
+  let txtLines = 0, images = 0, zips = 0;
+
+  for (const file of files) {
+    if (isZip(file)) {
+      zips++;
+      const inner = await expandZip(file);
+      const r = await processFiles(inner, target);
+      txtLines += r.txtLines; images += r.images;
+      continue;
+    }
+
+    const letter = getLetterFromPath(getPath(file));
+    if (isText(file)) {
+      const text = await file.text();
+      for (const raw of text.split(/\r?\n/)) {
+        const line = normalizeLine(raw);
+        if (!line) continue;
+        mapTexts.get(letter).add(line);
+        txtLines++;
+      }
+    } else if (isImage(file)) {
+      const hash = await hashFile(file);
+      const imgMap = mapImages.get(letter);
+      if (!imgMap.has(hash)) imgMap.set(hash, { file, name:file.name, hash });
+      images++;
+    }
+    if ((txtLines + images) % 500 === 0) {
+      setStatus(`Processing ${target}: ${txtLines} lines, ${images} images…`);
+      await new Promise(r => setTimeout(r,0));
+    }
+  }
+  log(`Loaded ${target}: ${txtLines} text lines, ${images} images, ${zips} ZIP(s).`);
+  updateUI();
+  return {txtLines, images, zips};
+}
+
+async function mergeBatchIntoMasterChunked(){
+  if (isMerging) return;
+  isMerging = true;
+  mergeAbort.aborted = false;
+  els.mergeBtn.disabled = true;
+  els.stopBtn.disabled = false;
+  setStatus("Merging batch…", "warn");
+
+  let added = 0, dups = 0, imgAdded = 0, imgDups = 0;
+
+  for (const letter of LETTERS) {
+    if (mergeAbort.aborted) break;
+    const dst = masterTexts.get(letter);
+    for (const line of batchTexts.get(letter)) {
+      if (mergeAbort.aborted) break;
+      if (dst.has(line)) dups++; else { dst.add(line); added++; }
+      if ((added + dups) % 1000 === 0) {
+        setStatus(`Merging… ${added} added, ${dups} duplicates`);
+        await new Promise(r => setTimeout(r,0));
+      }
+    }
+    const dstImg = masterImages.get(letter);
+    for (const [hash, rec] of batchImages.get(letter)) {
+      if (dstImg.has(hash)) imgDups++; else { dstImg.set(hash, rec); imgAdded++; }
+    }
+    await new Promise(r => setTimeout(r,0));
+  }
+
+  if (mergeAbort.aborted) {
+    setStatus(`Merge canceled. Partial merge kept: ${added} lines, ${imgAdded} images.`, "bad");
+  } else {
+    setStatus(`Merge complete: ${added} new lines, ${dups} duplicate lines, ${imgAdded} new images.`, "ok");
+    batchTexts = new Map(LETTERS.map(l => [l, new Set()]));
+    batchImages = new Map(LETTERS.map(l => [l, new Map()]));
+  }
+
+  els.added.textContent = String(added);
+  els.dups.textContent = String(dups);
+  isMerging = false;
+  els.mergeBtn.disabled = false;
+  els.stopBtn.disabled = true;
+  updateUI();
+}
+
+function makeMasterText(){
+  let chunks = [];
+  for (const l of LETTERS) {
+    const lines = Array.from(masterTexts.get(l)).sort();
+    if (!lines.length) continue;
+    chunks.push(`=== ${l} ===\n` + lines.join("\n"));
+  }
+  return chunks.join("\n\n");
+}
+
+function downloadBlob(blob, name){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+
+function exportMasterTxt(){
+  downloadBlob(new Blob([makeMasterText()], {type:"text/plain;charset=utf-8"}), "MASTER.txt");
+}
+
+async function exportFullZip(){
+  if (!window.fflate) { alert("fflate is not loaded; ZIP export unavailable."); return; }
+  setStatus("Building ZIP…", "warn");
+  const files = {};
+  files["MASTER.txt"] = new TextEncoder().encode(makeMasterText());
+  for (const l of LETTERS) {
+    const lines = Array.from(masterTexts.get(l)).sort();
+    files[`texts/${l}.txt`] = new TextEncoder().encode(lines.join("\n"));
+    let n = 1;
+    for (const rec of masterImages.get(l).values()) {
+      const ext = (rec.name.match(/\.[^.]+$/)||[".bin"])[0];
+      const safe = rec.name.replace(/[^\w.\- ]+/g, "_");
+      const ab = await rec.file.arrayBuffer();
+      files[`images/${l}/${String(n).padStart(5,"0")}_${rec.hash.slice(0,10)}_${safe || "image"+ext}`] = new Uint8Array(ab);
+      n++;
+      if (n % 50 === 0) await new Promise(r => setTimeout(r,0));
+    }
+  }
+  const zipped = fflate.zipSync(files, {level: 6});
+  downloadBlob(new Blob([zipped], {type:"application/zip"}), "A-Z-COSMO-LETTERS-MASTER.zip");
+  setStatus("ZIP exported.", "ok");
+}
+
+function saveTextIndex(){
+  try {
+    const data = {};
+    for (const l of LETTERS) data[l] = Array.from(masterTexts.get(l));
+    localStorage.setItem("az_cosmo_letters_text_index_v2", JSON.stringify(data));
+    setStatus("Text index saved. Images are not saved in localStorage.", "ok");
+  } catch (e) {
+    setStatus("Save failed. localStorage is probably full; export ZIP/TXT instead.", "bad");
+    console.error(e);
+  }
+}
+
+function restoreTextIndex(){
+  try {
+    const raw = localStorage.getItem("az_cosmo_letters_text_index_v2");
+    if (!raw) { setStatus("No saved text index found.", "warn"); return; }
+    const data = JSON.parse(raw);
+    masterTexts = new Map(LETTERS.map(l => [l, new Set(data[l] || [])]));
+    updateUI();
+    setStatus("Text index restored. Images must be reloaded.", "ok");
+  } catch(e) {
+    setStatus("Restore failed.", "bad");
+    console.error(e);
+  }
+}
+
+function clearAll(){
+  if (!confirm("Clear all in-memory master and batch data? This does not delete Drive files.")) return;
+  masterTexts = new Map(LETTERS.map(l => [l, new Set()]));
+  batchTexts = new Map(LETTERS.map(l => [l, new Set()]));
+  masterImages = new Map(LETTERS.map(l => [l, new Map()]));
+  batchImages = new Map(LETTERS.map(l => [l, new Map()]));
+  els.added.textContent = "0"; els.dups.textContent = "0";
+  updateUI();
+  setStatus("Cleared in-memory data.", "ok");
+}
+
+function countText(m){ return LETTERS.reduce((a,l)=>a+m.get(l).size,0); }
+function countImages(m){ return LETTERS.reduce((a,l)=>a+m.get(l).size,0); }
+
+function updateUI(){
+  els.masterLines.textContent = countText(masterTexts);
+  els.masterImages.textContent = countImages(masterImages);
+  els.batchLines.textContent = countText(batchTexts);
+  els.batchImages.textContent = countImages(batchImages);
+  renderLetters();
+}
+
+function renderLetters(){
+  els.letters.innerHTML = "";
+  for (const l of LETTERS) {
+    const div = document.createElement("div");
+    div.className = "letter";
+    div.innerHTML = `<b>${l}</b><span>${masterTexts.get(l).size} lines</span><br><span>${masterImages.get(l).size} imgs</span>`;
+    els.letters.appendChild(div);
+  }
+}
+
+function bindFileInput(input, target){
+  input.addEventListener("change", async e => {
+    try {
+      setStatus(`Loading ${target}…`, "warn");
+      await processFiles(e.target.files, target);
+      setStatus(`Loaded ${target}.`, "ok");
+      e.target.value = "";
+    } catch(err) {
+      console.error(err);
+      setStatus(`Load failed: ${err.message}`, "bad");
+    }
+  });
+}
+
+bindFileInput(els.masterInput, "master");
+bindFileInput(els.masterFilesInput, "master");
+bindFileInput(els.batchInput, "batch");
+bindFileInput(els.batchFilesInput, "batch");
+els.mergeBtn.addEventListener("click", mergeBatchIntoMasterChunked);
+els.stopBtn.addEventListener("click", () => { mergeAbort.aborted = true; els.stopBtn.disabled = true; });
+els.exportTxtBtn.addEventListener("click", exportMasterTxt);
+els.exportZipBtn.addEventListener("click", exportFullZip);
+els.saveBtn.addEventListener("click", saveTextIndex);
+els.restoreBtn.addEventListener("click", restoreTextIndex);
+els.clearBtn.addEventListener("click", clearAll);
+
+updateUI();
+</script>
+</body>
+</html>

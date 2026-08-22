@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A-Z Alliteration Automator</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color-scheme:dark;background:#101114;color:#eee}body{margin:0;padding:20px;background:#101114}.wrap{max-width:1100px;margin:0 auto}.card{background:#181a20;border:1px solid #333845;border-radius:14px;padding:16px;margin:14px 0;box-shadow:0 8px 30px #0006}textarea,input,select{width:100%;box-sizing:border-box;background:#0f1117;color:#f4f4f4;border:1px solid #414858;border-radius:10px;padding:10px;font:14px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}textarea{min-height:220px}button{background:#1f7a4a;color:white;border:0;border-radius:10px;padding:11px 14px;font-weight:700;margin:6px 6px 6px 0;cursor:pointer}button.secondary{background:#384152}button.danger{background:#8b2d2d}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.stat{background:#11141b;border:1px solid #303746;border-radius:10px;padding:12px}.muted{color:#aab0bd}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap}.pill{display:inline-block;background:#263040;border:1px solid #3e4a5d;border-radius:999px;padding:4px 9px;margin:3px}h1,h2{margin:.2em 0}.small{font-size:12px}.out{max-height:480px;overflow:auto}.tabs button{background:#384152}.tabs button.active{background:#1f7a4a}</style>
+</head>
+<body><div class="wrap">
+<h1>A-Z Alliteration Automator</h1>
+<p class="muted">Paste your source text or ProWritingAid text. This builds a sorted A-Z alliteration index, rejects weak/short items, and exports master TXT + CSV files.</p>
+<div class="card">
+<h2>1. Paste text</h2>
+<textarea id="input" placeholder="Paste the whole song, poem, notes, or copied ProWritingAid output here..."></textarea>
+<div class="grid">
+<label>Minimum chain length<input id="minChain" type="number" min="2" max="20" value="2"></label>
+<label>Minimum word length<input id="minWord" type="number" min="1" max="20" value="2"></label>
+<label>Stop words<select id="stopMode"><option value="basic" selected>Use basic stop-word filter</option><option value="none">No stop-word filter</option></select></label>
+<label>Output style<select id="style"><option value="phrases" selected>Phrase chains</option><option value="words">Unique words by letter</option><option value="both">Both</option></select></label>
+</div>
+<button onclick="run()">Sort & Build Index</button><button class="secondary" onclick="pasteText()">Paste From Clipboard</button><button class="danger" onclick="clearAll()">Clear</button>
+</div>
+<div class="grid" id="stats"></div>
+<div class="card">
+<h2>2. Export</h2>
+<button onclick="downloadTxt()">Download Master TXT</button><button onclick="downloadCsv()">Download CSV</button><button onclick="copyOut()">Copy Output</button>
+<span class="muted small" id="filename"></span>
+</div>
+<div class="card">
+<h2>3. Preview</h2>
+<div class="tabs"><button id="tabIndex" class="active" onclick="showTab('index')">A-Z Index</button><button id="tabReject" onclick="showTab('reject')">Rejected / Ignored</button></div>
+<pre id="output" class="mono out"></pre>
+</div>
+</div>
+<script>
+const STOP = new Set('a an and are as at be by for from had has have he her hers him his i in is it its me my of on or our she so that the their them they this to was we were with you your'.split(' '));
+let result={index:{},words:{},rejected:[],txt:'',csv:'',rejectTxt:''};
+function cleanWord(w){return w.toLowerCase().replace(/^[^a-z]+|[^a-z]+$/g,'').replace(/[’']/g,'');}
+function splitSentences(t){return t.replace(/\r/g,'').split(/(?<=[.!?;:\n])\s+|\n+/).map(s=>s.trim()).filter(Boolean)}
+function analyzePhrase(sentence, opts){
+ const raw=sentence.split(/\s+/).map(cleanWord).filter(Boolean);
+ const words=raw.filter(w=>w.length>=opts.minWord && (opts.stopMode==='none'||!STOP.has(w)));
+ let chains=[]; let current=[]; let last='';
+ for(const w of words){const c=w[0]; if(c===last){current.push(w)} else {if(current.length>=opts.minChain) chains.push([...current]); current=[w]; last=c}}
+ if(current.length>=opts.minChain) chains.push(current);
+ return {words,chains};
+}
+function run(){
+ const text=document.getElementById('input').value.trim();
+ const opts={minChain:+minChain.value||2,minWord:+minWord.value||2,stopMode:stopMode.value,style:style.value};
+ const index={}, wordMap={}, rejected=[]; for(let i=65;i<=90;i++){index[String.fromCharCode(i)]=[]; wordMap[String.fromCharCode(i)]=new Set()}
+ const sentences=splitSentences(text);
+ for(const s of sentences){const a=analyzePhrase(s,opts); for(const w of a.words){wordMap[w[0].toUpperCase()]?.add(w)}; if(a.chains.length){for(const ch of a.chains){const L=ch[0][0].toUpperCase(); index[L].push(ch.join(' '));}} else if(s.length>2){rejected.push(s)}}
+ const lines=[]; lines.push('MASTER A-Z ALLITERATION INDEX'); lines.push('Generated: '+new Date().toLocaleString()); lines.push('');
+ for(let i=65;i<=90;i++){const L=String.fromCharCode(i); const phrases=[...new Set(index[L])].sort((a,b)=>a.localeCompare(b)); const words=[...wordMap[L]].sort((a,b)=>a.localeCompare(b)); lines.push('['+L+']'); if(opts.style==='phrases'||opts.style==='both'){lines.push('PHRASES:'); lines.push(phrases.length?phrases.map(x=>' - '+x).join('\n'):' - none')} if(opts.style==='words'||opts.style==='both'){lines.push('WORDS:'); lines.push(words.length?words.map(x=>' - '+x).join('\n'):' - none')} lines.push('')}
+ const csvRows=[['letter','type','value']]; for(let i=65;i<=90;i++){const L=String.fromCharCode(i); for(const p of [...new Set(index[L])].sort()) csvRows.push([L,'phrase',p]); for(const w of [...wordMap[L]].sort()) csvRows.push([L,'word',w])}
+ result={index,words:wordMap,rejected,txt:lines.join('\n'),csv:csvRows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n'),rejectTxt:rejected.join('\n')};
+ output.textContent=result.txt; updateStats(); document.getElementById('filename').textContent=safeName()+'.txt / .csv'; showTab('index');
+}
+function updateStats(){const totalP=Object.values(result.index).reduce((n,a)=>n+[...new Set(a)].length,0); const totalW=Object.values(result.words).reduce((n,s)=>n+s.size,0); const az=Object.entries(result.index).filter(([k,a])=>a.length).length; stats.innerHTML=`<div class="stat"><b>${totalP}</b><br><span class="muted">phrase chains</span></div><div class="stat"><b>${totalW}</b><br><span class="muted">unique words</span></div><div class="stat"><b>${az}</b><br><span class="muted">A-Z letters used</span></div><div class="stat"><b>${result.rejected.length}</b><br><span class="muted">ignored lines</span></div>`}
+function safeName(){const d=new Date(),p=n=>String(n).padStart(2,'0'); return `A_Z_INDEX_${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}`}
+function dl(name,content,type){const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function downloadTxt(){if(!result.txt)run(); dl(safeName()+'.txt',result.txt,'text/plain')}
+function downloadCsv(){if(!result.csv)run(); dl(safeName()+'.csv',result.csv,'text/csv')}
+async function pasteText(){try{input.value=await navigator.clipboard.readText()}catch(e){alert('Clipboard permission blocked. Use normal paste instead.')}}
+async function copyOut(){if(!result.txt)run(); await navigator.clipboard.writeText(output.textContent); alert('Copied output.')} 
+function clearAll(){input.value=''; output.textContent=''; stats.innerHTML=''; result={index:{},words:{},rejected:[],txt:'',csv:'',rejectTxt:''}}
+function showTab(t){tabIndex.classList.toggle('active',t==='index'); tabReject.classList.toggle('active',t==='reject'); output.textContent=t==='index'?(result.txt||''):(result.rejectTxt||'')}
+</script></body></html>

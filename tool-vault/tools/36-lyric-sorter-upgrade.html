@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lyric Sorter Upgrade</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.min.mjs" type="module"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3efe8;
+      --panel: #f8f5ef;
+      --line: #cfc6b8;
+      --ink: #1e1a16;
+      --muted: #6f665c;
+      --accent: #c78310;
+      --accent-dark: #9f6508;
+      --black: #111;
+      --white: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo {
+      width: 52px;
+      height: 52px;
+      background: var(--black);
+      color: var(--white);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      letter-spacing: 0.5px;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 15px;
+      margin-top: 4px;
+    }
+    .stats {
+      text-align: right;
+      font-size: 14px;
+    }
+    .big {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.6fr);
+      gap: 20px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 2px solid var(--line);
+      padding: 16px;
+    }
+    .panel-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 800;
+      margin-bottom: 12px;
+      letter-spacing: 0.4px;
+    }
+    .small { color: var(--muted); font-size: 12px; font-weight: 600; }
+    #dropZone {
+      min-height: 180px;
+      border: 3px dashed var(--line);
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent,
+          transparent 36px,
+          rgba(0,0,0,0.05) 36px,
+          rgba(0,0,0,0.05) 37px
+        );
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      transition: 0.2s ease;
+    }
+    #dropZone.dragover {
+      border-color: var(--accent);
+      background-color: #fff8ea;
+    }
+    textarea {
+      width: 100%;
+      min-height: 240px;
+      border: 2px solid var(--line);
+      background: rgba(255,255,255,0.55);
+      padding: 14px;
+      resize: vertical;
+      font-size: 18px;
+      line-height: 1.45;
+      color: var(--ink);
+    }
+    .controls, .toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    button, .file-label {
+      border: none;
+      background: var(--black);
+      color: var(--white);
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    button.accent, .file-label.accent { background: var(--accent); color: var(--white); }
+    button.secondary { background: #867c70; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input[type="file"] { display: none; }
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.45);
+      font-size: 13px;
+    }
+    .index {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+    .cell {
+      background: var(--black);
+      color: var(--white);
+      padding: 10px 6px;
+      text-align: center;
+      min-height: 58px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+    }
+    .cell.disabled { background: #c5beb2; color: #74695d; cursor: default; }
+    .cell strong { font-size: 24px; }
+    .cell span { font-size: 13px; }
+    .preview {
+      margin-top: 14px;
+      border: 2px solid var(--line);
+      padding: 12px;
+      min-height: 240px;
+      background: rgba(255,255,255,0.55);
+      white-space: pre-wrap;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .log {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--muted);
+      white-space: pre-wrap;
+      max-height: 180px;
+      overflow: auto;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .statbox {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.45);
+      padding: 10px;
+    }
+    .statbox .label { color: var(--muted); font-size: 12px; }
+    .statbox .value { font-size: 22px; font-weight: 800; margin-top: 4px; }
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+      .index { grid-template-columns: repeat(4, 1fr); }
+      .big { font-size: 34px; }
+      h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="brand">
+        <div class="logo">AZ</div>
+        <div>
+          <h1>LYRIC SORTER UPGRADE</h1>
+          <div class="sub">DROP TXT, CSV, XLSX, DOCX, OR PDF — NO COPY/PASTE REQUIRED</div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="big" id="totalEntries">0</div>
+        <div>TOTAL ENTRIES</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-title">
+          <span>INGEST FILES OR PASTE TEXT</span>
+          <span class="small">ONE LINE PER ENTRY AFTER CLEANING</span>
+        </div>
+
+        <div id="dropZone">
+          <div><strong>DROP FILES HERE</strong> or tap upload.</div>
+          <div class="small">Supported: .txt .csv .xlsx .docx .pdf</div>
+          <div class="small">PDF note: best results on text PDFs. Scanned-image PDFs may need OCR first.</div>
+        </div>
+
+        <div class="controls">
+          <label class="file-label accent" for="fileInput">UPLOAD FILES</label>
+          <input id="fileInput" type="file" multiple accept=".txt,.csv,.xlsx,.xls,.docx,.pdf" />
+          <button id="processBtn" class="accent">SORT & SAVE</button>
+          <button id="clearBtn" class="secondary">CLEAR</button>
+          <button id="exportMasterBtn">DOWNLOAD MASTER</button>
+          <button id="exportZipBtn">DOWNLOAD ALL A–Z</button>
+        </div>
+
+        <div class="toggles">
+          <label class="toggle"><input type="checkbox" id="uppercaseToggle" checked> ALL CAPS</label>
+          <label class="toggle"><input type="checkbox" id="dedupeToggle" checked> REMOVE DUPLICATES</label>
+          <label class="toggle"><input type="checkbox" id="dropSinglesToggle"> REMOVE ONE-WORD LINES</label>
+          <label class="toggle"><input type="checkbox" id="trimPunctToggle" checked> CLEAN EDGE PUNCTUATION</label>
+          <label class="toggle"><input type="checkbox" id="splitCellsToggle" checked> XLSX/CSV: EACH CELL CAN BECOME ENTRY</label>
+        </div>
+
+        <textarea id="manualInput" placeholder="PASTE ALLITERATIONS OR LYRICS HERE...&#10;&#10;OR DROP FILES ABOVE."></textarea>
+
+        <div class="meta">
+          <div class="statbox">
+            <div class="label">FILES LOADED</div>
+            <div class="value" id="filesLoaded">0</div>
+          </div>
+          <div class="statbox">
+            <div class="label">ACTIVE PREVIEW</div>
+            <div class="value" id="activePreview">MASTER</div>
+          </div>
+        </div>
+
+        <div class="log" id="log">WAITING FOR INPUT...</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <span>A–Z INDEX</span>
+          <span class="small">TAP TO VIEW</span>
+        </div>
+        <div class="index" id="indexGrid"></div>
+        <div class="preview" id="previewPane">MASTER PREVIEW WILL APPEAR HERE.</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.min.mjs';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.3.136/pdf.worker.min.mjs';
+
+    const state = {
+      rawTextBlocks: [],
+      cleanedLines: [],
+      groups: {},
+      previewKey: 'MASTER',
+      fileCount: 0,
+    };
+
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+    const el = id => document.getElementById(id);
+
+    function log(message) {
+      const box = el('log');
+      const now = new Date().toLocaleTimeString();
+      box.textContent = `[${now}] ${message}\n` + box.textContent;
+    }
+
+    function normalizeLine(line) {
+      const uppercase = el('uppercaseToggle').checked;
+      const trimPunct = el('trimPunctToggle').checked;
+      let s = String(line ?? '').replace(/\r/g, '').replace(/\t+/g, ' ').replace(/\u00A0/g, ' ');
+      s = s.replace(/\s+/g, ' ').trim();
+      if (trimPunct) {
+        s = s.replace(/^[\s\-–—|•·,:;.!?()\[\]{}"'`~_]+/, '');
+        s = s.replace(/[\s\-–—|•·,:;.!?()\[\]{}"'`~_]+$/, '');
+      }
+      if (uppercase) s = s.toUpperCase();
+      return s.trim();
+    }
+
+    function firstBucket(line) {
+      const c = (line[0] || '#').toUpperCase();
+      return /[A-Z]/.test(c) ? c : '#';
+    }
+
+    function cleanAndGroup() {
+      const blocks = [...state.rawTextBlocks];
+      const manual = el('manualInput').value.trim();
+      if (manual) blocks.push(manual);
+
+      let lines = [];
+      for (const block of blocks) {
+        const split = String(block).split(/\n+/);
+        for (const line of split) {
+          const cleaned = normalizeLine(line);
+          if (!cleaned) continue;
+          if (el('dropSinglesToggle').checked && cleaned.split(/\s+/).length < 2) continue;
+          lines.push(cleaned);
+        }
+      }
+
+      if (el('dedupeToggle').checked) {
+        lines = [...new Set(lines)];
+      }
+
+      lines.sort((a, b) => a.localeCompare(b));
+      state.cleanedLines = lines;
+
+      const groups = {};
+      for (const letter of letters) groups[letter] = [];
+      for (const line of lines) groups[firstBucket(line)].push(line);
+      state.groups = groups;
+
+      el('totalEntries').textContent = lines.length.toLocaleString();
+      renderIndex();
+      showPreview(state.previewKey);
+      log(`Processed ${lines.length.toLocaleString()} entries.`);
+    }
+
+    function renderIndex() {
+      const grid = el('indexGrid');
+      grid.innerHTML = '';
+      for (const letter of letters) {
+        const count = (state.groups[letter] || []).length;
+        const cell = document.createElement('button');
+        cell.className = 'cell' + (count ? '' : ' disabled');
+        cell.disabled = !count;
+        cell.innerHTML = `<strong>${letter}</strong><span>${count ? count.toLocaleString() : '0'}</span>`;
+        cell.onclick = () => showPreview(letter);
+        grid.appendChild(cell);
+      }
+    }
+
+    function showPreview(key) {
+      state.previewKey = key;
+      el('activePreview').textContent = key;
+      if (key === 'MASTER') {
+        el('previewPane').textContent = state.cleanedLines.length ? state.cleanedLines.join('\n') : 'MASTER PREVIEW WILL APPEAR HERE.';
+        return;
+      }
+      const lines = state.groups[key] || [];
+      el('previewPane').textContent = lines.length ? lines.join('\n') : `NO ENTRIES FOR ${key}`;
+    }
+
+    function downloadFile(filename, text, mime = 'text/plain;charset=utf-8') {
+      const blob = new Blob([text], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function exportZip() {
+      const zip = new JSZip();
+      zip.file('MASTER.txt', state.cleanedLines.join('\n'));
+      for (const letter of letters) {
+        const lines = state.groups[letter] || [];
+        if (lines.length) zip.file(`${letter}.txt`, lines.join('\n'));
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'LYRIC_SORTER_AZ_EXPORT.zip';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      log('Downloaded A–Z zip export.');
+    }
+
+    async function parseTxt(file) {
+      return await file.text();
+    }
+
+    async function parseCsv(file) {
+      const text = await file.text();
+      const eachCell = el('splitCellsToggle').checked;
+      if (!eachCell) return text;
+      const wb = XLSX.read(text, { type: 'string' });
+      return workbookToLines(wb).join('\n');
+    }
+
+    function workbookToLines(workbook) {
+      const lines = [];
+      workbook.SheetNames.forEach(name => {
+        const ws = workbook.Sheets[name];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+        for (const row of rows) {
+          const cells = row.map(v => String(v ?? '').trim()).filter(Boolean);
+          if (!cells.length) continue;
+          if (el('splitCellsToggle').checked) {
+            for (const cell of cells) lines.push(cell);
+          } else {
+            lines.push(cells.join(' '));
+          }
+        }
+      });
+      return lines;
+    }
+
+    async function parseXlsx(file) {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { type: 'array' });
+      return workbookToLines(wb).join('\n');
+    }
+
+    async function parseDocx(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      return result.value;
+    }
+
+    async function parsePdf(file) {
+      const data = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data }).promise;
+      const chunks = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const text = content.items.map(item => item.str).join(' ');
+        chunks.push(text);
+        if (i % 25 === 0) log(`Parsed PDF page ${i}/${pdf.numPages}...`);
+      }
+      return chunks.join('\n');
+    }
+
+    async function parseFile(file) {
+      const name = file.name.toLowerCase();
+      log(`Loading ${file.name} ...`);
+      if (name.endsWith('.txt')) return await parseTxt(file);
+      if (name.endsWith('.csv')) return await parseCsv(file);
+      if (name.endsWith('.xlsx') || name.endsWith('.xls')) return await parseXlsx(file);
+      if (name.endsWith('.docx')) return await parseDocx(file);
+      if (name.endsWith('.pdf')) return await parsePdf(file);
+      throw new Error(`Unsupported file type: ${file.name}`);
+    }
+
+    async function handleFiles(files) {
+      const list = Array.from(files || []);
+      if (!list.length) return;
+      for (const file of list) {
+        try {
+          const text = await parseFile(file);
+          state.rawTextBlocks.push(text);
+          state.fileCount += 1;
+          el('filesLoaded').textContent = state.fileCount;
+          log(`Loaded ${file.name}.`);
+        } catch (err) {
+          console.error(err);
+          log(`ERROR: ${file.name} could not be read. ${err.message}`);
+        }
+      }
+      cleanAndGroup();
+    }
+
+    el('fileInput').addEventListener('change', e => handleFiles(e.target.files));
+    el('processBtn').addEventListener('click', cleanAndGroup);
+    el('clearBtn').addEventListener('click', () => {
+      state.rawTextBlocks = [];
+      state.cleanedLines = [];
+      state.groups = {};
+      state.previewKey = 'MASTER';
+      state.fileCount = 0;
+      el('manualInput').value = '';
+      el('filesLoaded').textContent = '0';
+      el('totalEntries').textContent = '0';
+      el('previewPane').textContent = 'MASTER PREVIEW WILL APPEAR HERE.';
+      el('log').textContent = 'WAITING FOR INPUT...';
+      renderIndex();
+    });
+    el('exportMasterBtn').addEventListener('click', () => downloadFile('MASTER.txt', state.cleanedLines.join('\n')));
+    el('exportZipBtn').addEventListener('click', exportZip);
+
+    const dz = el('dropZone');
+    ['dragenter', 'dragover'].forEach(evt => dz.addEventListener(evt, e => {
+      e.preventDefault();
+      dz.classList.add('dragover');
+    }));
+    ['dragleave', 'drop'].forEach(evt => dz.addEventListener(evt, e => {
+      e.preventDefault();
+      dz.classList.remove('dragover');
+    }));
+    dz.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+    dz.addEventListener('click', () => el('fileInput').click());
+
+    renderIndex();
+    showPreview('MASTER');
+  </script>
+</body>
+</html>

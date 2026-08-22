@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>All Caps Trim Processor — TXT MD CSV PDF</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #181c24;
+    --ink: #f4f6fb;
+    --muted: #aeb7c8;
+    --border: #2a3140;
+    --accent: #8bc6ff;
+    --good: #a9f5c2;
+    --warn: #ffd78a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  header {
+    padding: 22px 18px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  h1 { margin: 0 0 8px; font-size: 1.55rem; }
+  h2 { margin-top: 0; }
+  p, li { color: var(--muted); }
+  main { padding: 18px; max-width: 980px; margin: auto; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 14px 0;
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button, .fileLabel {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: #222938;
+    color: var(--ink);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.primary { background: #24445f; border-color: #39698e; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  input[type="file"] { display: none; }
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    background: #0c0f15;
+    color: var(--ink);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 10px;
+  }
+  .stat {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    background: #111620;
+  }
+  .stat b { display:block; font-size: 1.25rem; color: var(--accent); }
+  .small { font-size: .92rem; color: var(--muted); }
+  .good { color: var(--good); }
+  .warn { color: var(--warn); }
+  a.download {
+    display: inline-block;
+    margin: 5px 7px 5px 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-decoration: none;
+    background: #1b2a20;
+    border: 1px solid #315b3f;
+    color: var(--good);
+    font-weight: 700;
+  }
+  code {
+    color: var(--accent);
+    background: #0c0f15;
+    padding: 2px 5px;
+    border-radius: 5px;
+  }
+  @media print {
+    body { background: white; color: black; }
+    header, .card { border-color: #999; background: white; color: black; }
+    p, li, .small { color: #222; }
+    button, .fileLabel, #pasteBox, #downloads { display: none !important; }
+    textarea { color: black; background: white; border: 1px solid #999; text-transform: uppercase; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>ALL CAPS TRIM PROCESSOR — TXT / MD / CSV / PDF</h1>
+  <p>TRIMS SPACES. CONVERTS CLEAN OUTPUT TO ALL CAPS. PRESERVES REVIEW AND DUPLICATES. DOES NOT TOUCH FINAL ARCHIVE.</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1. LOAD FILES OR PASTE TEXT</h2>
+    <p>BEST: <code>.TXT</code>, <code>.MD</code>, <code>.CSV</code>. PDF SUPPORT WORKS ONLINE USING PDF.JS. SCANNED IMAGE PDFS MAY NOT EXTRACT TEXT.</p>
+    <div class="row">
+      <label class="fileLabel">
+        CHOOSE FILES
+        <input id="fileInput" type="file" accept=".txt,.md,.csv,.pdf,text/plain,text/markdown,text/csv,application/pdf" multiple />
+      </label>
+      <button id="clearBtn">CLEAR</button>
+    </div>
+    <p id="fileStatus" class="small">NO FILES LOADED YET.</p>
+    <textarea id="pasteBox" placeholder="OR PASTE RAW LINES HERE..."></textarea>
+  </section>
+
+  <section class="card">
+    <h2>2. RUN PROCESSOR</h2>
+    <p>OUTPUTS ARE ALL CAPS AND SPACE-TRIMMED. QUESTIONABLE LINES GO TO REVIEW, NOT DELETION.</p>
+    <div class="row">
+      <button id="processBtn" class="primary">RUN ALL CAPS TRIM PROCESSOR</button>
+      <button id="printBtn">PRINT / SAVE PDF REPORT</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. RESULTS</h2>
+    <div class="stats" id="stats">
+      <div class="stat"><span>TOTAL RAW LINES</span><b>0</b></div>
+      <div class="stat"><span>KEPT UNIQUE</span><b>0</b></div>
+      <div class="stat"><span>REVIEW PRESERVED</span><b>0</b></div>
+      <div class="stat"><span>DUPLICATES</span><b>0</b></div>
+      <div class="stat"><span>A-Z BUCKETS</span><b>0</b></div>
+    </div>
+    <div id="downloads"></div>
+  </section>
+
+  <section class="card">
+    <h2>PREVIEW — KEPT.TXT</h2>
+    <p class="small">FIRST 150 KEPT LINES. DOWNLOAD FULL FILE BELOW AFTER PROCESSING.</p>
+    <textarea id="preview" readonly></textarea>
+  </section>
+
+  <section class="card">
+    <h2>RULES USED</h2>
+    <ul>
+      <li>TRIM LEADING AND TRAILING SPACES.</li>
+      <li>COLLAPSE MULTIPLE SPACES INTO ONE SPACE.</li>
+      <li>CONVERT CLEAN OUTPUT TO ALL CAPS.</li>
+      <li>PRESERVE DUPLICATES IN <code>DUPLICATES_REVIEW.TXT</code>.</li>
+      <li>PRESERVE QUESTIONABLE LINES IN <code>REVIEW_NOT_DELETED.TXT</code>.</li>
+      <li>CREATE A-Z CANDIDATES WITHOUT TOUCHING FINAL ARCHIVE.</li>
+      <li>CREATE <code>MASTER_INDEX.CSV</code> FOR SEARCH AND AUDIT.</li>
+    </ul>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+let loadedFiles = [];
+let outputs = {};
+
+function trimSpaces(s) {
+  return String(s || "").replace(/\s+/g, " ").trim();
+}
+
+function cleanAllCaps(line) {
+  return trimSpaces(line)
+    .replace(/[^\p{L}\p{N} ]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+function firstLetter(clean) {
+  const m = clean.match(/[A-Z]/i);
+  return m ? m[0].toUpperCase() : "#";
+}
+
+function rhymeKey(clean) {
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+  return parts[parts.length - 1].slice(-3).toUpperCase();
+}
+
+function classify(originalTrimmed, clean) {
+  if (!originalTrimmed) return {bucket: "review", reason: "BLANK_LINE"};
+  if (!clean) return {bucket: "review", reason: "NO_ALPHANUMERIC_CONTENT"};
+  const words = clean.split(/\s+/).filter(Boolean);
+  const symbolCount = (originalTrimmed.match(/[^\p{L}\p{N}\s]/gu) || []).length;
+  const digitCount = (originalTrimmed.match(/\d/g) || []).length;
+  const charCount = originalTrimmed.replace(/\s/g, "").length || 1;
+  if (words.length < 2) return {bucket: "review", reason: "ONE_WORD_OR_FRAGMENT"};
+  if (symbolCount / charCount > 0.25) return {bucket: "review", reason: "SYMBOL_HEAVY"};
+  if (digitCount / charCount > 0.35) return {bucket: "review", reason: "NUMBER_HEAVY"};
+  return {bucket: "kept", reason: "KEPT"};
+}
+
+async function extractPdfText(file) {
+  if (!window.pdfjsLib) {
+    return "[PDF EXTRACTION FAILED: PDF.JS DID NOT LOAD. CONNECT TO INTERNET OR USE TXT/MD/CSV. FILE: " + file.name + "]";
+  }
+  const data = new Uint8Array(await file.arrayBuffer());
+  const pdf = await pdfjsLib.getDocument({data}).promise;
+  let text = "";
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(item => item.str).join(" ");
+    text += "\n" + pageText + "\n";
+  }
+  return text;
+}
+
+async function readFiles(files) {
+  loadedFiles = [];
+  const names = [];
+  for (const file of files) {
+    names.push(file.name);
+    let text = "";
+    if (file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf") {
+      text = await extractPdfText(file);
+    } else {
+      text = await file.text();
+    }
+    loadedFiles.push({ name: file.name, text });
+  }
+  document.getElementById("fileStatus").textContent =
+    `${loadedFiles.length} FILE(S) LOADED: ` + names.join(", ");
+}
+
+function csvRow(vals) {
+  return vals.map(v => {
+    const s = String(v ?? "");
+    return '"' + s.replace(/"/g, '""') + '"';
+  }).join(",");
+}
+
+function processAll() {
+  const pasted = document.getElementById("pasteBox").value || "";
+  const sources = [...loadedFiles];
+  if (pasted.trim()) sources.push({ name: "PASTED_TEXT", text: pasted });
+
+  const rawLines = [];
+  for (const src of sources) {
+    const lines = src.text.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      rawLines.push({ source: src.name, lineNumber: i + 1, original: lines[i] });
+    }
+  }
+
+  const seen = new Map();
+  const kept = [];
+  const review = [];
+  const duplicates = [];
+  const az = {};
+  const masterRows = [
+    "ID,LETTER,RAW_TEXT_TRIMMED,CLEAN_TEXT_ALL_CAPS,WORD_COUNT,RHYME_KEY,SOURCE_FILE,SOURCE_LINE,STATUS,REASON"
+  ];
+
+  let idCounter = 1;
+
+  for (const row of rawLines) {
+    const originalTrimmed = trimSpaces(row.original);
+    const clean = cleanAllCaps(row.original);
+    const key = clean;
+    const wordCount = clean ? clean.split(/\s+/).filter(Boolean).length : 0;
+    const letter = firstLetter(clean);
+    const rhyme = rhymeKey(clean);
+    const cls = classify(originalTrimmed, clean);
+
+    if (key && seen.has(key)) {
+      duplicates.push(`${clean}\tSOURCE=${row.source}:${row.lineNumber}\tDUP_OF=${seen.get(key)}`);
+      masterRows.push(csvRow([`DUP_${idCounter++}`, letter, originalTrimmed.toUpperCase(), clean, wordCount, rhyme, row.source, row.lineNumber, "DUPLICATE", "DUPLICATE_REVIEW"]));
+      continue;
+    }
+
+    if (key) seen.set(key, `${row.source}:${row.lineNumber}`);
+
+    if (cls.bucket === "kept") {
+      kept.push(clean);
+      if (!az[letter]) az[letter] = [];
+      az[letter].push(clean);
+      masterRows.push(csvRow([`IDX_${idCounter++}`, letter, originalTrimmed.toUpperCase(), clean, wordCount, rhyme, row.source, row.lineNumber, "KEPT", cls.reason]));
+    } else {
+      review.push(`${originalTrimmed.toUpperCase()}\tSOURCE=${row.source}:${row.lineNumber}\tREASON=${cls.reason}`);
+      masterRows.push(csvRow([`REV_${idCounter++}`, letter, originalTrimmed.toUpperCase(), clean, wordCount, rhyme, row.source, row.lineNumber, "REVIEW", cls.reason]));
+    }
+  }
+
+  const sortedKept = kept.slice().sort();
+  const azTxt = Object.keys(az).sort().map(letter => {
+    const lines = az[letter].slice().sort();
+    return `## ${letter}\n` + lines.join("\n");
+  }).join("\n\n");
+
+  const log = [
+    "ALL CAPS TRIM PROCESS LOG",
+    `GENERATED: ${new Date().toISOString()}`,
+    `FILES LOADED: ${loadedFiles.map(f => f.name).join(", ") || "NONE"}`,
+    `PASTED TEXT INCLUDED: ${pasted.trim() ? "YES" : "NO"}`,
+    `TOTAL RAW LINES: ${rawLines.length}`,
+    `KEPT UNIQUE LINES: ${kept.length}`,
+    `REVIEW PRESERVED LINES: ${review.length}`,
+    `DUPLICATES PRESERVED: ${duplicates.length}`,
+    `A-Z BUCKETS USED: ${Object.keys(az).length}`,
+    "",
+    "RULE: EXTRA SPACES TRIMMED.",
+    "RULE: CLEAN OUTPUT CONVERTED TO ALL CAPS.",
+    "RULE: NOTHING QUESTIONABLE WAS SILENTLY DELETED.",
+    "RULE: FINAL ARCHIVE WAS NOT TOUCHED.",
+    "RULE: THIS IS CANDIDATE OUTPUT ONLY."
+  ].join("\n");
+
+  outputs = {
+    "KEPT_ALL_CAPS_TRIMMED.txt": sortedKept.join("\n"),
+    "REVIEW_NOT_DELETED_ALL_CAPS.txt": review.join("\n"),
+    "DUPLICATES_REVIEW_ALL_CAPS.txt": duplicates.join("\n"),
+    "PROCESS_LOG.txt": log,
+    "A_Z_CANDIDATE_ALL_CAPS.txt": azTxt,
+    "A_Z_CANDIDATE_ALL_CAPS.json": JSON.stringify(az, null, 2),
+    "MASTER_INDEX_ALL_CAPS.csv": masterRows.join("\n")
+  };
+
+  updateStats(rawLines.length, kept.length, review.length, duplicates.length, Object.keys(az).length);
+  document.getElementById("preview").value = outputs["KEPT_ALL_CAPS_TRIMMED.txt"].split("\n").slice(0, 150).join("\n");
+  createDownloads();
+}
+
+function updateStats(total, kept, review, duplicates, buckets) {
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><span>TOTAL RAW LINES</span><b>${total}</b></div>
+    <div class="stat"><span>KEPT UNIQUE</span><b>${kept}</b></div>
+    <div class="stat"><span>REVIEW PRESERVED</span><b>${review}</b></div>
+    <div class="stat"><span>DUPLICATES</span><b>${duplicates}</b></div>
+    <div class="stat"><span>A-Z BUCKETS</span><b>${buckets}</b></div>
+  `;
+}
+
+function createDownloads() {
+  const box = document.getElementById("downloads");
+  box.innerHTML = "<h3>DOWNLOAD OUTPUTS</h3>";
+  for (const [name, content] of Object.entries(outputs)) {
+    const blob = new Blob([content], {type: name.endsWith(".csv") ? "text/csv" : "text/plain"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.textContent = name;
+    a.className = "download";
+    box.appendChild(a);
+  }
+}
+
+document.getElementById("fileInput").addEventListener("change", e => readFiles(e.target.files));
+document.getElementById("processBtn").addEventListener("click", processAll);
+document.getElementById("printBtn").addEventListener("click", () => window.print());
+document.getElementById("clearBtn").addEventListener("click", () => {
+  loadedFiles = [];
+  outputs = {};
+  document.getElementById("fileInput").value = "";
+  document.getElementById("pasteBox").value = "";
+  document.getElementById("preview").value = "";
+  document.getElementById("downloads").innerHTML = "";
+  document.getElementById("fileStatus").textContent = "NO FILES LOADED YET.";
+  updateStats(0,0,0,0,0);
+});
+</script>
+</body>
+</html>

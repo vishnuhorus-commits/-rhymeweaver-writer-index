@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Ryan Alliteration Engine</title>
+<style>
+:root{
+  --bg:#080810;--panel:#141422;--panel2:#1c1c2e;--ink:#f7f3ff;--muted:#bcb3d8;
+  --line:#34304d;--gold:#f7c86b;--violet:#b79cff;--ok:#78f0b1;--bad:#ff7b8a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:
+ radial-gradient(circle at top left,#2a174a 0,#080810 34%,#06060c 100%);
+ color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{padding:28px 20px;border-bottom:1px solid var(--line);background:rgba(10,10,20,.82);backdrop-filter:blur(8px)}
+main{max-width:1220px;margin:auto;padding:20px}
+h1{margin:0;font-size:32px;letter-spacing:.5px}
+h2{margin:0 0 12px}
+.sub{color:var(--muted);margin-top:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.card{background:linear-gradient(180deg,var(--panel),#10101b);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+label{display:block;color:var(--muted);margin:10px 0 6px}
+input,select,textarea{width:100%;background:#0d0d18;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:11px;font:inherit}
+textarea{min-height:94px;resize:vertical}
+button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;margin:4px 4px 4px 0}
+button:hover{filter:brightness(1.15)}
+.primary{background:linear-gradient(90deg,#6e4cff,#a45cff);border-color:#9d81ff}
+.gold{background:#2b2110;border-color:#6b5120;color:#ffe0a1}
+.danger{background:#2b1218;border-color:#783044;color:#ffc8d0}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
+.stat{background:#0d0d18;border:1px solid var(--line);border-radius:12px;padding:10px}
+.stat b{display:block;font-size:24px;color:var(--gold)}
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-top:14px}
+.phrase{background:#0d0d18;border:1px solid var(--line);border-radius:14px;padding:12px;margin:8px 0}
+.phraseTop{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.score{color:var(--gold);font-weight:800}
+.meta{color:var(--muted);font-size:13px;margin-top:4px}
+.small{font-size:13px;color:var(--muted)}
+.letters{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:7px}
+.letter{padding:8px;border:1px solid var(--line);border-radius:10px;text-align:center;background:#0d0d18}
+.letter b{display:block;color:var(--violet)}
+pre{white-space:pre-wrap;max-height:260px;overflow:auto;background:#0d0d18;border:1px solid var(--line);border-radius:14px;padding:12px}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ryan Alliteration Engine</h1>
+  <div class="sub">Free single-file browser app: generate, grade, approve, reject, sort, dedupe, and export A–Z alliterations.</div>
+</header>
+<main>
+<section class="grid">
+  <div class="card">
+    <h2>Create</h2>
+    <label>Name / seed / theme</label>
+    <input id="seed" value="Ryan" placeholder="Ryan, love, lotus, law, logos..."/>
+    <label>Target letter</label>
+    <select id="letter"><option value="ALL">ALL A–Z</option></select>
+    <label>Mode</label>
+    <select id="mode">
+      <option>Clean</option><option>Sacred</option><option>Mythic</option><option>Funny</option><option>Business</option><option>Romantic</option>
+    </select>
+    <label>How many per letter</label>
+    <input id="count" type="number" min="1" max="20" value="5"/>
+    <div class="row">
+      <button class="primary" id="generate">Generate</button>
+      <button id="sort">Sort</button>
+      <button id="dedupe">Dedupe</button>
+      <button class="danger" id="clearResults">Clear Results</button>
+    </div>
+    <p id="status" class="small">Ready.</p>
+  </div>
+
+  <div class="card">
+    <h2>Library</h2>
+    <div class="row">
+      <button class="gold" id="exportTxt">Export TXT</button>
+      <button class="gold" id="exportCsv">Export CSV</button>
+      <button class="gold" id="exportJson">Export JSON</button>
+      <button id="save">Save</button>
+      <button id="load">Load</button>
+      <button class="danger" id="clearAll">Clear All</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>Results</span><b id="resultCount">0</b></div>
+      <div class="stat"><span>Approved</span><b id="approvedCount">0</b></div>
+      <div class="stat"><span>Rejected</span><b id="rejectedCount">0</b></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>A–Z Index</h2>
+    <div id="azIndex" class="letters"></div>
+  </div>
+</section>
+
+<section class="results">
+  <div class="card"><h2>Fresh Results</h2><div id="results"></div></div>
+  <div class="card"><h2>Master Library</h2><div id="approved"></div></div>
+  <div class="card"><h2>Rejects</h2><div id="rejected"></div></div>
+</section>
+
+<section class="card" style="margin-top:14px">
+  <h2>Export Preview</h2>
+  <pre id="preview"></pre>
+</section>
+</main>
+
+<script>
+const LETTERS=[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+for(const l of LETTERS){ const o=document.createElement("option"); o.value=l; o.textContent=l; document.getElementById("letter").appendChild(o); }
+
+const banks={
+A:["ascended","ancient","ardent","auric","artful","awake","absolute","angelic","astral","alive"],
+B:["bright","blessed","brave","burning","boundless","balanced","bold","blooming","bronze","beloved"],
+C:["cosmic","clean","crystal","clever","crowned","courageous","celestial","clear","creative","calm"],
+D:["divine","deep","daring","diamond","devoted","dreaming","dawnlit","direct","dynamic","delicate"],
+E:["eternal","electric","elegant","enchanted","elevated","exact","earnest","emerald","endless","essential"],
+F:["flowering","fearless","fluent","fiery","faithful","focused","fragrant","free","fortunate","fabled"],
+G:["golden","graceful","great","glowing","gifted","grand","gentle","galactic","grounded","guided"],
+H:["holy","harmonic","hidden","heroic","honeyed","heavenly","humble","honest","high","healing"],
+I:["infinite","inner","illumined","intense","iconic","innocent","immortal","inspired","integral","iridescent"],
+J:["joyful","jewel","just","jubilant","jade","journeying","jovial","jazzed","judicious","joining"],
+K:["kind","kinetic","kingly","keen","karmic","known","knightly","kissed","keyed","kindred"],
+L:["loving","luminous","lotus","lawful","lyrical","living","legendary","lucid","loyal","limitless"],
+M:["mythic","mighty","moonlit","magnetic","merciful","masterful","mystic","melodic","majestic","mirrored"],
+N:["noble","new","numinous","nightborn","nectarous","natural","notable","nurturing","northern","necessary"],
+O:["open","oracle","oceanic","opal","original","ordered","overflowing","ornate","omni","oxygened"],
+P:["pure","poetic","powerful","peaceful","primal","precise","purple","prophetic","playful","polished"],
+Q:["quiet","quantum","queenly","quick","quartz","quivering","questing","quality","quaint","quenchless"],
+R:["radiant","royal","rising","rhythmic","rooted","rare","reverent","resonant","rosy","remembered"],
+S:["sacred","solar","silver","sovereign","soft","strong","starry","sweet","sincere","spiral"],
+T:["true","timeless","tender","thunderous","tranquil","treasured","twilight","towering","trusty","tuned"],
+U:["unified","upright","ultimate","unbroken","unfolding","unseen","ultra","urgent","universal","uplifted"],
+V:["vast","velvet","victorious","vivid","valiant","violet","vibrant","visionary","vital","vowed"],
+W:["wise","wild","worthy","worldly","warm","woven","wondering","wakeful","winged","wholesome"],
+X:["xenial","x-factor","xiphoid","xanthic","xenodochial","xeric","xylonic","xenon","xtra","xenial"],
+Y:["young","yearning","yielding","yonder","yogic","yellow","yare","youthful","yummy","yes-born"],
+Z:["zen","zodiac","zealous","zesty","zircon","zero-point","zonal","zillion","zipped","zion"]
+};
+const modeWords={
+Clean:["clarity","craft","care","calm"],
+Sacred:["temple","truth","lotus","light","law","logos"],
+Mythic:["dragon","oracle","crown","throne","star","sword"],
+Funny:["banana","bop","giggle","wizard","pickle","spark"],
+Business:["brand","builder","blueprint","value","venture","vision"],
+Romantic:["rose","river","devotion","darling","desire","dream"]
+};
+let results=[], approved=[], rejected=[];
+
+function norm(s){return s.normalize("NFC").replace(/\s+/g," ").trim();}
+function key(s){return norm(s).toUpperCase();}
+function scorePhrase(p,letter){
+  const words=p.toUpperCase().split(/\s+/);
+  const hits=words.filter(w=>w.startsWith(letter)).length;
+  const rhythm=Math.min(20, words.length*3);
+  const clarity=p.length<85?20:12;
+  const impact=/SACRED|ROYAL|RADIANT|GOLDEN|DIVINE|LOVING|MYTHIC|COSMIC/.test(p.toUpperCase())?15:8;
+  return Math.min(100, 30 + hits*9 + rhythm + clarity + impact);
+}
+function makePhrase(seed,letter,mode){
+  const b=banks[letter]||banks.R;
+  const extra=modeWords[mode]||modeWords.Clean;
+  const a=b[Math.floor(Math.random()*b.length)];
+  const c=b[Math.floor(Math.random()*b.length)];
+  const e=extra[Math.floor(Math.random()*extra.length)];
+  const patterns=[
+    `${seed} raises ${a} ${letter}-light with ${c} ${e}`,
+    `${a} ${seed}, ${c} ${e}, ${letter}-born and brilliant`,
+    `${seed}'s ${a} ${e} becomes ${c} ${letter}-language`,
+    `${letter}-letter ${seed}: ${a}, ${c}, and clear`,
+    `${seed} writes ${a} words with ${c} ${e}`
+  ];
+  return norm(patterns[Math.floor(Math.random()*patterns.length)]);
+}
+function generate(){
+  const seed=norm(document.getElementById("seed").value||"Ryan");
+  const letter=document.getElementById("letter").value;
+  const mode=document.getElementById("mode").value;
+  const count=Math.max(1,Math.min(20,parseInt(document.getElementById("count").value||5,10)));
+  const targets=letter==="ALL"?LETTERS:[letter];
+  for(const l of targets){
+    for(let i=0;i<count;i++){
+      const phrase=makePhrase(seed,l,mode);
+      results.push({phrase,letter:l,mode,score:scorePhrase(phrase,l),created:new Date().toISOString()});
+    }
+  }
+  dedupeAll(); render(); setStatus("Generated.");
+}
+function dedupeArray(arr){
+  const seen=new Set(); return arr.filter(x=>{const k=key(x.phrase); if(seen.has(k))return false; seen.add(k); return true;});
+}
+function dedupeAll(){results=dedupeArray(results); approved=dedupeArray(approved); rejected=dedupeArray(rejected);}
+function sortAll(){const f=(a,b)=>a.letter.localeCompare(b.letter)||b.score-a.score||a.phrase.localeCompare(b.phrase); results.sort(f); approved.sort(f); rejected.sort(f); render();}
+function approve(i){approved.push(results.splice(i,1)[0]); dedupeAll(); render();}
+function reject(i){rejected.push(results.splice(i,1)[0]); dedupeAll(); render();}
+function unapprove(i){results.push(approved.splice(i,1)[0]); render();}
+function unreject(i){results.push(rejected.splice(i,1)[0]); render();}
+function card(x,buttons){
+  return `<div class="phrase"><div class="phraseTop"><strong>${escapeHtml(x.phrase)}</strong><span class="score">${x.score}</span></div>
+  <div class="meta">${x.letter} · ${x.mode}</div><div class="row">${buttons}</div></div>`;
+}
+function renderList(el,arr,type){
+  el.innerHTML=arr.map((x,i)=>{
+    if(type==="results") return card(x,`<button onclick="approve(${i})">Approve</button><button class="danger" onclick="reject(${i})">Reject</button>`);
+    if(type==="approved") return card(x,`<button onclick="unapprove(${i})">Back to Results</button>`);
+    return card(x,`<button onclick="unreject(${i})">Restore</button>`);
+  }).join("") || `<p class="small">Empty.</p>`;
+}
+function render(){
+  renderList(document.getElementById("results"),results,"results");
+  renderList(document.getElementById("approved"),approved,"approved");
+  renderList(document.getElementById("rejected"),rejected,"rejected");
+  document.getElementById("resultCount").textContent=results.length;
+  document.getElementById("approvedCount").textContent=approved.length;
+  document.getElementById("rejectedCount").textContent=rejected.length;
+  const counts=Object.fromEntries(LETTERS.map(l=>[l,approved.filter(x=>x.letter===l).length]));
+  document.getElementById("azIndex").innerHTML=LETTERS.map(l=>`<div class="letter"><b>${l}</b>${counts[l]}</div>`).join("");
+  document.getElementById("preview").textContent=makeTxt();
+}
+function makeTxt(){
+  let out=["RYAN ALLITERATION ENGINE — MASTER LIBRARY",""];
+  for(const l of LETTERS){
+    const items=approved.filter(x=>x.letter===l).sort((a,b)=>b.score-a.score);
+    if(!items.length) continue;
+    out.push(`=== ${l} ===`);
+    for(const x of items) out.push(`[${x.score}] ${x.phrase}`);
+    out.push("");
+  }
+  return out.join("\n");
+}
+function makeCsv(){
+  const rows=[["letter","score","mode","phrase","created"],...approved.map(x=>[x.letter,x.score,x.mode,x.phrase,x.created])];
+  return rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+}
+function download(name,content,type){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+function save(){localStorage.setItem("ryan_alliteration_engine_v1",JSON.stringify({results,approved,rejected})); setStatus("Saved locally.");}
+function load(){const raw=localStorage.getItem("ryan_alliteration_engine_v1"); if(!raw){setStatus("No save found.");return;} const d=JSON.parse(raw); results=d.results||[]; approved=d.approved||[]; rejected=d.rejected||[]; render(); setStatus("Loaded.");}
+function clearAll(){if(confirm("Clear all results, approved, and rejects?")){results=[];approved=[];rejected=[];render();setStatus("Cleared.");}}
+function setStatus(s){document.getElementById("status").textContent=s}
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+
+document.getElementById("generate").onclick=generate;
+document.getElementById("sort").onclick=sortAll;
+document.getElementById("dedupe").onclick=()=>{dedupeAll();render();setStatus("Deduped.");};
+document.getElementById("clearResults").onclick=()=>{results=[];render();};
+document.getElementById("exportTxt").onclick=()=>download("ryan-alliteration-master.txt",makeTxt(),"text/plain");
+document.getElementById("exportCsv").onclick=()=>download("ryan-alliteration-master.csv",makeCsv(),"text/csv");
+document.getElementById("exportJson").onclick=()=>download("ryan-alliteration-master.json",JSON.stringify({approved,rejected,results},null,2),"application/json");
+document.getElementById("save").onclick=save;
+document.getElementById("load").onclick=load;
+document.getElementById("clearAll").onclick=clearAll;
+render();
+</script>
+</body>
+</html>

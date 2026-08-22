@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AZ Auto Chunk Sorter Production</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel2: #1f2937;
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --accent: #38bdf8;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: radial-gradient(circle at top, #1e3a8a 0, var(--bg) 42%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    header {
+      padding: 28px 18px 14px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 6vw, 48px);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      max-width: 900px;
+      margin: 0 auto;
+      font-size: 16px;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 24px));
+      margin: 0 auto 40px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 900px) {
+      .grid.two { grid-template-columns: 1fr 1fr; }
+      .grid.three { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .card {
+      background: rgba(17, 24, 39, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.25);
+      backdrop-filter: blur(10px);
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      resize: vertical;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #020617;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.45;
+      outline: none;
+    }
+
+    textarea:focus, input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.15);
+    }
+
+    input[type="file"], input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #020617;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 16px;
+      font-weight: 800;
+      cursor: pointer;
+      background: var(--accent);
+      color: #00111d;
+      min-height: 44px;
+      box-shadow: 0 10px 24px rgba(56,189,248,0.25);
+    }
+
+    button.secondary {
+      background: #334155;
+      color: var(--text);
+      box-shadow: none;
+    }
+
+    button.good {
+      background: var(--good);
+      color: #04130a;
+    }
+
+    button.warn {
+      background: var(--warn);
+      color: #1c1000;
+    }
+
+    button.bad {
+      background: var(--bad);
+      color: #fff;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    label.check {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 0;
+      color: var(--muted);
+      border-bottom: 1px solid rgba(51,65,85,0.5);
+    }
+
+    label.check:last-child { border-bottom: 0; }
+
+    input[type="checkbox"] {
+      transform: translateY(2px) scale(1.15);
+      accent-color: var(--accent);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    @media (min-width: 800px) {
+      .stats { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .stat {
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 26px;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 5px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .tabs button {
+      box-shadow: none;
+      background: #1e293b;
+      color: var(--text);
+      padding: 9px 12px;
+      min-height: 38px;
+      font-size: 13px;
+    }
+
+    .tabs button.active {
+      background: var(--accent);
+      color: #00111d;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      min-height: 230px;
+      max-height: 480px;
+      overflow: auto;
+      color: #e2e8f0;
+      font-size: 14px;
+    }
+
+    .small {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .folder-map {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      overflow-x: auto;
+      color: #e2e8f0;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 4px 8px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 12px;
+      margin: 2px;
+    }
+
+    .warning {
+      border-left: 4px solid var(--warn);
+      padding: 10px 12px;
+      background: rgba(245,158,11,0.08);
+      color: #fde68a;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    .success {
+      border-left: 4px solid var(--good);
+      padding: 10px 12px;
+      background: rgba(34,197,94,0.08);
+      color: #bbf7d0;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AZ Auto Chunk Sorter Production</h1>
+    <p class="subtitle">
+      Paste or load text. Press process. Get cleaned uppercase lines, exact duplicate review,
+      review-not-deleted, A–Z buckets, master index, and process log.
+    </p>
+  </header>
+
+  <main>
+    <section class="grid two">
+      <div class="card">
+        <h2>1. Input</h2>
+        <p class="small">Use paste first if iPad file upload acts weird. Original text is never changed by this tool.</p>
+        <input id="fileInput" type="file" accept=".txt,.text,.csv,.md,.html,.htm" />
+        <div class="controls">
+          <button class="secondary" onclick="loadSample()">Load Safe Test</button>
+          <button class="bad" onclick="clearAll()">Clear</button>
+        </div>
+        <br />
+        <textarea id="inputText" placeholder="Paste raw alliteration text here..."></textarea>
+      </div>
+
+      <div class="card">
+        <h2>2. Settings</h2>
+        <label class="check"><input id="uppercase" type="checkbox" checked /> Uppercase everything</label>
+        <label class="check"><input id="dedupe" type="checkbox" checked /> Remove exact duplicates and send repeats to duplicates review</label>
+        <label class="check"><input id="lettersOnly" type="checkbox" checked /> Keep letters and spaces only in clean output</label>
+        <label class="check"><input id="minWordsOn" type="checkbox" checked /> Minimum words per clean line</label>
+        <input id="minWords" type="number" value="2" min="1" max="20" />
+        <label class="check"><input id="sortAZ" type="checkbox" checked /> Sort cleaned output alphabetically</label>
+        <label class="check"><input id="rejectSymbolHeavy" type="checkbox" checked /> Put symbol-heavy / number-heavy / broken lines into REVIEW_NOT_DELETED</label>
+        <label class="check"><input id="keepReviewOriginal" type="checkbox" checked /> Preserve original rejected line in review report</label>
+
+        <div class="controls">
+          <button class="good" onclick="processText()">PROCESS</button>
+          <button class="warn" onclick="downloadAllFiles()">DOWNLOAD ALL FILES</button>
+        </div>
+
+        <div class="warning">
+          This browser version cannot automatically create folders on your iPad.
+          It creates the files; you place them into your folder system.
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <h2>3. Run Stats</h2>
+      <div class="stats">
+        <div class="stat"><b id="statLoaded">0</b><span>Loaded Lines</span></div>
+        <div class="stat"><b id="statKept">0</b><span>Clean Kept</span></div>
+        <div class="stat"><b id="statDup">0</b><span>Duplicates</span></div>
+        <div class="stat"><b id="statReview">0</b><span>Review</span></div>
+      </div>
+      <div id="statusBox" class="success" style="display:none;"></div>
+    </section>
+
+    <section class="grid two" style="margin-top:14px;">
+      <div class="card">
+        <h2>4. Output Viewer</h2>
+        <div class="tabs">
+          <button id="tabCleaned" class="active" onclick="showOutput('cleaned')">Cleaned</button>
+          <button id="tabMaster" onclick="showOutput('master')">Master A-Z</button>
+          <button id="tabReview" onclick="showOutput('review')">Review</button>
+          <button id="tabDup" onclick="showOutput('duplicates')">Duplicates</button>
+          <button id="tabLog" onclick="showOutput('log')">Log</button>
+        </div>
+        <pre id="outputBox">Nothing processed yet.</pre>
+        <div class="controls">
+          <button class="secondary" onclick="copyCurrent()">Copy Current</button>
+          <button class="secondary" onclick="downloadCurrent()">Download Current</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>5. A–Z Buckets</h2>
+        <p class="small">Download individual letter files, or use DOWNLOAD ALL FILES.</p>
+        <div id="letterButtons" class="controls"></div>
+        <pre id="letterPreview">A-Z preview appears here after processing.</pre>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <h2>Folder Placement Map</h2>
+      <div class="folder-map">AZ_ALLITERATION_MASTER_PIPELINE/
+├── 00_INBOX_RAW/                 ← Your untouched originals
+├── 01_PROCESS_NOW/               ← File you are working on today
+├── 02_CLEANED_OUTPUT/            ← CLEANED_MASTER.txt
+├── 03_AZ_SORTED/                 ← A.txt through Z.txt
+├── 04_REVIEW_NOT_DELETED/        ← REVIEW_NOT_DELETED.txt
+├── 05_DUPLICATES_REVIEW/         ← DUPLICATES_REVIEW.txt
+├── 06_APPROVED_FOR_MASTER/       ← Only after you approve
+├── 07_MASTER_INDEX/              ← MASTER_AZ_INDEX.txt later
+├── 08_PROCESS_LOGS/              ← PROCESS_LOG.txt
+├── 09_BACKUPS_DO_NOT_TOUCH/      ← Dated backups
+└── 10_TOOLS/                     ← This HTML tool</div>
+      <p>
+        <span class="pill">GitHub = tool</span>
+        <span class="pill">Cloud folder = working archive</span>
+        <span class="pill">External drive = backup</span>
+        <span class="pill">Never delete originals</span>
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    let results = {
+      cleaned: [],
+      master: "",
+      review: [],
+      duplicates: [],
+      log: "",
+      buckets: {},
+      currentView: "cleaned",
+      processed: false
+    };
+
+    letters.forEach(l => results.buckets[l] = []);
+
+    const fileInput = document.getElementById("fileInput");
+    fileInput.addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      document.getElementById("inputText").value = text;
+      setStatus("Loaded file: " + file.name);
+    });
+
+    function normalizeLine(line, settings) {
+      let original = line;
+      let working = line.replace(/\t/g, " ").replace(/\s+/g, " ").trim();
+
+      if (settings.uppercase) working = working.toUpperCase();
+
+      const symbolCount = (working.match(/[^A-Z0-9\s]/gi) || []).length;
+      const digitCount = (working.match(/[0-9]/g) || []).length;
+      const charCount = Math.max(working.length, 1);
+      const symbolRatio = symbolCount / charCount;
+      const digitRatio = digitCount / charCount;
+
+      const hasLetter = /[A-Z]/i.test(working);
+      const startsAZ = /^[A-Z]/.test(working);
+
+      let cleaned = working;
+      if (settings.lettersOnly) {
+        cleaned = cleaned.replace(/[^A-Z\s]/g, " ");
+        cleaned = cleaned.replace(/\s+/g, " ").trim();
+      }
+
+      const words = cleaned ? cleaned.split(/\s+/).filter(Boolean) : [];
+
+      let reasons = [];
+      if (!working) reasons.push("blank");
+      if (!hasLetter) reasons.push("no letters");
+      if (!startsAZ) reasons.push("does not start A-Z");
+      if (settings.rejectSymbolHeavy && symbolRatio > 0.20) reasons.push("symbol-heavy");
+      if (settings.rejectSymbolHeavy && digitRatio > 0.35) reasons.push("number-heavy");
+      if (settings.minWordsOn && words.length < settings.minWords) reasons.push("below minimum words");
+      if (!cleaned) reasons.push("empty after cleaning");
+
+      return { original, working, cleaned, words, reasons };
+    }
+
+    function getSettings() {
+      return {
+        uppercase: document.getElementById("uppercase").checked,
+        dedupe: document.getElementById("dedupe").checked,
+        lettersOnly: document.getElementById("lettersOnly").checked,
+        minWordsOn: document.getElementById("minWordsOn").checked,
+        minWords: parseInt(document.getElementById("minWords").value || "2", 10),
+        sortAZ: document.getElementById("sortAZ").checked,
+        rejectSymbolHeavy: document.getElementById("rejectSymbolHeavy").checked,
+        keepReviewOriginal: document.getElementById("keepReviewOriginal").checked
+      };
+    }
+
+    function processText() {
+      const input = document.getElementById("inputText").value || "";
+      const rawLines = input.split(/\r?\n/);
+      const settings = getSettings();
+
+      results = {
+        cleaned: [],
+        master: "",
+        review: [],
+        duplicates: [],
+        log: "",
+        buckets: {},
+        currentView: "cleaned",
+        processed: true
+      };
+      letters.forEach(l => results.buckets[l] = []);
+
+      const seen = new Set();
+      let blankCount = 0;
+
+      rawLines.forEach((line, index) => {
+        const item = normalizeLine(line, settings);
+
+        if (!item.working) {
+          blankCount++;
+          return;
+        }
+
+        if (item.reasons.length > 0) {
+          const reviewLine = settings.keepReviewOriginal
+            ? `LINE ${index + 1} | ${item.reasons.join(", ")} | ORIGINAL: ${item.original}`
+            : `LINE ${index + 1} | ${item.reasons.join(", ")} | CLEANED: ${item.cleaned}`;
+          results.review.push(reviewLine);
+          return;
+        }
+
+        if (settings.dedupe && seen.has(item.cleaned)) {
+          results.duplicates.push(`LINE ${index + 1} | DUPLICATE: ${item.cleaned}`);
+          return;
+        }
+
+        seen.add(item.cleaned);
+        results.cleaned.push(item.cleaned);
+      });
+
+      if (settings.sortAZ) {
+        results.cleaned.sort((a, b) => a.localeCompare(b));
+      }
+
+      results.cleaned.forEach(line => {
+        const first = line.charAt(0);
+        if (results.buckets[first]) results.buckets[first].push(line);
+        else results.review.push(`NON_AZ_AFTER_CLEANING | ${line}`);
+      });
+
+      results.master = buildMasterIndex();
+      results.log = buildLog(rawLines.length, blankCount, settings);
+
+      updateStats(rawLines.length);
+      showOutput("cleaned");
+      renderLetterButtons();
+      setStatus("Process complete. Download your files and place them in the folders.");
+    }
+
+    function buildMasterIndex() {
+      let out = [];
+      letters.forEach(l => {
+        out.push("===== " + l + " =====");
+        if (results.buckets[l].length) out.push(...results.buckets[l]);
+        else out.push("");
+        out.push("");
+      });
+      return out.join("\n").trim();
+    }
+
+    function buildLog(totalLines, blankCount, settings) {
+      let lines = [];
+      lines.push("AZ AUTO CHUNK SORTER PRODUCTION - PROCESS LOG");
+      lines.push("RUN DATE: " + new Date().toLocaleString());
+      lines.push("");
+      lines.push("TOTAL RAW LINES: " + totalLines);
+      lines.push("BLANK LINES SKIPPED: " + blankCount);
+      lines.push("CLEAN LINES KEPT: " + results.cleaned.length);
+      lines.push("DUPLICATES FOUND: " + results.duplicates.length);
+      lines.push("REVIEW NOT DELETED: " + results.review.length);
+      lines.push("");
+      lines.push("SETTINGS:");
+      lines.push("- Uppercase: " + settings.uppercase);
+      lines.push("- Dedupe exact: " + settings.dedupe);
+      lines.push("- Letters/spaces only: " + settings.lettersOnly);
+      lines.push("- Minimum words on: " + settings.minWordsOn);
+      lines.push("- Minimum words: " + settings.minWords);
+      lines.push("- Sort A-Z: " + settings.sortAZ);
+      lines.push("- Reject symbol/number heavy: " + settings.rejectSymbolHeavy);
+      lines.push("");
+      lines.push("A-Z COUNTS:");
+      letters.forEach(l => lines.push(l + ": " + results.buckets[l].length));
+      lines.push("");
+      lines.push("SAFETY:");
+      lines.push("- Original input was not modified.");
+      lines.push("- Review lines were not deleted.");
+      lines.push("- Duplicates were separated for review.");
+      return lines.join("\n");
+    }
+
+    function updateStats(totalLines) {
+      document.getElementById("statLoaded").textContent = totalLines;
+      document.getElementById("statKept").textContent = results.cleaned.length;
+      document.getElementById("statDup").textContent = results.duplicates.length;
+      document.getElementById("statReview").textContent = results.review.length;
+    }
+
+    function showOutput(view) {
+      results.currentView = view;
+      document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+      const tabId = "tab" + view.charAt(0).toUpperCase() + view.slice(1);
+      const tab = document.getElementById(tabId);
+      if (tab) tab.classList.add("active");
+
+      let text = "";
+      if (view === "cleaned") text = results.cleaned.join("\n");
+      if (view === "master") text = results.master;
+      if (view === "review") text = results.review.join("\n");
+      if (view === "duplicates") text = results.duplicates.join("\n");
+      if (view === "log") text = results.log;
+      document.getElementById("outputBox").textContent = text || "No output for this section yet.";
+    }
+
+    function renderLetterButtons() {
+      const container = document.getElementById("letterButtons");
+      container.innerHTML = "";
+      letters.forEach(l => {
+        const btn = document.createElement("button");
+        btn.className = "secondary";
+        btn.textContent = l + " (" + results.buckets[l].length + ")";
+        btn.onclick = () => previewLetter(l);
+        container.appendChild(btn);
+      });
+      previewLetter("A");
+    }
+
+    function previewLetter(letter) {
+      const text = results.buckets[letter].join("\n") || "No lines in " + letter + ".";
+      document.getElementById("letterPreview").textContent = "===== " + letter + " =====\n" + text;
+    }
+
+    function getCurrentText() {
+      const view = results.currentView;
+      if (view === "cleaned") return results.cleaned.join("\n");
+      if (view === "master") return results.master;
+      if (view === "review") return results.review.join("\n");
+      if (view === "duplicates") return results.duplicates.join("\n");
+      if (view === "log") return results.log;
+      return "";
+    }
+
+    async function copyCurrent() {
+      const text = getCurrentText();
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus("Copied current output.");
+      } catch (e) {
+        setStatus("Copy blocked by browser. Select the text manually from the output box.");
+      }
+    }
+
+    function downloadCurrent() {
+      const view = results.currentView;
+      const names = {
+        cleaned: "CLEANED_MASTER.txt",
+        master: "MASTER_AZ_INDEX.txt",
+        review: "REVIEW_NOT_DELETED.txt",
+        duplicates: "DUPLICATES_REVIEW.txt",
+        log: "PROCESS_LOG.txt"
+      };
+      downloadText(names[view] || "OUTPUT.txt", getCurrentText());
+    }
+
+    function downloadAllFiles() {
+      if (!results.processed) {
+        setStatus("Process text first before downloading.");
+        return;
+      }
+
+      downloadText("CLEANED_MASTER.txt", results.cleaned.join("\n"));
+      downloadText("MASTER_AZ_INDEX.txt", results.master);
+      downloadText("REVIEW_NOT_DELETED.txt", results.review.join("\n"));
+      downloadText("DUPLICATES_REVIEW.txt", results.duplicates.join("\n"));
+      downloadText("PROCESS_LOG.txt", results.log);
+
+      letters.forEach(l => {
+        downloadText(l + ".txt", results.buckets[l].join("\n"));
+      });
+
+      setStatus("Downloads triggered. Your browser may ask permission for multiple files.");
+    }
+
+    function downloadText(filename, text) {
+      const blob = new Blob([text || ""], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
+    }
+
+    function loadSample() {
+      document.getElementById("inputText").value =
+`AWAKE AND AWARE
+ANCIENT ATOMS ANSWER ALL
+ANCIENT ATOMS ANSWER ALL
+COSMIC CURRENT CARRIES COINS
+123456789
+GOOD LINE WITH @@@@@ SYMBOLS!!!!
+AWESOME
+badly formatted line with lowercase letters
+A BIZARRE BUNGLE?!
+AWAKENED A WALKED WATCHED WORLD`;
+      setStatus("Safe test loaded. Press PROCESS.");
+    }
+
+    function clearAll() {
+      document.getElementById("inputText").value = "";
+      document.getElementById("outputBox").textContent = "Nothing processed yet.";
+      document.getElementById("letterPreview").textContent = "A-Z preview appears here after processing.";
+      document.getElementById("letterButtons").innerHTML = "";
+      document.getElementById("statLoaded").textContent = "0";
+      document.getElementById("statKept").textContent = "0";
+      document.getElementById("statDup").textContent = "0";
+      document.getElementById("statReview").textContent = "0";
+      document.getElementById("statusBox").style.display = "none";
+      results.processed = false;
+    }
+
+    function setStatus(message) {
+      const box = document.getElementById("statusBox");
+      box.textContent = message;
+      box.style.display = "block";
+    }
+
+    renderLetterButtons();
+  </script>
+</body>
+</html>
