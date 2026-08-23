@@ -1,441 +1,528 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RhymeWeaver Writer Index</title>
-  <style>
-    :root {
-      --bg: #09090b;
-      --panel: #18181b;
-      --panel2: #27272a;
-      --text: #f4f4f5;
-      --muted: #a1a1aa;
-      --accent: #a78bfa;
-      --good: #86efac;
-      --warn: #facc15;
-      --bad: #fb7185;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.45;
-    }
-    header {
-      padding: 22px 16px;
-      border-bottom: 1px solid var(--panel2);
-      background: linear-gradient(135deg, #18181b, #09090b);
-    }
-    h1 { margin: 0; font-size: 1.55rem; letter-spacing: .04em; }
-    .subtitle { color: var(--muted); margin-top: 6px; font-size: .95rem; }
-    main { max-width: 1180px; margin: 0 auto; padding: 16px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--panel2);
-      border-radius: 18px;
-      padding: 14px;
-    }
-    h2 { margin: 0 0 10px; font-size: 1.05rem; }
-    textarea, input, select {
-      width: 100%;
-      background: #0f0f12;
-      color: var(--text);
-      border: 1px solid var(--panel2);
-      border-radius: 12px;
-      padding: 10px;
-      font-size: 1rem;
-    }
-    textarea { min-height: 170px; resize: vertical; }
-    button, label.filebtn {
-      display: inline-block;
-      background: var(--accent);
-      color: #111;
-      border: 0;
-      border-radius: 12px;
-      padding: 10px 12px;
-      margin: 4px 4px 4px 0;
-      font-weight: 800;
-      cursor: pointer;
-      font-size: .95rem;
-    }
-    button.secondary { background: #3f3f46; color: var(--text); }
-    button.good { background: var(--good); }
-    button.warn { background: var(--warn); }
-    input[type=file] { display:none; }
-    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .stat {
-      background: #0f0f12;
-      border: 1px solid var(--panel2);
-      border-radius: 14px;
-      padding: 10px;
-    }
-    .stat b { display: block; font-size: 1.45rem; }
-    .muted { color: var(--muted); }
-    pre {
-      white-space: pre-wrap;
-      word-break: break-word;
-      background: #0f0f12;
-      border: 1px solid var(--panel2);
-      border-radius: 14px;
-      padding: 12px;
-      max-height: 420px;
-      overflow: auto;
-    }
-    .pill {
-      display:inline-block;
-      padding: 4px 8px;
-      border-radius: 999px;
-      background:#27272a;
-      color:var(--muted);
-      font-size:.8rem;
-      margin:2px;
-    }
-    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .wide { grid-column: 1 / -1; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AUTO CHUNK ENGINE — HP + iPad Fixed</title>
+<style>
+:root{
+  --bg:#031315; --panel:#08272a; --panel2:#0e3a3d; --text:#f7efd5; --muted:#a9c6c4;
+  --line:#35666a; --gold:#e7bd58; --blue:#67d1ff; --green:#7fe3a1; --red:#ff8d86;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top,#14474b,#031315 55%);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.45}
+header{padding:28px 18px;border-bottom:1px solid var(--line);background:rgba(8,8,11,.9);position:sticky;top:0;z-index:10}
+h1{margin:0 0 8px;font-size:28px;letter-spacing:.4px}
+h2{font-size:20px;margin:0 0 14px;color:var(--gold)}
+h3{font-size:16px;margin:16px 0 8px;color:var(--blue)}
+p{margin:8px 0;color:var(--muted)}
+main{max-width:1120px;margin:0 auto;padding:18px}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.engine{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0f0f16}
+.engine b{color:var(--gold)}
+code,pre{background:#050507;border:1px solid var(--line);border-radius:10px;color:#e8e8ef}
+pre{padding:12px;overflow:auto;white-space:pre-wrap}
+button,.file-label{appearance:none;border:0;border-radius:12px;padding:12px 14px;background:var(--gold);color:#111;font-weight:800;cursor:pointer;display:inline-block;margin:6px 6px 6px 0}
+button.secondary{background:#2a2a3f;color:var(--text);border:1px solid var(--line)}
+button.danger{background:var(--red);color:#111}
+input[type=file]{display:none}
+.stat{background:#090910;border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat strong{display:block;font-size:22px;color:var(--green)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+th{color:var(--gold)}
+.small{font-size:12px;color:var(--muted)}
+.ok{color:var(--green);font-weight:700}
+.warn{color:var(--gold);font-weight:700}
+.bad{color:var(--red);font-weight:700}
+.downloads a{display:inline-block;margin:6px 6px 0 0;padding:10px 12px;border-radius:10px;background:#202034;color:#fff;text-decoration:none;border:1px solid var(--line)}
+.downloads button{background:#202034;color:#fff;border:1px solid var(--line);font-weight:750}
+textarea{width:100%;min-height:160px;border-radius:12px;background:#050507;color:#fff;border:1px solid var(--line);padding:10px}
+.statusbar{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#090910;color:var(--muted)}
+select{border-radius:9px;background:#050507;color:#fff;border:1px solid var(--line);padding:9px}
+button:disabled{opacity:.55;cursor:wait}
+</style>
 </head>
 <body>
 <header>
-  <h1>RHYMEWEAVER WRITER INDEX</h1>
-  <div class="subtitle">Merge · Auto Chunk · Uppercase · Deduplicate · A–Z Buckets · Review Safety · Search · Export TXT</div>
+  <h1>AUTO CHUNK ENGINE — HP + iPad Fixed</h1>
+  <p>This is a browser-only processor. It does not delete, move, upload, or alter originals. It reads selected text files and generates downloadable indexes.</p>
 </header>
-
 <main>
-  <section class="grid">
-    <div class="card">
-      <h2>1. Load Files</h2>
-      <p class="muted">Works on iPad with .txt, .md, .csv, and pasted text. PDF text may work only when the PDF contains selectable text.</p>
-      <label class="filebtn" for="fileInput">CHOOSE FILES</label>
-      <input id="fileInput" type="file" multiple accept=".txt,.md,.csv,.json,.jsonl,.html,.pdf,text/*" />
-      <button class="secondary" onclick="clearAll()">CLEAR ALL</button>
-      <div id="fileList" class="muted">No files loaded yet.</div>
+  <section class="card">
+    <h2>1. Locked Machine Map</h2>
+    <div class="grid">
+      <div class="engine"><b>00_DROP_ALLITERATION_HERE</b><br>Engine: Ingest Engine<br>Purpose: receive raw A–Z / alliteration text files.</div>
+      <div class="engine"><b>01_ORIGINALS_SAVED</b><br>Engine: Preservation Engine<br>Purpose: keep originals untouched. In browser mode, originals stay wherever you selected them.</div>
+      <div class="engine"><b>02_CLEANED_SEPARATED_AZ</b><br>Engine: Clean + A–Z Split Engine<br>Purpose: normalized lines separated by first letter.</div>
+      <div class="engine"><b>03_MERGED_MASTER</b><br>Engine: Merge Engine<br>Purpose: one merged master line list.</div>
+      <div class="engine"><b>04_DEDUPED_MASTER</b><br>Engine: Deduplication Engine<br>Purpose: exact duplicate removal by normalized text.</div>
+      <div class="engine"><b>05_INDEXES</b><br>Engine: Search Index Engine<br>Purpose: CSV, JSONL, A–Z index, rhyme index, manifest.</div>
+      <div class="engine"><b>06_LOGS</b><br>Engine: Audit Log Engine<br>Purpose: run log, counts, warnings, invalid lines.</div>
+      <div class="engine"><b>99_QUARANTINE</b><br>Engine: Recovery Engine<br>Purpose: invalid/unreadable records. Browser mode reports them; it does not move them.</div>
     </div>
+  </section>
 
-    <div class="card">
-      <h2>2. Paste Text</h2>
-      <textarea id="pasteBox" placeholder="Paste raw alliterations, notes, rhyme lists, or A-Z chunks here..."></textarea>
-      <button onclick="addPasted()">ADD PASTED TEXT</button>
-    </div>
+  <section class="card">
+    <h2>2. Run the Processor</h2>
+    <p><b>Use this:</b> tap Select Files, choose A.txt through Z.txt or the alliteration .txt/.md/.csv files, then tap Build Index.</p>
+    <label class="file-label" for="files">Select Files</label>
+    <input id="files" type="file" multiple accept=".txt,.md,.csv,text/plain,text/markdown,text/csv">
+    <button type="button" id="build">Build Index</button>
+    <button type="button" class="secondary" id="test">Run 5-Line Test</button>
+    <button type="button" class="secondary" id="downloadApp">Download This App for HP</button>
+    <button type="button" class="secondary" id="clear">Clear</button>
+    <label for="chunkSize">Lines per chunk:</label>
+    <select id="chunkSize">
+      <option value="5000">5,000</option>
+      <option value="10000" selected>10,000</option>
+      <option value="25000">25,000</option>
+      <option value="50000">50,000</option>
+    </select>
+    <p id="fileStatus" class="small">No files selected yet.</p>
+    <div id="runStatus" class="statusbar">Ready. Select files, paste text, or run the five-line test.</div>
+  </section>
 
-    <div class="card">
-      <h2>3. Run Engine</h2>
-      <p class="muted">Safe mode: does not delete questionable lines. Sends them to REVIEW_NOT_DELETED.</p>
-      <button class="good" onclick="runEngine()">RUN EVERYTHING</button>
-      <button class="warn" onclick="downloadReport()">SAVE REPORT</button>
-      <button class="secondary" onclick="copyKept()">COPY KEPT</button>
+  <section class="card">
+    <h2>3. Output Downloads</h2>
+    <div class="grid" id="stats">
+      <div class="stat"><span>Total Lines</span><strong>0</strong></div>
+      <div class="stat"><span>Unique Lines</span><strong>0</strong></div>
+      <div class="stat"><span>Duplicates</span><strong>0</strong></div>
+      <div class="stat"><span>Files</span><strong>0</strong></div>
     </div>
+    <p class="small">Download one output at a time. Each button creates a fresh file when tapped.</p>
+    <div class="downloads" id="downloads"></div>
+  </section>
 
-    <div class="card">
-      <h2>4. Process Stats</h2>
-      <div class="stats">
-        <div class="stat"><span class="muted">RAW LINES</span><b id="sRaw">0</b></div>
-        <div class="stat"><span class="muted">KEPT UNIQUE</span><b id="sKept">0</b></div>
-        <div class="stat"><span class="muted">REVIEW</span><b id="sReview">0</b></div>
-        <div class="stat"><span class="muted">DUPLICATES</span><b id="sDup">0</b></div>
-        <div class="stat"><span class="muted">A-Z BUCKETS</span><b id="sAz">0</b></div>
-        <div class="stat"><span class="muted">SOURCES</span><b id="sSources">0</b></div>
-      </div>
-    </div>
+  <section class="card">
+    <h2>4. Preview</h2>
+    <div id="preview" class="small">Nothing processed yet.</div>
+  </section>
 
-    <div class="card wide">
-      <h2>5. Searchable Index</h2>
-      <div class="row">
-        <select id="letterFilter" onchange="renderResults()">
-          <option value="">ALL LETTERS</option>
-        </select>
-        <input id="searchBox" placeholder="Search clean text, source, first word, ending word..." oninput="renderResults()" />
-      </div>
-      <div id="letterPills"></div>
-      <pre id="results">NO INDEX YET.</pre>
-    </div>
-
-    <div class="card wide">
-      <h2>6. Download Outputs</h2>
-      <button onclick="downloadText('MASTER_MERGED_KEPT.txt', state.kept.join('\n'))">MASTER_MERGED_KEPT.txt</button>
-      <button onclick="downloadText('REVIEW_NOT_DELETED.txt', state.review.join('\n'))">REVIEW_NOT_DELETED.txt</button>
-      <button onclick="downloadText('DUPLICATES_REVIEW.txt', state.duplicates.join('\n'))">DUPLICATES_REVIEW.txt</button>
-      <button onclick="downloadAZ()">A_Z_BUCKETS_COMBINED.txt</button>
-      <button onclick="downloadIndex()">SEARCH_INDEX.json</button>
-    </div>
-
-    <div class="card wide">
-      <h2>7. RhymeWeaver Writer Pad</h2>
-      <textarea id="writerPad" placeholder="Write here. Use the index above to search and pull lines into your draft."></textarea>
-      <button onclick="downloadText('RHYMEWEAVER_WRITER_DRAFT.txt', document.getElementById('writerPad').value)">DOWNLOAD DRAFT</button>
-      <button class="secondary" onclick="document.getElementById('writerPad').value = cleanLine(document.getElementById('writerPad').value)">ALL CAPS + TRIM DRAFT</button>
-    </div>
-
-    <div class="card wide">
-      <h2>Preview — Master Merged Kept Output</h2>
-      <pre id="preview">NO CLEAN OUTPUT YET.</pre>
-    </div>
+  <section class="card">
+    <h2>5. Manual Paste Backup</h2>
+    <p>If file picking fails on iPad, paste text here and tap Build From Paste.</p>
+    <textarea id="paste" placeholder="Paste alliteration lines here..."></textarea>
+    <button type="button" id="buildPaste">Build From Paste</button>
   </section>
 </main>
 
 <script>
-const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-const state = {
-  sources: [],
-  rawItems: [],
-  kept: [],
-  review: [],
-  duplicates: [],
-  az: {},
-  index: []
-};
+const state = { files: [], outputs: [], running: false };
 
-letters.forEach(l => state.az[l] = []);
-const letterFilter = document.getElementById("letterFilter");
-letters.forEach(l => {
-  const opt = document.createElement("option");
-  opt.value = l;
-  opt.textContent = l;
-  letterFilter.appendChild(opt);
-});
-
-document.getElementById("fileInput").addEventListener("change", async (event) => {
-  const files = Array.from(event.target.files || []);
-  for (const file of files) {
-    const text = await file.text().catch(() => "");
-    state.sources.push(file.name);
-    state.rawItems.push({ source: file.name, text });
+function setStatus(message, kind=''){
+  const el = document.getElementById('runStatus');
+  el.textContent = message;
+  el.className = `statusbar ${kind}`.trim();
+}
+function setRunning(running){
+  state.running = running;
+  for (const id of ['build','buildPaste','test','downloadApp','clear']) {
+    document.getElementById(id).disabled = running;
   }
-  updateFileList();
-});
-
-function addPasted() {
-  const box = document.getElementById("pasteBox");
-  const text = box.value || "";
-  if (!text.trim()) return;
-  const name = "PASTED_TEXT_" + (state.sources.length + 1);
-  state.sources.push(name);
-  state.rawItems.push({ source: name, text });
-  box.value = "";
-  updateFileList();
 }
-
-function updateFileList() {
-  const el = document.getElementById("fileList");
-  if (!state.sources.length) {
-    el.textContent = "No files loaded yet.";
-    return;
-  }
-  el.innerHTML = state.sources.map(s => `<span class="pill">${escapeHtml(s)}</span>`).join(" ");
-  document.getElementById("sSources").textContent = state.sources.length;
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 }
-
-function splitLines(text) {
-  return String(text)
-    .replace(/\r/g, "\n")
-    .split(/\n|•|;/)
-    .map(x => x.trim())
-    .filter(Boolean);
+function nowStamp(){
+  const d = new Date();
+  return d.toISOString().replace(/[:.]/g,'-');
 }
-
-function cleanLine(line) {
-  return String(line)
-    .normalize("NFKC")
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/[—–]/g, "-")
-    .replace(/\s+/g, " ")
+function normalizeText(s){
+  const original = String(s || '');
+  const normalized = typeof original.normalize === 'function' ? original.normalize('NFKC') : original;
+  return normalized
+    .replace(/[“”]/g,'"')
+    .replace(/[‘’]/g,"'")
+    .replace(/[—–]/g,'-')
+    .replace(/[^\S\r\n]+/g,' ')
+    .replace(/\s+([,.!?;:])/g,'$1')
     .trim()
     .toUpperCase();
 }
-
-function isQuestionable(line) {
-  const lettersOnly = line.replace(/[^A-Z]/g, "");
-  const words = line.match(/[A-Z]+(?:'[A-Z]+)?/g) || [];
-  if (!lettersOnly) return "NO_LETTERS";
-  if (words.length < 2) return "LESS_THAN_TWO_WORDS";
-  if (/^\d+$/.test(line.replace(/\s/g, ""))) return "DIGITS_ONLY";
-  if (/[^\w\s'"-]/.test(line) && (line.match(/[^\w\s'"-]/g) || []).length > 3) return "MANY_SYMBOLS";
-  return "";
+function cleanForKey(s){
+  return normalizeText(s).replace(/[^A-Z0-9\s'-]/g,'').replace(/\s+/g,' ').trim();
 }
-
-function firstLetter(line) {
-  const m = line.match(/[A-Z]/);
-  return m ? m[0] : "#";
+function wordsOf(s){
+  return cleanForKey(s).split(/\s+/).filter(Boolean);
 }
-
-function firstWord(line) {
-  const m = line.match(/[A-Z]+/);
-  return m ? m[0] : "";
+function rootOf(line){
+  const words = wordsOf(line).filter(w => /[A-Z]/.test(w));
+  if (!words.length) return 'UNKNOWN';
+  const counts = {};
+  for (const w of words) counts[w] = (counts[w] || 0) + 1;
+  return Object.entries(counts).sort((a,b)=> b[1]-a[1] || b[0].length-a[0].length || a[0].localeCompare(b[0]))[0][0];
 }
-
-function endingWord(line) {
-  const words = line.match(/[A-Z]+/g) || [];
-  return words.length ? words[words.length - 1] : "";
+function firstLetter(line){
+  const m = cleanForKey(line).match(/[A-Z]/);
+  return m ? m[0] : '#';
 }
-
-function simpleRhymeKey(word) {
-  word = (word || "").toUpperCase();
-  const m = word.match(/[AEIOUY][A-Z]*$/);
-  return m ? m[0] : word.slice(-3);
+function endingSound(word){
+  word = (word || '').replace(/[^A-Z]/g,'');
+  if (!word) return '';
+  const suffixes = ['ATION','ITION','OTION','TION','SION','ING','NESS','LESS','MENT','IGHT','OUND','OWER','ANCE','ENCE','ABLE','IBLE'];
+  for (const suf of suffixes) if (word.endsWith(suf)) return suf;
+  return word.slice(-Math.min(4, word.length));
 }
+function rhymeKey(line){
+  const w = wordsOf(line);
+  return w.length ? endingSound(w[w.length-1]) : '';
+}
+function syllablesWord(word){
+  word = (word || '').toLowerCase().replace(/[^a-z]/g,'');
+  if (!word) return 0;
+  const groups = word.match(/[aeiouy]+/g);
+  let n = groups ? groups.length : 1;
+  if (word.endsWith('e') && n > 1) n--;
+  return Math.max(1,n);
+}
+function syllablesLine(line){
+  return wordsOf(line).reduce((a,w)=>a+syllablesWord(w),0);
+}
+function alliterationScore(line){
+  return alliterationInfo(line).score;
+}
+function alliterationInfo(line){
+  const ws = wordsOf(line).filter(w => /^[A-Z]/.test(w));
+  if (ws.length < 2) return {letter:'', count:ws.length, wordCount:ws.length, score:0, accepted:false};
+  const firsts = ws.map(w=>w[0]);
+  const counts = {};
+  for (const f of firsts) counts[f] = (counts[f]||0)+1;
+  const dominant = Object.entries(counts).sort((a,b)=>b[1]-a[1] || a[0].localeCompare(b[0]))[0];
+  const max = dominant[1];
+  return {letter:dominant[0], count:max, wordCount:ws.length, score:+(max / ws.length).toFixed(3), accepted:max >= 2};
+}
+function hashString(str){
+  // cyrb53-ish stable JS hash as hex
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i=0, ch; i<str.length; i++) {
+    ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
+  return ((h2>>>0).toString(16).padStart(8,'0') + (h1>>>0).toString(16).padStart(8,'0')).toUpperCase();
+}
+function csvEscape(v){
+  v = String(v ?? '');
+  if (/[",\n\r]/.test(v)) return '"' + v.replace(/"/g,'""') + '"';
+  return v;
+}
+function makeOutput(name, content, type='text/plain'){
+  return {name, content, type};
+}
+function saveOutput(index){
+  const output = state.outputs[index];
+  if (!output) return;
+  try{
+    const blob = new Blob([output.content], {type:`${output.type};charset=utf-8`});
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = output.name;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); anchor.remove(); }, 30000);
+    setStatus(`Download started: ${output.name}`, 'ok');
+  }catch(err){
+    setStatus(`Download failed: ${err.message || err}`, 'bad');
+  }
+}
+function saveAppCopy(){
+  try{
+    const source = '<!doctype html>\n' + document.documentElement.outerHTML;
+    const blob = new Blob([source], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'AUTO_CHUNK_ENGINE_HP_IPAD_FIXED.html';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); anchor.remove(); }, 30000);
+    setStatus('HP app download started. Open the saved HTML file in Edge or Chrome.', 'ok');
+  }catch(err){
+    setStatus(`HP app download failed: ${err.message || err}`, 'bad');
+  }
+}
+async function processRecords(fileRecords, onProgress=()=>{}){
+  const batch = nowStamp();
+  const records = [];
+  const review = [];
+  const seen = new Map();
+  const rootCounts = new Map();
+  const errors = [];
+  let scanned = 0;
 
-function runEngine() {
-  state.kept = [];
-  state.review = [];
-  state.duplicates = [];
-  state.index = [];
-  letters.forEach(l => state.az[l] = []);
+  const sortedFiles = [...fileRecords].sort((a,b)=>a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}));
+  const totalLines = sortedFiles.reduce((sum,f)=>sum + f.text.split(/\r?\n/).length, 0);
 
-  const seen = new Set();
-  let rawCount = 0;
-
-  for (const item of state.rawItems) {
-    const lines = splitLines(item.text);
-    for (const raw of lines) {
-      rawCount++;
-      const clean = cleanLine(raw);
-      const reason = isQuestionable(clean);
-      if (reason) {
-        state.review.push(`${clean}    [${reason}]    SOURCE=${item.source}`);
+  for (const f of sortedFiles){
+    const lines = f.text.split(/\r?\n/);
+    for (let i=0; i<lines.length; i++){
+      scanned++;
+      const raw = lines[i];
+      const lineNo = i + 1;
+      if (scanned % 2000 === 0){
+        onProgress(scanned, totalLines, records.length, review.length);
+        await new Promise(resolve=>setTimeout(resolve,0));
+      }
+      const clean = normalizeText(raw);
+      if (!clean) continue;
+      const key = cleanForKey(clean);
+      if (!key) {
+        errors.push({file:f.name, line:lineNo, error:'EMPTY_AFTER_NORMALIZE', raw});
         continue;
       }
-      if (seen.has(clean)) {
-        state.duplicates.push(`${clean}    SOURCE=${item.source}`);
+
+      const words = wordsOf(clean);
+      if (words.length < 2){
+        review.push({file:f.name, line:lineNo, reason:'ONE_WORD_OR_LESS', clean_line:clean});
         continue;
       }
-      seen.add(clean);
-      state.kept.push(clean);
 
-      const letter = firstLetter(clean);
-      if (state.az[letter]) state.az[letter].push(clean);
+      const allit = alliterationInfo(clean);
+      if (!allit.accepted){
+        review.push({file:f.name, line:lineNo, reason:'NOT_ALLITERATIVE', clean_line:clean});
+        continue;
+      }
 
-      const fw = firstWord(clean);
-      const ew = endingWord(clean);
-      state.index.push({
-        letter,
-        clean,
-        source: item.source,
-        first_word: fw,
-        ending_word: ew,
-        rhyme_key: simpleRhymeKey(ew),
-        word_count: (clean.match(/[A-Z]+/g) || []).length
-      });
+      const duplicateOf = seen.get(key) || '';
+      const root = rootOf(clean);
+      const rootNumber = (rootCounts.get(root) || 0) + 1;
+      rootCounts.set(root, rootNumber);
+      const idBase = `${allit.letter || firstLetter(clean)}_${String(records.length+1).padStart(7,'0')}`;
+      const rk = rhymeKey(clean);
+      const rec = {
+        id: idBase,
+        raw_line: raw,
+        clean_line: clean,
+        normalized_line: key,
+        root,
+        root_type:'word',
+        chain_id:`${root}_FLOW_${String(rootNumber).padStart(3,'0')}`,
+        first_letter:allit.letter || firstLetter(clean),
+        alliteration_letter:allit.letter,
+        alliteration_count:allit.count,
+        word_count:allit.wordCount,
+        ending_sound:rk,
+        rhyme_key:rk,
+        rhyme_level:rk ? 1 : 0,
+        alliteration_score:allit.score,
+        syllables:syllablesLine(clean),
+        source_file:f.name,
+        source_line:lineNo,
+        checksum:hashString(key),
+        duplicate_of:duplicateOf,
+        validation_status:duplicateOf ? 'DUPLICATE' : 'STABLE_NODE',
+        batch_id:batch
+      };
+      if (!duplicateOf) seen.set(key, rec.id);
+      records.push(rec);
+
     }
   }
 
-  state.kept.sort();
-  letters.forEach(l => state.az[l].sort());
-  state.index.sort((a,b) => a.clean.localeCompare(b.clean));
-
-  document.getElementById("sRaw").textContent = rawCount;
-  document.getElementById("sKept").textContent = state.kept.length;
-  document.getElementById("sReview").textContent = state.review.length;
-  document.getElementById("sDup").textContent = state.duplicates.length;
-  document.getElementById("sAz").textContent = letters.filter(l => state.az[l].length).length;
-  document.getElementById("sSources").textContent = state.sources.length;
-
-  renderLetterPills();
-  renderResults();
-  document.getElementById("preview").textContent = state.kept.slice(0, 300).join("\n") || "NO CLEAN OUTPUT.";
-}
-
-function renderLetterPills() {
-  const html = letters.map(l => `<span class="pill">${l}: ${state.az[l].length}</span>`).join(" ");
-  document.getElementById("letterPills").innerHTML = html;
-}
-
-function renderResults() {
-  const q = document.getElementById("searchBox").value.trim().toUpperCase();
-  const lf = document.getElementById("letterFilter").value;
-  let rows = state.index;
-  if (lf) rows = rows.filter(r => r.letter === lf);
-  if (q) rows = rows.filter(r =>
-    r.clean.includes(q) ||
-    r.source.toUpperCase().includes(q) ||
-    r.first_word.includes(q) ||
-    r.ending_word.includes(q) ||
-    r.rhyme_key.includes(q)
+  const unique = records.filter(r=>!r.duplicate_of);
+  unique.sort((a,b)=>
+    a.first_letter.localeCompare(b.first_letter) ||
+    a.clean_line.localeCompare(b.clean_line) ||
+    a.source_file.localeCompare(b.source_file) ||
+    a.source_line - b.source_line
   );
-
-  const out = rows.slice(0, 500).map(r =>
-    `[${r.letter}] ${r.clean}\n  FIRST=${r.first_word} END=${r.ending_word} RHYME_KEY=${r.rhyme_key} WORDS=${r.word_count} SOURCE=${r.source}`
-  ).join("\n\n");
-
-  document.getElementById("results").textContent = out || "NO RESULTS.";
+  onProgress(totalLines, totalLines, records.length, review.length);
+  return {batch, records, unique, review, errors, files:sortedFiles, scanned};
 }
+function buildOutputs(result){
+  const fields = ['id','clean_line','root','root_type','chain_id','first_letter','alliteration_letter','alliteration_count','word_count','ending_sound','rhyme_key','rhyme_level','alliteration_score','syllables','source_file','source_line','checksum','duplicate_of','validation_status','batch_id'];
+  const csv = [fields.join(',')].concat(result.unique.map(r=>fields.map(f=>csvEscape(r[f])).join(','))).join('\n');
+  const jsonl = result.unique.map(r=>JSON.stringify(r)).join('\n');
 
-function downloadText(filename, text) {
-  const blob = new Blob([text || ""], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+  const merged = result.records.map(r=>r.clean_line).join('\n');
+  const deduped = result.unique.map(r=>r.clean_line).join('\n');
+  const duplicates = result.records.filter(r=>r.duplicate_of).map(r=>`${r.clean_line}\tDUPLICATE_OF=${r.duplicate_of}\t${r.source_file}:${r.source_line}`).join('\n');
+  const review = result.review.map(r=>`${r.clean_line}\tREASON=${r.reason}\t${r.file}:${r.line}`).join('\n');
 
-function downloadAZ() {
-  let out = "";
-  for (const l of letters) {
-    out += `\n===== ${l} =====\n`;
-    out += state.az[l].join("\n") + "\n";
+  const azGroups = {};
+  for (const r of result.unique) (azGroups[r.first_letter] ||= []).push(r.clean_line);
+  let azAll = '';
+  for (const letter of Object.keys(azGroups).sort()){
+    azAll += `\n### ${letter}\n` + azGroups[letter].join('\n') + '\n';
   }
-  downloadText("A_Z_BUCKETS_COMBINED.txt", out.trim());
-}
 
-function downloadIndex() {
-  downloadText("SEARCH_INDEX.json", JSON.stringify(state.index, null, 2));
-}
-
-function downloadReport() {
-  const report = [
-    "RHYMEWEAVER WRITER INDEX PROCESS REPORT",
-    "DATE=" + new Date().toISOString(),
-    "SOURCES=" + state.sources.join(", "),
-    "RAW_LINES=" + document.getElementById("sRaw").textContent,
-    "KEPT_UNIQUE=" + state.kept.length,
-    "REVIEW_NOT_DELETED=" + state.review.length,
-    "DUPLICATES=" + state.duplicates.length,
-    "A_Z_BUCKETS_USED=" + letters.filter(l => state.az[l].length).length,
-    "",
-    "LETTER COUNTS:",
-    ...letters.map(l => `${l}=${state.az[l].length}`)
-  ].join("\n");
-  downloadText("PROCESS_REPORT.txt", report);
-}
-
-async function copyKept() {
-  const text = state.kept.join("\n");
-  try {
-    await navigator.clipboard.writeText(text);
-    alert("KEPT OUTPUT COPIED.");
-  } catch {
-    alert("Copy blocked by browser. Use download instead.");
+  const rhymeGroups = {};
+  for (const r of result.unique) (rhymeGroups[r.rhyme_key || 'NO_RHYME_KEY'] ||= []).push(r.clean_line);
+  let rhymeAll = '';
+  for (const key of Object.keys(rhymeGroups).sort()){
+    rhymeAll += `\n### ${key}\n` + rhymeGroups[key].join('\n') + '\n';
   }
+
+  const manifestRows = [['file_name','line_count','file_hash']];
+  for (const f of result.files){
+    manifestRows.push([f.name, String(f.text.split(/\r?\n/).length), hashString(f.text)]);
+  }
+  const manifest = manifestRows.map(row=>row.map(csvEscape).join(',')).join('\n');
+
+  const log = JSON.stringify({
+    batch_id: result.batch,
+    processed_at: new Date().toISOString(),
+    files: result.files.map(f=>f.name),
+    scanned_lines: result.scanned,
+    accepted_records: result.records.length,
+    unique_records: result.unique.length,
+    duplicates: result.records.length - result.unique.length,
+    review_lines: result.review.length,
+    errors: result.errors
+  }, null, 2);
+
+  const chunkSize = Number(document.getElementById('chunkSize').value) || 10000;
+  const report = `AUTO CHUNK ENGINE RUN REPORT\n\nBatch: ${result.batch}\nFiles: ${result.files.length}\nScanned lines: ${result.scanned}\nAccepted alliterative lines: ${result.records.length}\nUnique lines: ${result.unique.length}\nDuplicates: ${result.records.length-result.unique.length}\nReview lines: ${result.review.length}\nErrors: ${result.errors.length}\nChunk size: ${chunkSize}\n\nOriginal files were not altered.\n`;
+
+  const outputs = [
+    makeOutput('DEDUPED_ALLITERATIONS.txt', deduped),
+    makeOutput('A_Z_INDEX_ALL.txt', azAll),
+    makeOutput('MASTER_INDEX.csv', csv, 'text/csv'),
+    makeOutput('MASTER_INDEX.jsonl', jsonl, 'application/x-ndjson'),
+    makeOutput('ACCEPTED_WITH_DUPLICATES.txt', merged),
+    makeOutput('DUPLICATES_NOT_DELETED.txt', duplicates),
+    makeOutput('REVIEW_NOT_DELETED.txt', review),
+    makeOutput('RHYME_INDEX_ALL.txt', rhymeAll),
+    makeOutput('CHECKSUM_MANIFEST.csv', manifest, 'text/csv'),
+    makeOutput('RUN_LOG.json', log, 'application/json'),
+    makeOutput('RUN_REPORT.txt', report)
+  ];
+  for (let start=0, part=1; start<result.unique.length; start+=chunkSize, part++){
+    const chunk = result.unique.slice(start,start+chunkSize).map(r=>r.clean_line).join('\n');
+    outputs.push(makeOutput(`CHUNK_${String(part).padStart(3,'0')}.txt`, chunk));
+  }
+  return outputs;
+}
+function showResult(result, downloads){
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><span>Scanned Lines</span><strong>${result.scanned}</strong></div>
+    <div class="stat"><span>Unique Lines</span><strong>${result.unique.length}</strong></div>
+    <div class="stat"><span>Duplicates</span><strong>${result.records.length-result.unique.length}</strong></div>
+    <div class="stat"><span>Review Lines</span><strong>${result.review.length}</strong></div>
+  `;
+  state.outputs = downloads;
+  const dl = document.getElementById('downloads');
+  dl.innerHTML = downloads.map((d,i)=>`<button type="button" data-download="${i}">${escapeHtml(d.name)}</button>`).join('');
+  const previewRows = result.unique.slice(0,25).map(r=>`<tr><td>${escapeHtml(r.id)}</td><td>${escapeHtml(r.first_letter)}</td><td>${escapeHtml(r.root)}</td><td>${escapeHtml(r.rhyme_key)}</td><td>${r.alliteration_score}</td><td>${escapeHtml(r.clean_line)}</td></tr>`).join('');
+  document.getElementById('preview').innerHTML = `
+    <p><span class="ok">Built successfully.</span> ${result.unique.length} unique alliterations are ready. Download one output at a time.</p>
+    <table><thead><tr><th>ID</th><th>Letter</th><th>Root</th><th>Rhyme</th><th>Allit.</th><th>Line</th></tr></thead><tbody>${previewRows}</tbody></table>
+  `;
+  setStatus(`Finished: ${result.scanned} scanned · ${result.unique.length} unique · ${result.review.length} sent to review.`, 'ok');
+}
+async function readFiles(files){
+  const arr = Array.from(files || []);
+  const allowed = arr.filter(f => /\.(txt|md|csv)$/i.test(f.name) || /^text\//.test(f.type));
+  if (!allowed.length) throw new Error('No readable .txt, .md, or .csv files selected.');
+  const out = [];
+  for (const f of allowed){
+    const text = typeof f.text === 'function' ? await f.text() : await readFileFallback(f);
+    out.push({name:f.webkitRelativePath || f.name, text});
+  }
+  return out;
+}
+function readFileFallback(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>resolve(String(reader.result || ''));
+    reader.onerror = ()=>reject(reader.error || new Error(`Could not read ${file.name}`));
+    reader.readAsText(file);
+  });
 }
 
-function clearAll() {
-  state.sources = [];
-  state.rawItems = [];
-  state.kept = [];
-  state.review = [];
-  state.duplicates = [];
-  state.index = [];
-  letters.forEach(l => state.az[l] = []);
-  document.getElementById("fileInput").value = "";
-  document.getElementById("pasteBox").value = "";
-  document.getElementById("writerPad").value = "";
-  updateFileList();
-  ["sRaw","sKept","sReview","sDup","sAz","sSources"].forEach(id => document.getElementById(id).textContent = "0");
-  document.getElementById("results").textContent = "NO INDEX YET.";
-  document.getElementById("preview").textContent = "NO CLEAN OUTPUT YET.";
-  document.getElementById("letterPills").innerHTML = "";
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+document.getElementById('files').addEventListener('change', e=>{
+  state.files = Array.from(e.target.files || []);
+  document.getElementById('fileStatus').textContent = `${state.files.length} file(s) selected.`;
+  setStatus(state.files.length ? 'Files selected. Tap Build Index.' : 'No files selected.', state.files.length ? 'ok' : 'warn');
+});
+document.getElementById('build').addEventListener('click', async ()=>{
+  if (state.running) return;
+  try{
+    setRunning(true);
+    setStatus('Reading selected files…', 'warn');
+    const files = await readFiles(state.files);
+    const result = await processRecords(files, (done,total,accepted,review)=>{
+      setStatus(`Processing ${done.toLocaleString()} of ${total.toLocaleString()} lines · accepted ${accepted.toLocaleString()} · review ${review.toLocaleString()}`, 'warn');
+    });
+    const downloads = buildOutputs(result);
+    showResult(result, downloads);
+  }catch(err){
+    const message = String(err.message || err);
+    document.getElementById('preview').innerHTML = `<span class="bad">Error:</span> ${escapeHtml(message)}`;
+    setStatus(`Error: ${message}`, 'bad');
+  }finally{
+    setRunning(false);
+  }
+});
+document.getElementById('buildPaste').addEventListener('click', async ()=>{
+  if (state.running) return;
+  try{
+    const pasted = document.getElementById('paste').value || '';
+    if (!pasted.trim()) throw new Error('Paste at least one line first.');
+    setRunning(true);
+    setStatus('Processing pasted text…', 'warn');
+    const result = await processRecords([{name:'PASTED_INPUT.txt', text:pasted}], (done,total)=>setStatus(`Processing ${done.toLocaleString()} of ${total.toLocaleString()} pasted lines…`, 'warn'));
+    showResult(result, buildOutputs(result));
+  }catch(err){
+    const message = String(err.message || err);
+    document.getElementById('preview').innerHTML = `<span class="bad">Error:</span> ${escapeHtml(message)}`;
+    setStatus(`Error: ${message}`, 'bad');
+  }finally{
+    setRunning(false);
+  }
+});
+document.getElementById('test').addEventListener('click', async ()=>{
+  if (state.running) return;
+  const sample = [
+    'BRIGHT BRAINS BUILD BRIDGES',
+    'MIGHTY MACHINES MAKE MIRACLES',
+    'SILENT SIRENS SIGNAL SIRIUS',
+    'BRIGHT BRAINS BUILD BRIDGES',
+    'THIS LINE IS NOT ALLITERATIVE'
+  ].join('\n');
+  document.getElementById('paste').value = sample;
+  setRunning(true);
+  setStatus('Running the built-in test…', 'warn');
+  try{
+    const result = await processRecords([{name:'BUILT_IN_TEST.txt', text:sample}]);
+    showResult(result, buildOutputs(result));
+    if (result.unique.length === 3 && result.records.length-result.unique.length === 1 && result.review.length === 1){
+      setStatus('SELF-TEST PASSED: processing, deduplication, review, preview, and download creation are working.', 'ok');
+    }else{
+      setStatus('SELF-TEST NEEDS REVIEW: unexpected counts were returned.', 'bad');
+    }
+  }catch(err){
+    setStatus(`SELF-TEST FAILED: ${err.message || err}`, 'bad');
+  }finally{
+    setRunning(false);
+  }
+});
+document.getElementById('downloads').addEventListener('click', e=>{
+  const button = e.target.closest('button[data-download]');
+  if (button) saveOutput(Number(button.dataset.download));
+});
+document.getElementById('downloadApp').addEventListener('click', saveAppCopy);
+document.getElementById('clear').addEventListener('click', ()=>{
+  state.files = [];
+  state.outputs = [];
+  document.getElementById('files').value = '';
+  document.getElementById('paste').value = '';
+  document.getElementById('downloads').innerHTML = '';
+  document.getElementById('preview').textContent = 'Nothing processed yet.';
+  document.getElementById('fileStatus').textContent = 'No files selected yet.';
+  document.getElementById('stats').innerHTML = '<div class="stat"><span>Scanned Lines</span><strong>0</strong></div><div class="stat"><span>Unique Lines</span><strong>0</strong></div><div class="stat"><span>Duplicates</span><strong>0</strong></div><div class="stat"><span>Review Lines</span><strong>0</strong></div>';
+  setStatus('Cleared. Ready for the next run.');
+});
 </script>
 </body>
 </html>
