@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Alliteration Sidebar App V1 — Hermetic Seal</title>
+<style>
+  :root{
+    --bg:#0b1020;--panel:#121a2b;--panel2:#0e1524;--ink:#e8edf7;--muted:#8b98b5;--line:#2a3550;
+    --accent:#7dd3fc;--gold:#f5c542;--blue:#60a5fa;--green:#34d399;--red:#f87171;--gray:#64748b;
+    --good:#86efac;--warn:#fde68a;--bad:#fca5a5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#1a2744 0%,#0b1020 55%);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.45}
+  header{padding:18px 20px;border-bottom:1px solid var(--line);background:rgba(14,21,36,.9);position:sticky;top:0;z-index:5;backdrop-filter:blur(8px)}
+  h1{margin:0;font-size:clamp(1.2rem,2.4vw,1.9rem);letter-spacing:.02em}
+  .tag{color:var(--accent);font-weight:800}
+  .sub{color:var(--muted);margin:.35rem 0 0;max-width:980px;font-size:.92rem}
+  main{display:grid;grid-template-columns:1fr 380px;gap:0;min-height:calc(100vh - 78px)}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  .editor-wrap{padding:18px;border-right:1px solid var(--line);background:rgba(10,15,28,.55)}
+  .editor-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .editor-head button{appearance:none;border:1px solid #3b4a6b;background:#16203a;color:var(--ink);border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}
+  .editor-head button:hover{border-color:#7dd3fc}
+  .editor-head button.primary{background:#1e3a5f;border-color:#60a5fa}
+  .editor-head .hint{color:var(--muted);font-size:.82rem}
+  #editor{width:100%;min-height:62vh;background:#070b16;color:#dbe4f5;border:1px solid #2a3550;border-radius:14px;padding:16px;font-family:Georgia,'Times New Roman',serif;font-size:1.12rem;line-height:1.7;resize:vertical;white-space:pre-wrap;word-break:break-word}
+  #editor:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.18)}
+  .word{cursor:pointer;border-radius:5px;padding:0 2px;transition:background .12s}
+  .word:hover{background:rgba(125,211,252,.16)}
+  .word.active{background:rgba(245,197,66,.28);box-shadow:0 0 0 1px rgba(245,197,66,.5)}
+  .word.seal{background:rgba(52,211,153,.22);box-shadow:0 0 0 1px rgba(52,211,153,.45)}
+  .sidebar{padding:18px;overflow:auto;background:rgba(14,21,36,.7)}
+  .sidebar h2{margin:0 0 8px;font-size:1.05rem}
+  .empty{color:var(--muted);font-size:.9rem;padding:20px 4px}
+  .chip{display:inline-block;border:1px solid #3b4a6b;border-radius:999px;padding:3px 9px;margin:3px 4px 3px 0;font-size:.84rem;background:#0c1322;color:#cfe0ff}
+  .chip.gold{border-color:#f5c542;color:#ffe9a8;background:rgba(245,197,66,.12)}
+  .chip.blue{border-color:#60a5fa;color:#bfe0ff;background:rgba(96,165,250,.12)}
+  .chip.green{border-color:#34d399;color:#bdf5e0;background:rgba(52,211,153,.12)}
+  .chip.red{border-color:#f87171;color:#ffc9c9;background:rgba(248,113,113,.1)}
+  .chip.gray{border-color:#475569;color:#9fb0c8;background:rgba(71,85,105,.12)}
+  .section{margin:16px 0 6px}
+  .section-title{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+  .score-box{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(7,11,22,.7)}
+  .grade{font-size:1.4rem;font-weight:900;letter-spacing:.04em}
+  .grade.OPEN{color:var(--gray)}
+  .grade.THREAD{color:var(--blue)}
+  .grade.SEAL{color:var(--green)}
+  .grade.HERMETIC{color:var(--gold)}
+  .meter{height:8px;border-radius:999px;background:#1a2236;overflow:hidden;margin-top:8px}
+  .meter > i{display:block;height:100%;width:0;border-radius:999px;transition:width .25s}
+  .kv{display:flex;justify-content:space-between;font-size:.84rem;color:var(--muted);margin-top:6px}
+  .kv b{color:var(--ink);font-weight:700}
+  .small{font-size:.82rem;color:var(--muted)}
+  .footer{color:var(--muted);font-size:.78rem;margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#16203a;border:1px solid #60a5fa;color:#dbe4f5;padding:10px 16px;border-radius:10px;font-size:.85rem;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>Alliteration Sidebar <span class="tag">V1</span> — Hermetic Seal</h1>
+  <p class="sub">Click any word in the editor. The sidebar shows same-sound family matches, phrase clusters, suggested next words, and a color-coded hermetic-seal grade for the line. Matching is phonetic (knight = night), not just spelling.</p>
+</header>
+<main>
+  <section class="editor-wrap">
+    <div class="editor-head">
+      <button class="primary" id="demoBtn">Load Demo Line</button>
+      <button id="clearBtn">Clear</button>
+      <button id="scoreBtn">Score Whole Text</button>
+      <span class="hint">Tip: click a word to set the query. Gold = sacred/high-value, blue = strong alliteration, green = usable, red/gray = weak.</span>
+    </div>
+    <div id="editor" contenteditable="true" spellcheck="false">Love is the law, logos lights the lotus.</div>
+  </section>
+  <aside class="sidebar" id="sidebar">
+    <div class="empty" id="emptyState">Click a word in the editor to open the alliteration sidebar.</div>
+    <div id="sidebarBody" style="display:none"></div>
+  </aside>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+'use strict';
+
+/* ---------- Phonetic engine (ported from Alliteration Machine V3) ---------- */
+const STOPWORDS = new Set('A AN AND ARE AS AT BE BUT BY FOR FROM HAS HAVE HE HER HIS I IN IS IT ITS ME MY OF ON OR OUR SHE THE THEIR THEY THIS TO WAS WE WERE WITH YOU YOUR'.split(' '));
+const VOWELS = new Set(['A','E','I','O','U']);
+const CH_SH = new Set('CHEF CHIFFON CHAGRIN CHAMPAGNE CHARLATAN CHAUFFEUR CHIC CHICANERY CHIVALRY MACHINE MUSTACHE PARACHUTE'.split(' '));
+const CH_K = new Set('CHAOS CHARACTER CHARISMA CHEMICAL CHEMIST CHEMISTRY CHIRO CHIROPRACTOR CHLORINE CHOIR CHOLERA CHORD CHOREOGRAPH CHORUS CHRIST CHRISTIAN CHRONIC CHRONICLE CHROME CHRYSALIS ECHO EPOCH ORCHID PSYCHE SCHOOL SCHOLAR SCHISM'.split(' '));
+const HARD_G = new Set('GELDING GET GIFT GIG GILD GILL GILT GIRL GIVE GEAR GEESE GEEK GEEZER GEYSER'.split(' '));
+const SOFT_G = new Set('GIANT GIRAFFE GINGER GYM GYPSY GERM GESTURE GEL GEM GENIE GENTLE GEOLOGY'.split(' '));
+const OVERRIDES = new Map(Object.entries({
+  'KNIGHT':'N','KNIGHTS':'N','KNEE':'N','KNEES':'N','KNEW':'N','KNIFE':'N','KNIVES':'N','KNOW':'N','KNOWN':'N','KNOWLEDGE':'N',
+  'NIGHT':'N','NIGHTS':'N','PNEUMATIC':'N','PNEUMONIA':'N','PNEUMA':'N','GNOME':'N','GNOSTIC':'N','GNARLY':'N','GNASH':'N',
+  'PSALM':'S','PSALMS':'S','PSYCHE':'S','PSYCHIC':'S','PSYCHOLOGY':'S','PSEUDO':'S',
+  'WRAP':'R','WRAPS':'R','WRATH':'R','WRITE':'R','WRITES':'R','WROTE':'R','WRITTEN':'R','WRONG':'R','WREN':'R','WRESTLE':'R',
+  'PHONE':'F','PHONES':'F','PHONETIC':'F','PHANTOM':'F','PHRASE':'F','PHRASES':'F','PHARAOH':'F',
+  'CHEF':'SH','CHEFS':'SH','CHAIR':'CH','CHAIRS':'CH','CHIEF':'CH','CHILD':'CH','CHURN':'CH','CHURCH':'CH','CHOSEN':'CH',
+  'CYCLONE':'S','CYCLE':'S','CYBER':'S','CELL':'S','CENTER':'S','CENTRE':'S','CERTAIN':'S','CITY':'S','CIVIL':'S',
+  'COLD':'K','COSMIC':'K','CHRIST':'K','CHRISTOS':'K','CHAOS':'K','CHEMICAL':'K','CHORUS':'K','CHOIR':'K',
+  'ONE':'W','ONCE':'W','UNIT':'Y','UNION':'Y','UNIQUE':'Y','UNIVERSE':'Y','UNIVERSAL':'Y','EUROPE':'Y','EULOGY':'Y','EUPHORIA':'Y','USE':'Y','USER':'Y',
+  'HONEST':'VOWEL','HONOR':'VOWEL','HONOUR':'VOWEL','HOUR':'VOWEL','HEIR':'VOWEL','HERB':'VOWEL'
+}));
+
+function stripDiacritics(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function cleanWord(raw){
+  let s = stripDiacritics(String(raw || ''));
+  s = s.replace(/[’‘`]/g,"'").replace(/[“”]/g,'"');
+  s = s.replace(/[^A-Za-z']/g,' ');
+  s = s.replace(/[\-']/g,' ');
+  s = s.replace(/\s+/g,' ').trim().toUpperCase();
+  return s.split(/\s+/)[0] || '';
+}
+function graphicInitial(word){ return (word && /^[A-Z]/.test(word)) ? word[0] : ''; }
+function isVowelKey(k){ return k === 'VOWEL' || VOWELS.has(k); }
+function getPhoneticInitial(rawWord){
+  let word = cleanWord(rawWord);
+  if (!word) return '';
+  if (OVERRIDES.has(word)) return OVERRIDES.get(word);
+  if (/^(KN|GN|PN)/.test(word)) return 'N';
+  if (/^WR/.test(word)) return 'R';
+  if (/^RH/.test(word)) return 'R';
+  if (/^PS/.test(word)) return 'S';
+  if (/^WH/.test(word)) return 'W';
+  if (/^PH/.test(word)) return 'F';
+  if (/^TH/.test(word)) return 'TH';
+  if (/^SH/.test(word)) return 'SH';
+  if (/^QU/.test(word)) return 'KW';
+  if (/^X/.test(word)) return 'Z';
+  if (/^CH/.test(word)) {
+    if (CH_SH.has(word)) return 'SH';
+    if (CH_K.has(word) || /^CHR/.test(word) || /^CHL/.test(word) || /^CHEM/.test(word) || /^CHOR/.test(word)) return 'K';
+    return 'CH';
+  }
+  if (/^SCH/.test(word)) {
+    if (/^SCH(O|A|U|R|L)/.test(word)) return 'SK';
+    return 'SH';
+  }
+  if (/^C/.test(word)) {
+    if (/^C[EIY]/.test(word)) return 'S';
+    return 'K';
+  }
+  if (/^G/.test(word)) {
+    if (SOFT_G.has(word)) return 'J';
+    if (HARD_G.has(word)) return 'G';
+    if (/^G[EIY]/.test(word)) return 'J';
+    return 'G';
+  }
+  if (/^J/.test(word)) return 'J';
+  if (/^[AEIOU]/.test(word)) return 'VOWEL';
+  return word[0];
+}
+
+/* ---------- Curated A-Z alliteration dictionary (seed) ---------- */
+// Columns: word, category, strength(1-5), sacred, rhymeEnding, color, notes
+const DICT = [
+  // L
+  ['LOTUS','sacred-symbol',5,true,'us','gold','the seal image'],
+  ['LOVE','core',5,true,'ove','gold','opens the family'],
+  ['LAW','core',5,true,'aw','gold','the law'],
+  ['LOGOS','sacred-symbol',5,true,'os','gold','word/reason'],
+  ['LIGHT','core',4,false,'ight','blue','illumination'],
+  ['LANGUAGE','usable',3,false,'age','green','speech'],
+  ['LUMINOUS','sacred-symbol',4,true,'ous','gold','radiant'],
+  ['LIVING','usable',3,false,'ing','green','alive'],
+  ['LIFETIMES','usable',3,false,'es','green',''],
+  ['LINKS','usable',2,false,'inks','green',''],
+  ['LEVITATION','sacred-symbol',4,true,'ation','gold','ascent'],
+  ['LIBERATION','sacred-symbol',4,true,'ation','gold','freedom'],
+  ['LIMITLESSNESS','sacred-symbol',4,true,'ess','gold','boundless'],
+  ['LION','core',3,false,'ion','blue',''],
+  ['LADDER','usable',2,false,'adder','green',''],
+  ['LANTERN','usable',3,false,'ern','green',''],
+  ['LAUGHTER','usable',2,false,'ter','green',''],
+  ['LEGEND','usable',2,false,'end','green',''],
+  ['LIBERTY','core',3,false,'ty','blue',''],
+  ['LIGHTNING','usable',3,false,'ing','green',''],
+  // K
+  ['KNIGHT','core',4,false,'ight','blue','silent K'],
+  ['KNOWLEDGE','sacred-symbol',4,true,'edge','gold',''],
+  ['KING','core',3,false,'ing','blue',''],
+  ['KEY','core',3,false,'ey','blue',''],
+  ['KINGDOM','usable',3,false,'om','green',''],
+  ['KNIFE','usable',2,false,'ife','green',''],
+  ['KISS','usable',2,false,'iss','green',''],
+  ['KIND','usable',2,false,'ind','green',''],
+  ['KEEP','usable',2,false,'eep','green',''],
+  ['KERNEL','usable',2,false,'el','green',''],
+  // N
+  ['NIGHT','core',4,false,'ight','blue','silent K twin'],
+  ['NIGHTS','usable',2,false,'ights','green',''],
+  ['NEVER','usable',2,false,'ever','green',''],
+  ['NOW','usable',2,false,'ow','green',''],
+  ['NORTH','usable',2,false,'orth','green',''],
+  ['NOISE','usable',2,false,'oise','green',''],
+  ['NEST','usable',2,false,'est','green',''],
+  ['NEEDLE','usable',2,false,'le','green',''],
+  // F
+  ['PHONE','core',3,false,'one','blue','PH->F'],
+  ['PHANTOM','sacred-symbol',4,true,'om','gold',''],
+  ['PHRASE','usable',3,false,'ase','green',''],
+  ['FLOW','core',3,false,'ow','blue',''],
+  ['FIRE','core',3,false,'ire','blue',''],
+  ['FLAME','usable',3,false,'ame','green',''],
+  ['FREEDOM','sacred-symbol',4,true,'om','gold',''],
+  ['FATE','core',3,false,'ate','blue',''],
+  ['FAITH','sacred-symbol',4,true,'aith','gold',''],
+  ['FORTUNE','usable',3,false,'une','green',''],
+  // R
+  ['WRATH','core',4,false,'ath','blue','silent W'],
+  ['WRITE','usable',3,false,'ite','green',''],
+  ['RIGHTEOUS','sacred-symbol',4,true,'ous','gold',''],
+  ['RHYMES','usable',3,false,'ymes','green',''],
+  ['ROSE','core',3,false,'ose','blue',''],
+  ['RIVER','usable',3,false,'iver','green',''],
+  ['RADIANCE','sacred-symbol',4,true,'ance','gold',''],
+  ['RESONANCE','sacred-symbol',4,true,'ance','gold',''],
+  ['REVELATION','sacred-symbol',4,true,'ation','gold',''],
+  // S
+  ['CYCLONE','core',3,false,'one','blue','soft C'],
+  ['CYCLE','usable',2,false,'ycle','green',''],
+  ['SILENCE','sacred-symbol',4,true,'ence','gold',''],
+  ['SOUND','core',3,false,'ound','blue',''],
+  ['STAR','core',3,false,'ar','blue',''],
+  ['SACRED','sacred-symbol',4,true,'ed','gold',''],
+  ['SEAL','core',4,false,'eal','blue','the sink concept'],
+  ['SERENE','usable',3,false,'ene','green',''],
+  ['SPIRIT','sacred-symbol',4,true,'it','gold',''],
+  ['SUN','core',3,false,'un','blue',''],
+  // SH
+  ['CHEF','core',3,false,'ef','blue','CH->SH'],
+  ['SHADOW','usable',3,false,'adow','green',''],
+  ['SHINE','usable',3,false,'ine','green',''],
+  ['SHIELD','usable',3,false,'ield','green',''],
+  ['SHIMMER','usable',3,false,'er','green',''],
+  // CH
+  ['CHAIR','core',3,false,'air','blue','CH sound'],
+  ['CHILD','usable',3,false,'ild','green',''],
+  ['CHURCH','usable',3,false,'urch','green',''],
+  ['CHOICE','usable',3,false,'oice','green',''],
+  ['CHARM','usable',3,false,'arm','green',''],
+  // K hard
+  ['COLD','core',3,false,'old','blue','hard C'],
+  ['COSMIC','sacred-symbol',4,true,'ic','gold',''],
+  ['CHRIST','sacred-symbol',5,true,'ist','gold',''],
+  ['KING','core',3,false,'ing','blue',''],
+  ['CROWN','usable',3,false,'own','green',''],
+  ['CRYSTAL','sacred-symbol',4,true,'al','gold',''],
+  ['KEYSTONE','usable',3,false,'one','green',''],
+  // TH
+  ['THOUGHT','core',3,false,'ought','blue',''],
+  ['THRONE','sacred-symbol',4,true,'one','gold',''],
+  ['THUNDER','usable',3,false,'under','green',''],
+  ['THIRST','usable',2,false,'irst','green',''],
+  // W
+  ['WHISPER','usable',3,false,'isper','green',''],
+  ['WIND','core',3,false,'ind','blue',''],
+  ['WAVE','usable',3,false,'ave','green',''],
+  ['WISDOM','sacred-symbol',4,true,'om','gold',''],
+  ['WONDER','usable',3,false,'onder','green',''],
+  // Y
+  ['UNION','core',3,false,'ion','blue','Y sound'],
+  ['UNIQUE','usable',3,false,'ique','green',''],
+  ['UNIVERSE','sacred-symbol',4,true,'erse','gold',''],
+  ['YEAR','usable',2,false,'ear','green',''],
+  ['YELLOW','usable',2,false,'ellow','green',''],
+  // Z
+  ['ZEAL','core',3,false,'eal','blue',''],
+  ['ZENITH','sacred-symbol',4,true,'ith','gold',''],
+  ['ZONE','usable',2,false,'one','green',''],
+  ['ZEPHYR','sacred-symbol',4,true,'yr','gold',''],
+  // J
+  ['GIANT','core',3,false,'iant','blue','soft G'],
+  ['JOY','core',3,false,'oy','blue',''],
+  ['JEWEL','sacred-symbol',4,true,'el','gold',''],
+  ['JOURNEY','usable',3,false,'ourney','green',''],
+  ['JUSTICE','sacred-symbol',4,true,'ice','gold',''],
+  // vowel
+  ['ECHO','usable',3,false,'cho','green',''],
+  ['OCEAN','usable',3,false,'cean','green',''],
+  ['AURA','sacred-symbol',4,true,'ura','gold',''],
+  ['EAGLE','usable',3,false,'agle','green',''],
+  ['ISLE','usable',2,false,'isle','green',''],
+  ['OWL','usable',2,false,'owl','green',''],
+  ['UNITY','usable',3,false,'ity','green',''],
+  // extra sacred sinks
+  ['LIBERATION','sacred-symbol',4,true,'ation','gold',''],
+  ['LEVITATION','sacred-symbol',4,true,'ation','gold',''],
+  ['LIMITLESSNESS','sacred-symbol',4,true,'ess','gold',''],
+  ['LUMINOUS','sacred-symbol',4,true,'ous','gold',''],
+  ['LOGOS','sacred-symbol',5,true,'os','gold',''],
+  ['LOTUS','sacred-symbol',5,true,'us','gold',''],
+  ['LOVE','core',5,true,'ove','gold',''],
+  ['LAW','core',5,true,'aw','gold',''],
+];
+
+// Build indexes
+const BY_WORD = new Map();
+const BY_SOUND = new Map();
+const BY_GRAPHIC = new Map();
+for (const row of DICT){
+  const [word,category,strength,sacred,rhyme,color,notes] = row;
+  const w = word.toUpperCase();
+  const sound = getPhoneticInitial(w);
+  const graphic = graphicInitial(w);
+  const entry = {word:w,category,strength,sacred,rhyme,color,notes,sound,graphic};
+  BY_WORD.set(w, entry);
+  if (!BY_SOUND.has(sound)) BY_SOUND.set(sound, []);
+  BY_SOUND.get(sound).push(entry);
+  if (!BY_GRAPHIC.has(graphic)) BY_GRAPHIC.set(graphic, []);
+  BY_GRAPHIC.get(graphic).push(entry);
+}
+for (const [k,arr] of BY_SOUND) arr.sort((a,b)=> (b.strength-a.strength) || a.word.localeCompare(b.word));
+for (const [k,arr] of BY_GRAPHIC) arr.sort((a,b)=> (b.strength-a.strength) || a.word.localeCompare(b.word));
+
+const SACRED_WORDS = new Set(DICT.filter(r=>r[3]).map(r=>r[0].toUpperCase()));
+const STRONG_SINKS = DICT.filter(r=>r[2]>=4).map(r=>r[0].toUpperCase());
+
+/* ---------- Editor word rendering ---------- */
+const editor = document.getElementById('editor');
+let activeWord = null;
+
+function tokenizeEditor(){
+  // Wrap each word in a span.word for click targeting
+  const text = editor.innerText;
+  const parts = text.split(/(\s+)/);
+  let html = '';
+  for (const p of parts){
+    if (/^\s+$/.test(p)) { html += p; continue; }
+    const clean = p.replace(/[^A-Za-z']/g,'');
+    if (!clean) { html += esc(p); continue; }
+    html += `<span class="word" data-word="${clean.toUpperCase()}">${esc(p)}</span>`;
+  }
+  editor.innerHTML = html;
+  bindWords();
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function bindWords(){
+  editor.querySelectorAll('.word').forEach(span => {
+    span.addEventListener('click', () => {
+      const w = span.dataset.word;
+      setActive(w, span);
+    });
+  });
+}
+function setActive(word, span){
+  editor.querySelectorAll('.word.active').forEach(s=>s.classList.remove('active'));
+  if (span) span.classList.add('active');
+  activeWord = word;
+  renderSidebar(word);
+}
+
+/* ---------- Scoring ---------- */
+function wordsOfText(text){
+  return (text.toUpperCase().match(/[A-Z]+/g) || []).filter(w => !STOPWORDS.has(w) && w.length>1);
+}
+function lineScore(lineText){
+  const words = wordsOfText(lineText);
+  if (words.length < 2) return {grade:'OPEN',score:0,density:0,repeats:0,distance:0,sinkStrength:0,semantic:0,family:'',sink:''};
+  const sounds = words.map(getPhoneticInitial).filter(k=>k && !isVowelKey(k));
+  const counts = {};
+  for (const s of sounds) counts[s] = (counts[s]||0)+1;
+  let family='', max=0;
+  for (const [k,c] of Object.entries(counts)){ if (c>max){max=c;family=k;} }
+  const density = sounds.length ? max/sounds.length : 0;
+  const repeats = Math.max(0, max-1);
+  const famWords = words.filter(w=>getPhoneticInitial(w)===family);
+  const firstIdx = words.findIndex(w=>getPhoneticInitial(w)===family);
+  const lastIdx = words.length-1;
+  const distance = lastIdx - firstIdx; // words between first sound and end
+  const sinkWord = words[lastIdx] || '';
+  const sinkEntry = BY_WORD.get(sinkWord) || BY_SOUND.get(family)?.find(e=>e.word===sinkWord);
+  const sinkStrength = sinkEntry ? sinkEntry.strength : (getPhoneticInitial(sinkWord)===family ? 2 : 0);
+  const semantic = sinkEntry ? (sinkEntry.sacred?1:0.5) : 0;
+  // grade
+  let grade='OPEN', score=0;
+  if (max>=2){
+    grade='THREAD'; score = 30 + density*30;
+    if (getPhoneticInitial(sinkWord)===family){
+      grade='SEAL'; score = 60 + density*20 + Math.min(distance,6)*2;
+      if (sinkStrength>=3){ grade='HERMETIC'; score = 80 + density*15 + sinkStrength*4 + semantic*6; }
+    }
+  }
+  score = Math.round(Math.min(100, score));
+  return {grade,score,density:Math.round(density*100),repeats,distance,sinkStrength,semantic:Math.round(semantic*100),family,sink:sinkWord,famWords};
+}
+
+/* ---------- Sidebar render ---------- */
+const sidebarBody = document.getElementById('sidebarBody');
+const emptyState = document.getElementById('emptyState');
+
+function renderSidebar(word){
+  emptyState.style.display='none';
+  sidebarBody.style.display='block';
+  const sound = getPhoneticInitial(word);
+  const graphic = graphicInitial(word);
+  const dictEntry = BY_WORD.get(word);
+  const soundMatches = BY_SOUND.get(sound) || [];
+  const graphicMatches = BY_GRAPHIC.get(graphic) || [];
+  // phrase clusters: pick 2-4 word combos from sound family
+  const clusterPool = soundMatches.map(e=>e.word);
+  const clusters = [];
+  if (clusterPool.length>=2){
+    clusters.push(clusterPool.slice(0,4).join(' '));
+    if (clusterPool.length>=4) clusters.push([clusterPool[0],clusterPool[2],clusterPool[1],clusterPool[3]].join(' '));
+    if (clusterPool.length>=3) clusters.push(clusterPool.slice(0,3).join(' '));
+  }
+  // suggested next words: strong sinks in same family, excluding the query
+  const suggestions = soundMatches.filter(e=>e.word!==word && e.strength>=3).slice(0,8).map(e=>e.word);
+  // sink candidates
+  const sinks = STRONG_SINKS.filter(s=>getPhoneticInitial(s)===sound && s!==word).slice(0,8);
+  // near-rhyme (secondary): same rhyme ending
+  const rhymeKey = dictEntry ? dictEntry.rhyme : '';
+  const nearRhymes = rhymeKey ? DICT.filter(r=>r[4]===rhymeKey && r[0]!==word).slice(0,6).map(r=>r[0]) : [];
+  // color for the query word
+  const qColor = dictEntry ? dictEntry.color : 'gray';
+  const qStrength = dictEntry ? dictEntry.strength : 1;
+
+  sidebarBody.innerHTML = `
+    <div class="section">
+      <div class="section-title">Query</div>
+      <span class="chip ${qColor}">${word}</span>
+      <span class="small">graphic ${graphic} · sound ${sound}${dictEntry?(' · '+dictEntry.category):''}${dictEntry&&dictEntry.sacred?' · sacred':''}</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Same-sound family (${sound})</div>
+      ${soundMatches.map(e=>`<span class="chip ${e.color}">${e.word}</span>`).join('') || '<span class="small">no curated matches yet</span>'}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Phrase clusters</div>
+      ${clusters.length? clusters.map(c=>`<div class="chip blue">${c}</div>`).join('') : '<span class="small">need 2+ family words</span>'}
+    </div>
+
+    <div class="section">
+      <div class="section-title">A–Z master matches (graphic ${graphic})</div>
+      ${graphicMatches.slice(0,10).map(e=>`<span class="chip ${e.color}">${e.word}</span>`).join('') || '<span class="small">none</span>'}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Suggested next words</div>
+      ${suggestions.length? suggestions.map(s=>`<span class="chip green">${s}</span>`).join('') : '<span class="small">add more to the dictionary</span>'}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Strong sink-ending candidates</div>
+      ${sinks.length? sinks.map(s=>`<span class="chip gold">${s}</span>`).join('') : '<span class="small">none in this family</span>'}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Near-rhyme (secondary)</div>
+      ${nearRhymes.length? nearRhymes.map(s=>`<span class="chip gray">${s}</span>`).join('') : '<span class="small">no rhyme key for this word</span>'}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Hermetic seal score</div>
+      ${renderScore(lineScore(editor.innerText))}
+    </div>
+
+    <div class="footer">Seed dictionary: ${DICT.length} entries across ${BY_SOUND.size} sound families. Swap in Supabase entries or a curated ALLITERATION_DICTIONARY sheet to scale. Phonetic engine matches knight/night, chef/chair, phone/phantom.</div>
+  `;
+}
+
+function renderScore(s){
+  const pct = s.score;
+  const color = s.grade==='HERMETIC'?'#f5c542':s.grade==='SEAL'?'#34d399':s.grade==='THREAD'?'#60a5fa':'#64748b';
+  return `
+    <div class="score-box">
+      <div class="grade ${s.grade}">${s.grade}</div>
+      <div class="meter"><i style="width:${pct}%;background:${color}"></i></div>
+      <div class="kv"><span>score</span><b>${pct}/100</b></div>
+      <div class="kv"><span>family</span><b>${s.family||'—'}</b></div>
+      <div class="kv"><span>sound density</span><b>${s.density}%</b></div>
+      <div class="kv"><span>repeated family words</span><b>${s.repeats}</b></div>
+      <div class="kv"><span>first→seal distance</span><b>${s.distance} words</b></div>
+      <div class="kv"><span>sink word</span><b>${s.sink||'—'}</b></div>
+      <div class="kv"><span>sink strength</span><b>${s.sinkStrength}/5</b></div>
+      <div class="kv"><span>semantic closure</span><b>${s.semantic}%</b></div>
+    </div>
+  `;
+}
+
+/* ---------- Buttons ---------- */
+document.getElementById('demoBtn').addEventListener('click', ()=>{
+  editor.innerText = 'Love is the law, logos lights the lotus.';
+  tokenizeEditor();
+  toast('Demo loaded. Click LOTUS to see the seal.');
+});
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  editor.innerText = '';
+  editor.focus();
+  sidebarBody.style.display='none';
+  emptyState.style.display='block';
+  activeWord=null;
+});
+document.getElementById('scoreBtn').addEventListener('click', ()=>{
+  const s = lineScore(editor.innerText);
+  sidebarBody.style.display='block';
+  emptyState.style.display='none';
+  sidebarBody.innerHTML = `<div class="section"><div class="section-title">Whole-text hermetic seal</div>${renderScore(s)}</div><div class="footer">Scored the full editor text. Click a word for per-word suggestions.</div>`;
+  toast('Scored: '+s.grade+' '+s.score+'/100');
+});
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// init
+tokenizeEditor();
+</script>
+</body>
+</html>
