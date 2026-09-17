@@ -41,10 +41,23 @@ module.exports = async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const url = new URL(req.url, 'http://localhost');
+      const usage = (url.searchParams.get('usage') || '').trim().toUpperCase();
+      if (usage) {
+        if (!/^[A-Z]{1,40}$/.test(usage)) return reply(res, 400, { error: 'Select one word.' });
+        const { data, count } = await db(`entries?select=clean_text,source_file,word_count&clean_text=fts(simple).${usage}&order=created_at.desc&limit=6`,
+          { headers: { Prefer: 'count=exact' } });
+        return reply(res, 200, { word: usage, count: Number(count?.split('/')[1]) || 0, examples: data });
+      }
       const letter = (url.searchParams.get('letter') || '').toUpperCase();
       const q = (url.searchParams.get('q') || '').trim().toUpperCase().replace(/[^A-Z\s]/g, '').slice(0, 80);
       if (letter && !/^[A-Z]$/.test(letter)) return reply(res, 400, { error: 'Choose A through Z.' });
-      const filters = ['select=clean_text,letter,status,source_file,created_at', 'order=clean_text.asc', 'limit=100', 'status=eq.APPROVED', 'word_count=gte.3'];
+      const filters = ['select=clean_text,letter,status,source_file,word_count,created_at', 'order=clean_text.asc', 'limit=100'];
+      const group = url.searchParams.get('group') || 'all';
+      if (group === 'two') filters.push('word_count=eq.2');
+      else if (group === 'three') filters.push('word_count=eq.3');
+      else if (group === 'four') filters.push('word_count=eq.4');
+      else if (group === 'five') filters.push('word_count=gte.5');
+      else if (group !== 'all') return reply(res, 400, { error: 'Invalid word count group.' });
       if (letter) filters.push(`letter=eq.${letter}`);
       if (q) filters.push(`clean_text=ilike.*${encodeURIComponent(q)}*`);
       const {data} = await db(`entries?${filters.join('&')}`);
