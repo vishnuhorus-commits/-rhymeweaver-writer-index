@@ -44,7 +44,7 @@ module.exports = async function handler(req, res) {
       const letter = (url.searchParams.get('letter') || '').toUpperCase();
       const q = (url.searchParams.get('q') || '').trim().toUpperCase().replace(/[^A-Z\s]/g, '').slice(0, 80);
       if (letter && !/^[A-Z]$/.test(letter)) return reply(res, 400, { error: 'Choose A through Z.' });
-      const filters = ['select=clean_text,letter,status,source_file,created_at', 'order=clean_text.asc', 'limit=100', 'status=eq.APPROVED'];
+      const filters = ['select=clean_text,letter,status,source_file,created_at', 'order=clean_text.asc', 'limit=100', 'status=eq.APPROVED', 'word_count=gte.3'];
       if (letter) filters.push(`letter=eq.${letter}`);
       if (q) filters.push(`clean_text=ilike.*${encodeURIComponent(q)}*`);
       const {data} = await db(`entries?${filters.join('&')}`);
