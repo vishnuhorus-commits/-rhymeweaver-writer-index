@@ -16,6 +16,6 @@ Only `/api/archive` reads these values. Every request requires `X-Archive-Key`. 
 
 ## Use
 
-Open **Living A–Z Archive** on the homepage. Enter the archive key and click **Connect & search**. Choose a letter or enter a phrase. The first 100 approved matches appear, with their source label. To add, paste one phrase per line or select a UTF-8 `.txt` file, name its source, and click **Add to shared archive**. The page sends 20 lines per request and shows progress. Repeating an interrupted import skips exact matches already in the database. Lines with fewer than three words are kept as `REVIEW` and do not appear in approved search.
+Open **Living A–Z Archive** on the homepage. Enter the archive key and click **Connect & search**. Choose a letter or enter a phrase. The first 100 approved matches recorded with at least three words appear, with their source label. Older rows with a missing word count need separate review. To add, paste one phrase per line or select a UTF-8 `.txt` file, name its source, and click **Add to shared archive**. The page sends 20 lines per request and shows progress. Repeating an interrupted import skips exact matches already in the database. Lines with fewer than three words are kept as `REVIEW` and do not appear in approved search.
 
 This route does not bulk import the Gilded Codex or a second book automatically. Those sources need an audited, source-preserving overlap report first. Existing database counts are not the sum of the source file line counts.
