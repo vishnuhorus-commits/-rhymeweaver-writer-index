@@ -76,7 +76,7 @@
     </div>
     <div class="nav-group">Core</div>
     <a class="nav-item active" data-view="dashboard"><span class="ico">▣</span> Dashboard</a>
-    <a class="nav-item" data-view="index"><span class="ico">Aa</span> A–Z Alliteration Index</a>
+    <a class="nav-item" href="archive.html"><span class="ico">Aa</span> Living A–Z Archive</a>
     <a class="nav-item" data-view="workstation"><span class="ico">✎</span> Writing Workstation</a>
     <div class="nav-group">Finders</div>
     <a class="nav-item coming" data-view="sound"><span class="ico">♪</span> Sound Finder</a>
@@ -97,9 +97,7 @@
         <span class="ico">⌕</span>
         <input id="globalSearch" placeholder="Search words, sounds, phrases, symbols, sources…  (try: sound:L  or  lotus)" />
       </div>
-      <div class="stat">Indexed: <b>88,861</b></div>
-      <div class="stat">Families: <b>26</b></div>
-      <div class="stat">Pending: <b>312</b></div>
+      <div class="stat"><a href="archive.html">Open shared archive ↗</a></div>
     </div>
 
     <main class="stage" id="stage">
@@ -117,20 +115,20 @@
             </div>
             <div class="row" style="margin-top:16px;gap:10px">
               <button class="btn primary" data-goto="workstation">Open Writing Workstation</button>
-              <button class="btn" data-goto="index">Browse A–Z Index</button>
+              <a class="btn" href="archive.html">Search or add A–Z lines</a>
               <a class="btn ghost" href="tool-vault/tools/50-alliteration-sidebar-app-v1.html">Sidebar App V1</a>
             </div>
           </div>
           <div class="stack">
-            <div class="stat-card"><div class="label">Total indexed words</div><div class="num gold">88,861</div></div>
-            <div class="stat-card"><div class="label">Alliteration families</div><div class="num cyan">26</div></div>
-            <div class="stat-card"><div class="label">Hermetic seals graded</div><div class="num green">1,204</div></div>
+            <div class="stat-card"><div class="label">Shared archive</div><div class="num gold"><a href="archive.html">Open A–Z</a></div></div>
+            <div class="stat-card"><div class="label">Sound families</div><div class="num cyan">Demo</div></div>
+            <div class="stat-card"><div class="label">Line scoring</div><div class="num green">Demo</div></div>
           </div>
         </div>
 
         <h3 style="margin:6px 0 12px">Modules</h3>
         <div class="module-grid">
-          <div class="module" data-goto="index"><div class="m-ico">Aa</div><h3>A–Z Alliteration Index</h3><p>Browse every word by letter and true phonetic sound family.</p><span class="tag-mini">foundation</span></div>
+          <a class="module" href="archive.html"><div class="m-ico">Aa</div><h3>Living A–Z Archive</h3><p>Search approved lines and add new lines to the shared collection.</p><span class="tag-mini">shared archive</span></a>
           <div class="module" data-goto="workstation"><div class="m-ico">✎</div><h3>Writing Workstation</h3><p>Click a word, get matches, clusters, sink endings, and a seal grade.</p><span class="tag-mini">live</span></div>
           <div class="module coming"><div class="m-ico">♪</div><h3>Sound Finder</h3><p>Phonetic search across the whole archive.</p><span class="tag-mini">phase 3</span></div>
           <div class="module coming"><div class="m-ico">≈</div><h3>Rhyme Finder</h3><p>Rhymes and near-rhymes by vowel tail.</p><span class="tag-mini">phase 3</span></div>
@@ -217,7 +215,7 @@ function cleanWord(raw){let s=stripDiacritics(String(raw||''));s=s.replace(/[^A-
 function graphicInitial(w){return (w&&/^[A-Z]/.test(w))?w[0]:'';}
 function isVowelKey(k){return k==='VOWEL'||VOWELS.has(k);}
 function getPhoneticInitial(raw){let w=cleanWord(raw);if(!w)return '';if(OVERRIDES.has(w))return OVERRIDES.get(w);if(/^(KN|GN|PN)/.test(w))return 'N';if(/^WR/.test(w))return 'R';if(/^RH/.test(w))return 'R';if(/^PS/.test(w))return 'S';if(/^WH/.test(w))return 'W';if(/^PH/.test(w))return 'F';if(/^TH/.test(w))return 'TH';if(/^SH/.test(w))return 'SH';if(/^QU/.test(w))return 'KW';if(/^X/.test(w))return 'Z';if(/^CH/.test(w)){if(CH_SH.has(w))return 'SH';if(CH_K.has(w)||/^CHR/.test(w)||/^CHL/.test(w)||/^CHEM/.test(w)||/^CHOR/.test(w))return 'K';return 'CH';}if(/^SCH/.test(w)){if(/^SCH(O|A|U|R|L)/.test(w))return 'SK';return 'SH';}if(/^C/.test(w)){if(/^C[EIY]/.test(w))return 'S';return 'K';}if(/^G/.test(w)){if(SOFT_G.has(w))return 'J';if(HARD_G.has(w))return 'G';if(/^G[EIY]/.test(w))return 'J';return 'G';}if(/^J/.test(w))return 'J';if(/^[AEIOU]/.test(w))return 'VOWEL';return w[0];}
-const DICT=[['LOTUS','sacred-symbol',5,true,'us','gold'],['LOVE','core',5,true,'ove','gold'],['LAW','core',5,true,'aw','gold'],['LOGOS','sacred-symbol',5,true,'os','gold'],['LIGHT','core',4,false,'ight','blue'],['LANGUAGE','usable',3,false,'age','green'],['LUMINOUS','sacred-symbol',4,true,'ous','gold'],['LIVING','usable',3,false,'ing','green'],['LEVITATION','sacred-symbol',4,true,'ation','gold'],['LIBERATION','sacred-symbol',4,true,'ation','gold'],['LIMITLESSNESS','sacred-symbol',4,true,'ess','gold'],['LION','core',3,false,'ion','blue'],['LANTERN','usable',3,false,'ern','green'],['KNIGHT','core',4,false,'ight','blue'],['KNOWLEDGE','sacred-symbol',4,true,'edge','gold'],['KING','core',3,false,'ing','blue'],['KEY','core',3,false,'ey','blue'],['NIGHT','core',4,false,'ight','blue'],['NEVER','usable',2,false,'ever','green'],['NOW','usable',2,false,'ow','green'],['PHONE','core',3,false,'one','blue'],['PHANTOM','sacred-symbol',4,true,'om','gold'],['FLOW','core',3,false,'ow','blue'],['FIRE','core',3,false,'ire','blue'],['FAITH','sacred-symbol',4,true,'aith','gold'],['WRATH','core',4,false,'ath','blue'],['RIGHTEOUS','sacred-symbol',4,true,'ous','gold'],['ROSE','core',3,false,'ose','blue'],['RADIANCE','sacred-symbol',4,true,'ance','gold'],['CYCLONE','core',3,false,'one','blue'],['SILENCE','sacred-symbol',4,true,'ence','gold'],['SOUND','core',3,false,'ound','blue'],['STAR','core',3,false,'ar','blue'],['SEAL','core',4,false,'eal','blue'],['CHEF','core',3,false,'ef','blue'],['SHADOW','usable',3,false,'adow','green'],['CHAIR','core',3,false,'air','blue'],['CHILD','usable',3,false,'ild','green'],['COLD','core',3,false,'old','blue'],['COSMIC','sacred-symbol',4,true,'ic','gold'],['CHRIST','sacred-symbol',5,true,'ist','gold'],['THOUGHT','core',3,false,'ought','blue'],['THRONE','sacred-symbol',4,true,'one','gold'],['WHISPER','usable',3,false,'isper','green'],['WIND','core',3,false,'ind','blue'],['WISDOM','sacred-symbol',4,true,'om','gold'],['UNION','core',3,false,'ion','blue'],['UNIQUE','usable',3,false,'ique','green'],['UNIVERSE','sacred-symbol',4,true,'erse','gold'],['ZEAL','core',3,false','eal','blue'],['ZENITH','sacred-symbol',4,true,'ith','gold'],['GIANT','core',3,false,'iant','blue'],['JOY','core',3,false,'oy','blue'],['JEWEL','sacred-symbol',4,true,'el','gold'],['JUSTICE','sacred-symbol',4,true,'ice','gold']];
+const DICT=[['LOTUS','sacred-symbol',5,true,'us','gold'],['LOVE','core',5,true,'ove','gold'],['LAW','core',5,true,'aw','gold'],['LOGOS','sacred-symbol',5,true,'os','gold'],['LIGHT','core',4,false,'ight','blue'],['LANGUAGE','usable',3,false,'age','green'],['LUMINOUS','sacred-symbol',4,true,'ous','gold'],['LIVING','usable',3,false,'ing','green'],['LEVITATION','sacred-symbol',4,true,'ation','gold'],['LIBERATION','sacred-symbol',4,true,'ation','gold'],['LIMITLESSNESS','sacred-symbol',4,true,'ess','gold'],['LION','core',3,false,'ion','blue'],['LANTERN','usable',3,false,'ern','green'],['KNIGHT','core',4,false,'ight','blue'],['KNOWLEDGE','sacred-symbol',4,true,'edge','gold'],['KING','core',3,false,'ing','blue'],['KEY','core',3,false,'ey','blue'],['NIGHT','core',4,false,'ight','blue'],['NEVER','usable',2,false,'ever','green'],['NOW','usable',2,false,'ow','green'],['PHONE','core',3,false,'one','blue'],['PHANTOM','sacred-symbol',4,true,'om','gold'],['FLOW','core',3,false,'ow','blue'],['FIRE','core',3,false,'ire','blue'],['FAITH','sacred-symbol',4,true,'aith','gold'],['WRATH','core',4,false,'ath','blue'],['RIGHTEOUS','sacred-symbol',4,true,'ous','gold'],['ROSE','core',3,false,'ose','blue'],['RADIANCE','sacred-symbol',4,true,'ance','gold'],['CYCLONE','core',3,false,'one','blue'],['SILENCE','sacred-symbol',4,true,'ence','gold'],['SOUND','core',3,false,'ound','blue'],['STAR','core',3,false,'ar','blue'],['SEAL','core',4,false,'eal','blue'],['CHEF','core',3,false,'ef','blue'],['SHADOW','usable',3,false,'adow','green'],['CHAIR','core',3,false,'air','blue'],['CHILD','usable',3,false,'ild','green'],['COLD','core',3,false,'old','blue'],['COSMIC','sacred-symbol',4,true,'ic','gold'],['CHRIST','sacred-symbol',5,true,'ist','gold'],['THOUGHT','core',3,false,'ought','blue'],['THRONE','sacred-symbol',4,true,'one','gold'],['WHISPER','usable',3,false,'isper','green'],['WIND','core',3,false,'ind','blue'],['WISDOM','sacred-symbol',4,true,'om','gold'],['UNION','core',3,false,'ion','blue'],['UNIQUE','usable',3,false,'ique','green'],['UNIVERSE','sacred-symbol',4,true,'erse','gold'],['ZEAL','core',3,false,'eal','blue'],['ZENITH','sacred-symbol',4,true,'ith','gold'],['GIANT','core',3,false,'iant','blue'],['JOY','core',3,false,'oy','blue'],['JEWEL','sacred-symbol',4,true,'el','gold'],['JUSTICE','sacred-symbol',4,true,'ice','gold']];
 const BY_WORD=new Map(),BY_SOUND=new Map();
 for(const r of DICT){const [word,category,strength,sacred,rhyme,color]=r;const w=word.toUpperCase();const sound=getPhoneticInitial(w);const e={word:w,category,strength,sacred,rhyme,color,sound};BY_WORD.set(w,e);if(!BY_SOUND.has(sound))BY_SOUND.set(sound,[]);BY_SOUND.get(sound).push(e);}
 for(const [k,a] of BY_SOUND)a.sort((x,y)=>(y.strength-x.strength)||x.word.localeCompare(y.word));
